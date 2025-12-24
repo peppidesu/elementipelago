@@ -105,6 +105,6 @@ mod tests {
     #[test]
     fn test_graph() {
         println!("graph {:?}", create_graph(10, 10, 2827108, 10, 4));
-        assert_eq!(true, false)
+        //assert_eq!(true, false)
     }
 }
