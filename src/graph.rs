@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 struct RNG {
     seed_x: u64,
@@ -38,11 +38,8 @@ pub fn create_graph(
     seed: u64,
     intermediates: u64,
     start_items: u64,
-) -> (Vec<(u64, u64, u64)>, Vec<Status>) {
-    let mut recipes = Vec::new();
-    // TODO: maybe use the bevy hashset instead, not very performance relevant to since only during
-    // load
-    let mut used = HashSet::new();
+) -> (HashMap<(u64, u64), u64>, Vec<Status>) {
+    let mut recipes = HashMap::new();
     let items_len = inputs + intermediates + outputs;
     let mut statuses = vec![Status::INTERMEDIATE; items_len as usize];
 
@@ -57,12 +54,11 @@ pub fn create_graph(
         loop {
             item1 = rng.get_random() % i;
             item2 = rng.get_random() % i;
-            if !used.contains(&(item1, item2)) && !used.contains(&(item2, item1)) {
-                used.insert((item1, item2));
+            if !recipes.contains_key(&(item1, item2)) && !recipes.contains_key(&(item2, item1)) {
                 break;
             }
         }
-        recipes.push((item1, item2, i));
+        recipes.insert((item1, item2), i);
     }
 
     let r_items_len = items_len - start_items;
@@ -99,12 +95,12 @@ mod tests {
         for i in 0..100 {
             println!("value {} -> {}", i, rng.get_random());
         }
-        //assert_eq!(true, false)
+        assert_eq!(true, false)
     }
 
     #[test]
     fn test_graph() {
         println!("graph {:?}", create_graph(10, 10, 2827108, 10, 4));
-        //assert_eq!(true, false)
+        assert_eq!(true, false)
     }
 }
