@@ -7,6 +7,9 @@ use bevy::{
     prelude::*,
     window::PrimaryWindow,
 };
+
+mod graph;
+
 #[derive(Component, Clone)]
 struct Element(u32);
 
