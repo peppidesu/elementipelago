@@ -16,7 +16,6 @@ impl RNG {
     pub fn get_random(&mut self) -> u64 {
         let mut x = self.seed_x;
         let y = self.seed_y;
-        println!("x = {x}, y = {y}");
         self.seed_x = self.seed_y;
         x ^= x << 23;
         x ^= x >> 17;
@@ -26,7 +25,7 @@ impl RNG {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 enum Status {
     INPUT,
     INTERMEDIATE,
@@ -100,6 +99,12 @@ mod tests {
         for i in 0..100 {
             println!("value {} -> {}", i, rng.get_random());
         }
+        //assert_eq!(true, false)
+    }
+
+    #[test]
+    fn test_graph() {
+        println!("graph {:?}", create_graph(10, 10, 2827108, 10, 4));
         assert_eq!(true, false)
     }
 }
