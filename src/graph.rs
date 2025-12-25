@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use bevy::platform::collections::HashMap;
 
 struct RNG {
     seed_x: u64,
@@ -26,7 +26,7 @@ impl RNG {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-enum Status {
+pub enum Status {
     INPUT,
     INTERMEDIATE,
     OUTPUT,
@@ -44,8 +44,8 @@ pub fn create_graph(
     let mut statuses = vec![Status::INTERMEDIATE; items_len as usize];
 
     let mut rng = RNG::init(seed);
-    for _ in 0..start_items {
-        statuses.push(Status::INPUT);
+    for idx in 0..(start_items as usize) {
+        statuses[idx] = Status::INPUT;
     }
 
     for i in start_items..items_len {
