@@ -1,3 +1,5 @@
+//! Recipe graph generation
+
 use bevy::platform::collections::HashMap;
 
 struct RNG {
