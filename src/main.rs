@@ -11,6 +11,7 @@ use rand::{Rng, RngCore, SeedableRng, rngs::SmallRng};
 
 use crate::util::*;
 
+mod archipelago;
 mod graph;
 mod util;
 

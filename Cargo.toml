@@ -7,6 +7,9 @@ edition = "2024"
 bevy = { version = "0.17.3", features = ["dynamic_linking"] }
 float-ord = "0.3.2"
 rand = "0.9.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.148"
+websocket = { version = "0.27.1", features = ["sync", "sync-ssl", "native-tls"], default-features = false }
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
