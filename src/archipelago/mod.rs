@@ -39,11 +39,14 @@ struct ArchipelagoState {
     checked_locations: Vec<LocationID>,
 }
 
-fn init_connecting(client: &mut Res<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
-    if let Ok(client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
+fn init_connecting(mut apclient: ResMut<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
+    if let Ok(mut client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
         match client.connect(None) {
-            Ok(_) => todo!(),
-            Err(e) => eprintln!("can't connect to websocket "),
+            Ok(client) => {
+                client.set_nonblocking(true).unwrap();
+                apclient.ws = Some(Mutex::new(client));
+            }
+            Err(e) => eprintln!("can't connect to websocket due to error {:?}", e),
         }
     } else {
         eprintln!("Can't parse url")
