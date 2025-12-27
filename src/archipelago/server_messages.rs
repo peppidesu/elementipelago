@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use super::shared_types::*;
 use serde::Deserialize;
+use serde_repr::Deserialize_repr;
 
-#[derive(Deserialize)]
+#[derive(Deserialize_repr)]
+#[repr(u8)]
 pub(super) enum Permission {
     Disabled = 0b000,
     Enabled = 0b001,
@@ -36,7 +38,7 @@ pub(super) struct NetworkPlayer {
     name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub(super) struct NetworkItem {
     item: ItemID,
     location: LocationID,
@@ -44,7 +46,7 @@ pub(super) struct NetworkItem {
     flags: u8,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub(super) struct SlotData {}
 
 #[derive(Deserialize)]
@@ -70,8 +72,20 @@ pub(super) enum NetworkSlot {
 pub(super) struct DataPackageObject {}
 
 #[derive(Deserialize)]
+pub(super) struct JsonData {
+    text: String,
+}
+
+#[derive(Deserialize)]
 #[serde(tag = "type")]
-pub(super) enum PrintJSONMessage {}
+pub(super) enum PrintJSONMessage {
+    Join {
+        data: Vec<JsonData>,
+        team: TeamID,
+        slot: PlayerID,
+        tags: Vec<String>,
+    },
+}
 
 #[derive(Deserialize)]
 #[serde(tag = "cmd")]
@@ -99,7 +113,7 @@ pub(super) enum APServerMessage {
         missing_locations: Vec<LocationID>,
         checked_locations: Vec<LocationID>,
         slot_data: SlotData,
-        slot_info: HashMap<PlayerID, NetworkSlot>,
+        slot_info: HashMap<String, NetworkSlot>,
         hint_points: isize,
     },
     ReceivedItems {

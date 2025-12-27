@@ -3,6 +3,7 @@ use bevy::asset::uuid::Uuid;
 use serde::Serialize;
 
 #[derive(Serialize)]
+#[serde(tag = "cmd")]
 pub(super) enum APClientMessage {
     Connect {
         password: String,

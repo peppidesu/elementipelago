@@ -22,12 +22,15 @@ mod shared_types;
 
 type WsClient = Client<Box<dyn NetworkStream + Send>>;
 
+#[derive(Event)]
+struct StartConnect;
+
 #[derive(Resource)]
 struct ArchipelagoClient {
     ws: Option<Mutex<WsClient>>,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 struct ArchipelagoState {
     connected: bool,
     address: String,
@@ -39,17 +42,128 @@ struct ArchipelagoState {
     checked_locations: Vec<LocationID>,
 }
 
-fn init_connecting(mut apclient: ResMut<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
+fn init_connecting(
+    _start: On<StartConnect>,
+    mut apclient: ResMut<ArchipelagoClient>,
+    mut state: ResMut<ArchipelagoState>,
+) {
     if let Ok(mut client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
         match client.connect(None) {
             Ok(client) => {
                 client.set_nonblocking(true).unwrap();
                 apclient.ws = Some(Mutex::new(client));
             }
+            Err(TlsHandshakeFailure) => {
+                let c = ClientBuilder::new(&format!("ws://{}", state.address))
+                    .unwrap()
+                    .connect(None)
+                    .unwrap();
+                c.set_nonblocking(true).unwrap();
+                apclient.ws = Some(Mutex::new(c));
+            }
             Err(e) => eprintln!("can't connect to websocket due to error {:?}", e),
         }
     } else {
         eprintln!("Can't parse url")
+    }
+}
+
+fn handle_server_message(
+    state: &mut ResMut<ArchipelagoState>,
+    ws: &mut WsClient,
+    des: APServerMessage,
+) {
+    match des {
+        APServerMessage::RoomInfo {
+            version,
+            generator_version,
+            tags,
+            password,
+            permissions,
+            hint_cost,
+            location_check_points,
+            games,
+            datapackage_checksums,
+            seed_name,
+            time,
+        } => {
+            if state.connected {
+                return;
+            }
+            let msg = vec![APClientMessage::Connect {
+                password: state.password.clone(),
+                game: "Elementipelago".to_string(),
+                name: state.slot.clone(),
+                uuid: Uuid::new_v4(),
+                version: APVersion::default(),
+                items_handling: 0b111,
+                tags: Vec::new(),
+                slot_data: true,
+            }];
+            println!(
+                "I'm connecting, with json: {}",
+                serde_json::to_string(&msg).unwrap()
+            );
+
+            ws.send_message(&OwnedMessage::Text(serde_json::to_string(&msg).unwrap()))
+                .unwrap();
+        }
+        APServerMessage::ConnectionRefused { errors } => {
+            state.connected = false;
+            eprintln!("{:#?}", errors);
+        }
+        APServerMessage::Connected {
+            team,
+            slot,
+            players,
+            missing_locations,
+            checked_locations,
+            slot_data,
+            slot_info,
+            hint_points,
+        } => {
+            state.slotdata = Some(slot_data);
+            state.checked_locations = checked_locations;
+            state.connected = true;
+
+            println!("Logged in, my state is {:?}", state);
+        }
+        APServerMessage::ReceivedItems { index, items } => {
+            todo!("Send message about received items")
+        }
+        APServerMessage::LocationInfo { locations } => {
+            todo!("New info about a location")
+        }
+        APServerMessage::RoomUpdate {
+            version,
+            generator_version,
+            tags,
+            password,
+            permissions,
+            hint_cost,
+            location_check_points,
+            games,
+            datapackage_checksums,
+            seed_name,
+            time,
+            team,
+            slot,
+            players,
+            checked_locations,
+            slot_data,
+            slot_info,
+            hint_points,
+        } => todo!(),
+        APServerMessage::PrintJSON(print_jsonmessage) => todo!(),
+        APServerMessage::DataPackage { data } => todo!(),
+        APServerMessage::Bounced {} => todo!(),
+        APServerMessage::InvalidPacket {
+            typ,
+            original_cmd,
+            text,
+        } => todo!(),
+        APServerMessage::Retrieved {} => todo!(),
+        APServerMessage::SetReply {} => todo!(),
     }
 }
 
@@ -65,106 +179,25 @@ fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<Archi
                     close_ws = true;
                     break;
                 }
-                Err(NoDataAvailable) => break,
+                Err(websocket::WebSocketError::Other(wb)) => {
+                    break;
+                }
                 Err(e) => {
-                    eprintln!("{}", e.to_string());
+                    eprintln!("{:?}", e);
                     panic!()
                 }
-                Ok(OwnedMessage::Text(str)) => {
-                    if let Ok(des) = from_str(&str) {
-                        let des: APServerMessage = des;
-                        match des {
-                            APServerMessage::RoomInfo {
-                                version,
-                                generator_version,
-                                tags,
-                                password,
-                                permissions,
-                                hint_cost,
-                                location_check_points,
-                                games,
-                                datapackage_checksums,
-                                seed_name,
-                                time,
-                            } => {
-                                if state.connected {
-                                    continue;
-                                }
-                                let msg = APClientMessage::Connect {
-                                    password: state.password.clone(),
-                                    game: "Elementipelago".to_string(),
-                                    name: state.slot.clone(),
-                                    uuid: Uuid::new_v4(),
-                                    version: APVersion::default(),
-                                    items_handling: 0b111,
-                                    tags: Vec::new(),
-                                    slot_data: true,
-                                };
-
-                                ws.send_message(&OwnedMessage::Text(
-                                    serde_json::to_string(&msg).unwrap(),
-                                ))
-                                .unwrap();
-                            }
-                            APServerMessage::ConnectionRefused { errors } => {
-                                state.connected = false;
-                                eprintln!("{:#?}", errors);
-                            }
-                            APServerMessage::Connected {
-                                team,
-                                slot,
-                                players,
-                                missing_locations,
-                                checked_locations,
-                                slot_data,
-                                slot_info,
-                                hint_points,
-                            } => {
-                                state.slotdata = Some(slot_data);
-                                state.checked_locations = checked_locations;
-                                state.connected = true;
-                            }
-                            APServerMessage::ReceivedItems { index, items } => {
-                                println!("Send message about received items")
-                            }
-                            APServerMessage::LocationInfo { locations } => {
-                                println!("New info about a location")
-                            }
-                            APServerMessage::RoomUpdate {
-                                version,
-                                generator_version,
-                                tags,
-                                password,
-                                permissions,
-                                hint_cost,
-                                location_check_points,
-                                games,
-                                datapackage_checksums,
-                                seed_name,
-                                time,
-                                team,
-                                slot,
-                                players,
-                                checked_locations,
-                                slot_data,
-                                slot_info,
-                                hint_points,
-                            } => todo!(),
-                            APServerMessage::PrintJSON(print_jsonmessage) => todo!(),
-                            APServerMessage::DataPackage { data } => todo!(),
-                            APServerMessage::Bounced {} => todo!(),
-                            APServerMessage::InvalidPacket {
-                                typ,
-                                original_cmd,
-                                text,
-                            } => todo!(),
-                            APServerMessage::Retrieved {} => todo!(),
-                            APServerMessage::SetReply {} => todo!(),
+                Ok(OwnedMessage::Text(str)) => match from_str(&str) {
+                    Ok(ldes) => {
+                        let ldes: Vec<APServerMessage> = ldes;
+                        for des in ldes {
+                            handle_server_message(&mut state, &mut ws, des)
                         }
-                    } else {
-                        println!("non malformed server messages, not {:#?}", str);
                     }
-                }
+                    Err(e) => {
+                        println!("Can't decode: {}, got err {:?}", str, e);
+                        panic!();
+                    }
+                },
 
                 _ => todo!("websocket message type not handled"),
             }
@@ -173,6 +206,13 @@ fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<Archi
     if close_ws {
         client.ws = None;
     }
+}
+
+fn init_state(mut commands: Commands, mut state: ResMut<ArchipelagoState>) {
+    state.address = "localhost:38281".to_string();
+    state.slot = "Player1".to_string();
+
+    commands.trigger(StartConnect);
 }
 
 // run when an item is merged or something (or on a timer with messages)
@@ -196,6 +236,8 @@ impl Plugin for ArchipelagoPlugin {
                 found_items: vec![],
                 checked_locations: vec![],
             })
-            .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg));
+            .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
+            .add_systems(Startup, init_state)
+            .add_observer(init_connecting);
     }
 }
