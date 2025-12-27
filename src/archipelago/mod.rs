@@ -40,9 +40,14 @@ struct ArchipelagoState {
 }
 
 fn init_connecting(client: &mut Res<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
-    // TODO: set address, slot and password
-    // make ws from None -> Some
-    if let Ok(client) = ClientBuilder::new(&format!("wss://{}", state.address));
+    if let Ok(client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
+        match client.connect(None) {
+            Ok(_) => todo!(),
+            Err(e) => eprintln!("can't connect to websocket "),
+        }
+    } else {
+        eprintln!("Can't parse url")
+    }
 }
 
 fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
