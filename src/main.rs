@@ -1,4 +1,6 @@
-use bevy::{platform::collections::HashMap, prelude::*, window::PrimaryWindow};
+#[cfg(target_os = "linux")]
+use bevy::window::CompositeAlphaMode;
+use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
@@ -10,65 +12,81 @@ mod util;
 
 const Z_INDEX_PLAYFIELD_MIN: f32 = -2.0;
 const Z_INDEX_PLAYFIELD_MAX: f32 = -1.0;
-const Z_INDEX_CURSOR: f32 = 10.0;
+const Z_INDEX_DRAG: f32 = 5.0;
 
 /// Element with a numerical ID
 #[derive(Component, Clone)]
 struct Element(u64);
-
 /// Source element that creates new copies rather than being moved
 #[derive(Component, Clone)]
 struct ElementSource;
-
-/// Drawer containing source elements
-#[derive(Component)]
-#[require(Transform, InheritedVisibility)]
-struct ElementDrawer;
-
-/// Indicates the current element is being dragged by the cursor
-#[derive(Component)]
-struct BeingDragged;
 
 /// Message indicating an element was just dropped
 #[derive(Message)]
 struct ElementDropped(Entity);
 
-/// Cursor-tracking component
-#[derive(Component)]
-struct Cursor;
-
-/// Mapping of valid recipe ingredients to products
 #[derive(Resource)]
-struct Recipes(HashMap<(u64, u64), u64>);
+struct ElementSpriteSheet(Handle<TextureAtlasLayout>, Handle<Image>);
+
+impl FromWorld for ElementSpriteSheet {
+    fn from_world(world: &mut World) -> Self {
+        let texture_atlas = TextureAtlasLayout::from_grid(
+            (48, 48).into(), // The size of each image
+            1,               // The number of columns
+            13,              // The number of rows
+            None,            // Padding
+            None,            // Offset
+        );
+
+        let mut texture_atlases = world
+            .get_resource_mut::<Assets<TextureAtlasLayout>>()
+            .unwrap();
+        let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+        let image = world
+            .get_resource::<AssetServer>()
+            .unwrap()
+            .load("atlas.png");
+
+        Self(texture_atlas_handle, image)
+    }
+}
 
 #[derive(Bundle)]
-
 struct ElementBundle {
+    pickable: Pickable,
     element: Element,
     transform: Transform,
     sprite: Sprite,
 }
 
 impl ElementBundle {
-    fn build(id: u64, pos: Vec2) -> ElementBundle {
+    fn build(id: u64, pos: Vec2, sprite_sheet: &ElementSpriteSheet) -> ElementBundle {
+        let element = Element(id);
         let mut rng = SmallRng::seed_from_u64(id);
-        let dark = rng.random_bool(0.5);
-        let color = if dark {
-            Color::hsl(rng.random::<f32>() * 360.0, 1.0, 0.75)
-        } else {
-            Color::hsl(rng.random::<f32>() * 360.0, 1.0, 0.25)
-        };
+        let sprite = Sprite::from_atlas_image(
+            sprite_sheet.1.clone(),
+            TextureAtlas {
+                layout: sprite_sheet.0.clone(),
+                index: rng.random_range(0..13),
+            },
+        );
         ElementBundle {
-            element: Element(id),
+            pickable: Pickable::default(),
+            element,
             transform: Transform {
-                translation: Vec3::new(pos.x, pos.y, 1.0),
-                scale: Vec3::new(64.0, 64.0, 1.0),
+                translation: Vec3::new(pos.x, pos.y, Z_INDEX_DRAG),
+                scale: Vec3::splat(2.0),
                 ..default()
             },
-            sprite: Sprite::from_color(color, Vec2::ONE),
+            sprite,
         }
     }
 }
+
+/// Mapping of valid recipe ingredients to products
+#[derive(Resource)]
+struct Recipes(HashMap<(u64, u64), u64>);
 
 impl Recipes {
     /// Get the product resulting from the given ingredients, if it exists.
@@ -86,68 +104,43 @@ fn any_message<T: Message>(mut reader: MessageReader<T>) -> bool {
     reader.read().count() > 0
 }
 
-fn cursor_move(
-    window: Single<&Window, With<PrimaryWindow>>,
-    camera_query: Single<(&Camera, &GlobalTransform)>,
-    mut transform: Single<&mut Transform, With<Cursor>>,
-) {
-    // Camera is required for screen-to-world conversion
-    let (camera, camera_transform) = *camera_query;
-
-    if let Some(position) = window.cursor_position()
-        && let Ok(worldpos) = camera.viewport_to_world_2d(camera_transform, position)
-    {
-        transform.translation = worldpos.extend(Z_INDEX_CURSOR);
-    }
-}
-
-fn drag_end(
-    mut commands: Commands,
+fn element_drag_end(
+    drag_drop: On<Pointer<DragEnd>>,
     mut dropped_msg: MessageWriter<ElementDropped>,
-    drag_root: If<Single<Entity, With<BeingDragged>>>,
 ) {
-    commands
-        .entity(**drag_root)
-        .remove::<BeingDragged>()
-        .remove_parent_in_place();
-
-    dropped_msg.write(ElementDropped(**drag_root));
+    dropped_msg.write(ElementDropped(drag_drop.entity));
 }
 
-fn drag_begin(
+fn source_drag_start(
+    drag_start: On<Pointer<DragStart>>,
     mut commands: Commands,
-    assets: Res<Assets<Image>>,
-    cursor_query: Single<(Entity, &Transform), With<Cursor>>,
-    mut element_query: Query<
-        (Entity, &GlobalTransform, &Sprite, Option<&ElementSource>),
-        (With<Element>, Without<Cursor>),
-    >,
+    src_query: Query<Entity, With<ElementSource>>,
 ) {
-    let (cursor, cursor_transform) = *cursor_query;
-
-    let Some((element_root, _, _, element_is_src)) = element_query
-        .iter_mut()
-        // Only elements under cursor
-        .filter(|(_, tf, sprite, _)| {
-            let bounds = get_sprite_bounds(sprite, tf, &assets);
-            bounds.contains(cursor_transform.translation.xy())
-        })
-        // Element with highest z index (top-most)
-        .max_by_key(|(_, tf, _, _)| FloatOrd(tf.translation().z))
-    else {
-        // No candidate elements
+    let Ok(src_root) = src_query.get(drag_start.entity) else {
         return;
     };
 
-    if element_is_src.is_some() {
-        commands.entity(element_root).clone_and_spawn();
-        commands.entity(element_root).remove::<ElementSource>();
-    }
+    commands
+        .entity(src_root)
+        .clone_and_spawn()
+        .observe(source_drag_start);
 
     commands
-        .entity(element_root)
-        .set_parent_in_place(cursor)
-        .insert(BeingDragged);
+        .entity(src_root)
+        .remove::<ElementSource>()
+        .observe(element_drag)
+        .observe(element_drag_end);
+}
+
+fn element_drag(
+    drag: On<Pointer<Drag>>,
+    camera_query: Single<(&Camera, &GlobalTransform)>,
+    mut tf: Query<&mut Transform>,
+) {
+    let (camera, camera_tf) = *camera_query;
+    if let Ok(worldpos) = camera.viewport_to_world_2d(camera_tf, drag.pointer_location.position) {
+        tf.get_mut(drag.entity).unwrap().translation = worldpos.extend(Z_INDEX_DRAG);
+    }
 }
 
 fn recalculate_element_z_order(
@@ -174,19 +167,18 @@ fn merge_elements(
     mut commands: Commands,
     recipes: Res<Recipes>,
     assets: Res<Assets<Image>>,
+    sprite_sheet: Res<ElementSpriteSheet>,
     mut dropped_msg: MessageReader<ElementDropped>,
     element_query: Query<(Entity, &Element, &GlobalTransform, &Sprite), Without<ElementSource>>,
 ) {
     dropped_msg.read().for_each(|msg| {
-        let Some((dropped_root, dropped_el, dropped_tf, dropped_sprite)) =
-            element_query.iter().find(|(root, ..)| *root == msg.0)
+        let Ok((dropped_root, dropped_el, dropped_tf, dropped_sprite)) = element_query.get(msg.0)
         else {
             // Entity has despawned
             return;
         };
 
         let dropped_bb = get_sprite_bounds(dropped_sprite, dropped_tf, &assets);
-
         let Some((other_root, other_tf, result_el)) = element_query
             .iter()
             .filter(|(e, _, _, _)| *e != msg.0)
@@ -194,6 +186,7 @@ fn merge_elements(
             .filter(|(_, _, tf, sprite)| {
                 let other_bb = get_sprite_bounds(sprite, tf, &assets);
                 let isect = dropped_bb.intersect(other_bb);
+                println!("{:?}", other_bb);
                 !isect.is_empty()
             })
             // Only elements that can merge with this one
@@ -216,7 +209,10 @@ fn merge_elements(
             .interpolate_stable(&other_tf.translation().xy(), 0.5);
 
         // spawn product element
-        commands.spawn(ElementBundle::build(result_el, new_pos));
+        commands
+            .spawn(ElementBundle::build(result_el, new_pos, &sprite_sheet))
+            .observe(element_drag)
+            .observe(element_drag_end);
 
         // despawn ingredient elements
         commands.entity(dropped_root).despawn();
@@ -224,53 +220,8 @@ fn merge_elements(
     });
 }
 
-fn bring_dragged_to_top(
-    mut tf: If<Single<(&mut Transform, &GlobalTransform), Added<BeingDragged>>>,
-) {
-    (*tf).0.translation.z = 0.0;
-}
-
-pub struct PlayfieldPlugin;
-impl Plugin for PlayfieldPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<ElementDropped>().add_systems(
-            Update,
-            (
-                (
-                    drag_begin.run_if(input::primary_just_pressed),
-                    bring_dragged_to_top,
-                )
-                    .chain(),
-                (
-                    drag_end.run_if(input::primary_just_released),
-                    merge_elements,
-                    recalculate_element_z_order.run_if(any_message::<ElementDropped>),
-                )
-                    .chain(),
-            ),
-        );
-    }
-}
-
-fn setup(mut commands: Commands, window: Single<&Window, With<PrimaryWindow>>) {
-    commands.spawn(Camera2d);
-    commands.spawn((
-        Cursor,
-        Transform {
-            translation: Vec3::new(1.0, 1.0, 10.0),
-            ..default()
-        },
-    ));
-
-    let mut drawer = commands.spawn((
-        ElementDrawer,
-        Transform {
-            translation: Vec3::new(-200.0, 0.0, 0.0),
-            ..default()
-        },
-    ));
-
-    let gap = 72.0;
+fn setup_playfield(mut commands: Commands, sprite_sheet: Res<ElementSpriteSheet>) {
+    let gap = 96.0;
     let count = 15;
     let cols = 3;
     let height = (count / cols) as f32 * gap;
@@ -278,11 +229,36 @@ fn setup(mut commands: Commands, window: Single<&Window, With<PrimaryWindow>>) {
     let offset_x = -((cols - 1) as f32 * gap) * 0.5;
 
     for i in 0..count {
-        let x = (i % cols) as f32 * 72.0 + offset_x;
-        let y = offset_y - (i / cols) as f32 * 72.0;
+        let x = (i % cols) as f32 * gap + offset_x;
+        let y = offset_y - (i / cols) as f32 * gap;
 
-        drawer.with_child((ElementBundle::build(i, Vec2::new(x, y)), ElementSource));
+        commands
+            .spawn((
+                ElementBundle::build(i, Vec2::new(x, y), &sprite_sheet),
+                ElementSource,
+            ))
+            .observe(source_drag_start);
     }
+}
+
+pub struct PlayfieldPlugin;
+impl Plugin for PlayfieldPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_message::<ElementDropped>()
+            .add_systems(Startup, setup_playfield)
+            .add_systems(
+                Update,
+                (
+                    merge_elements,
+                    recalculate_element_z_order.run_if(any_message::<ElementDropped>),
+                )
+                    .chain(),
+            );
+    }
+}
+
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }
 
 fn main() {
@@ -290,10 +266,13 @@ fn main() {
     println!("{:?}", generated_graph);
 
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(PlayfieldPlugin)
+        .add_plugins((
+            DefaultPlugins.set(ImagePlugin::default_nearest()),
+            PlayfieldPlugin,
+        ))
+        .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
+        .init_resource::<ElementSpriteSheet>()
         .insert_resource(Recipes(generated_graph))
         .add_systems(Startup, setup)
-        .add_systems(Update, cursor_move)
         .run();
 }
