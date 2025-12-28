@@ -82,6 +82,80 @@ impl ElementBundle {
     }
 }
 
+pub struct AddElementBackground;
+impl EntityCommand for AddElementBackground {
+    fn apply(self, mut entity: EntityWorldMut) -> () {
+        let asset_server = entity.get_resource::<AssetServer>().unwrap();
+        let element_bg = asset_server.load("element-bg.png");
+
+        entity.with_child((
+            Sprite::from_image(element_bg),
+            Transform {
+                translation: Vec3::new(0.0, 0.0, -0.000001),
+                ..default()
+            },
+            Pickable::default(),
+        ));
+    }
+}
+
+pub struct SpawnElement {
+    id: u64,
+    pos: Vec2,
+}
+
+impl Command for SpawnElement {
+    fn apply(self, world: &mut World) -> () {
+        let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
+        let bundle = ElementBundle::build(self.id, self.pos, &sprite_sheet);
+        world
+            .commands()
+            .spawn(bundle)
+            .queue(AddElementBackground)
+            .observe(element_drag)
+            .observe(element_drag_end);
+    }
+}
+
+pub struct SpawnElementSource {
+    id: u64,
+    pos: Vec2,
+}
+
+impl Command for SpawnElementSource {
+    fn apply(self, world: &mut World) -> () {
+        let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
+        let bundle = ElementBundle::build(self.id, self.pos, &sprite_sheet);
+        world
+            .commands()
+            .spawn((bundle, ElementSource))
+            .queue(AddElementBackground)
+            .observe(source_drag_start);
+    }
+}
+
+pub struct GrabFromSource {
+    entity: Entity,
+}
+
+impl Command for GrabFromSource {
+    fn apply(self, world: &mut World) -> () {
+        world
+            .commands()
+            .entity(self.entity)
+            .clone_and_spawn()
+            .queue(AddElementBackground)
+            .observe(source_drag_start);
+
+        world
+            .commands()
+            .entity(self.entity)
+            .remove::<ElementSource>()
+            .observe(element_drag)
+            .observe(element_drag_end);
+    }
+}
+
 /// Mapping of valid recipe ingredients to products
 #[derive(Resource)]
 struct Recipes(HashMap<(u64, u64), u64>);
@@ -118,16 +192,7 @@ fn source_drag_start(
         return;
     };
 
-    commands
-        .entity(src_root)
-        .clone_and_spawn()
-        .observe(source_drag_start);
-
-    commands
-        .entity(src_root)
-        .remove::<ElementSource>()
-        .observe(element_drag)
-        .observe(element_drag_end);
+    commands.queue(GrabFromSource { entity: src_root });
 }
 
 fn element_drag(
@@ -136,7 +201,9 @@ fn element_drag(
     mut tf: Query<&mut Transform>,
 ) {
     let (camera, camera_tf) = *camera_query;
-    if let Ok(worldpos) = camera.viewport_to_world_2d(camera_tf, drag.pointer_location.position) {
+    if let Ok(worldpos) =
+        camera.viewport_to_world_2d(camera_tf, drag.pointer_location.position + drag.delta)
+    {
         tf.get_mut(drag.entity).unwrap().translation = worldpos.extend(Z_INDEX_DRAG);
     }
 }
@@ -165,7 +232,6 @@ fn merge_elements(
     mut commands: Commands,
     recipes: Res<Recipes>,
     assets: Res<Assets<Image>>,
-    sprite_sheet: Res<ElementSpriteSheet>,
     mut dropped_msg: MessageReader<ElementDropped>,
     element_query: Query<(Entity, &Element, &GlobalTransform, &Sprite), Without<ElementSource>>,
 ) {
@@ -207,10 +273,10 @@ fn merge_elements(
             .interpolate_stable(&other_tf.translation().xy(), 0.5);
 
         // spawn product element
-        commands
-            .spawn(ElementBundle::build(result_el, new_pos, &sprite_sheet))
-            .observe(element_drag)
-            .observe(element_drag_end);
+        commands.queue(SpawnElement {
+            id: result_el,
+            pos: new_pos,
+        });
 
         // despawn ingredient elements
         commands.entity(dropped_root).despawn();
@@ -218,8 +284,8 @@ fn merge_elements(
     });
 }
 
-fn setup_playfield(mut commands: Commands, sprite_sheet: Res<ElementSpriteSheet>) {
-    let gap = 96.0;
+fn setup_playfield(mut commands: Commands) {
+    let gap = 128.0;
     let count = 15;
     let cols = 3;
     let height = (count / cols) as f32 * gap;
@@ -230,12 +296,10 @@ fn setup_playfield(mut commands: Commands, sprite_sheet: Res<ElementSpriteSheet>
         let x = (i % cols) as f32 * gap + offset_x;
         let y = offset_y - (i / cols) as f32 * gap;
 
-        commands
-            .spawn((
-                ElementBundle::build(i, Vec2::new(x, y), &sprite_sheet),
-                ElementSource,
-            ))
-            .observe(source_drag_start);
+        commands.queue(SpawnElementSource {
+            id: i,
+            pos: Vec2::new(x, y),
+        });
     }
 }
 
