@@ -1,3 +1,5 @@
+use crate::{archipelago::consts::START_ITEMS, graph};
+
 use super::shared_types::*;
 use bevy::platform::collections::HashMap;
 use serde::Deserialize;
@@ -48,10 +50,23 @@ pub(super) struct NetworkItem {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub(super) struct SlotData {
-    element_amount: usize,
-    filler_amount: usize,
-    intermediate_amount: usize,
-    graph_seed: usize,
+    element_amount: u64,
+    filler_amount: u64,
+    intermediate_amount: u64,
+    graph_seed: u64,
+}
+
+impl SlotData {
+    pub fn generate_graph(&self) -> HashMap<(u64, u64), u64> {
+        graph::create_graph(
+            self.element_amount,
+            self.element_amount + self.filler_amount,
+            self.graph_seed,
+            self.intermediate_amount,
+            START_ITEMS,
+        )
+        .0
+    }
 }
 
 #[derive(Deserialize, Debug)]

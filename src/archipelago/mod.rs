@@ -10,11 +10,14 @@ use websocket::{
 
 use server_messages::{APServerMessage, SlotData};
 
-use crate::archipelago::{
-    client_messages::APClientMessage,
-    consts::ELEMENT_ID_OFFSET,
-    server_messages::{DataPackageObject, NetworkItem},
-    shared_types::{APVersion, ItemID, LocationID, PlayerID},
+use crate::{
+    Recipes,
+    archipelago::{
+        client_messages::APClientMessage,
+        consts::ELEMENT_ID_OFFSET,
+        server_messages::{DataPackageObject, NetworkItem},
+        shared_types::{APVersion, ItemID, LocationID, PlayerID},
+    },
 };
 
 mod client_messages;
@@ -98,6 +101,7 @@ fn handle_server_message(
     des: APServerMessage,
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
     save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
+    graph: &mut ResMut<Recipes>,
 ) {
     match des {
         APServerMessage::RoomInfo {
@@ -169,6 +173,12 @@ fn handle_server_message(
             state.slotdata = Some(slot_data);
             state.checked_locations = checked_locations;
             state.player_id = slot;
+
+            graph.0 = Some(
+                (state.slotdata.as_ref())
+                    .expect("Just put value in slot_data")
+                    .generate_graph(),
+            );
 
             // this is the server
             state.games.insert(0, "Archipelago".to_string());
@@ -277,6 +287,7 @@ fn poll_websocket(
     mut state: ResMut<ArchipelagoState>,
     mut mw: MessageWriter<ReceivedItemMessage>,
     mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
+    mut recipes: ResMut<Recipes>,
 ) {
     let mut close_ws = false;
     if let Some(mws) = &client.ws {
@@ -310,6 +321,7 @@ fn poll_websocket(
                                 des,
                                 &mut mw,
                                 &mut save_datapackages_writer,
+                                &mut recipes,
                             )
                         }
                     }
