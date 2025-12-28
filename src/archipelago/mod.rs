@@ -1,6 +1,6 @@
-use std::sync::Mutex;
+use std::{io::ErrorKind, sync::Mutex};
 
-use bevy::{asset::uuid::Uuid, prelude::*};
+use bevy::{asset::uuid::Uuid, platform::collections::HashMap, prelude::*};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
 use websocket::{
@@ -12,8 +12,8 @@ use server_messages::{APServerMessage, SlotData};
 
 use crate::archipelago::{
     client_messages::APClientMessage,
-    server_messages::NetworkItem,
-    shared_types::{APVersion, ItemID, LocationID},
+    server_messages::{DataPackageObject, NetworkItem},
+    shared_types::{APVersion, ItemID, LocationID, PlayerID},
 };
 
 mod client_messages;
@@ -30,6 +30,15 @@ struct ArchipelagoClient {
     ws: Option<Mutex<WsClient>>,
 }
 
+#[derive(Debug)]
+struct MyDataPackage {
+    checksum: String,
+    location_name_to_id: HashMap<String, LocationID>,
+    location_id_to_name: HashMap<LocationID, String>,
+    item_name_to_id: HashMap<String, ItemID>,
+    item_id_to_name: HashMap<ItemID, String>,
+}
+
 #[derive(Resource, Debug)]
 struct ArchipelagoState {
     connected: bool,
@@ -37,10 +46,24 @@ struct ArchipelagoState {
     slot: String,
     password: String,
     slotdata: Option<SlotData>,
+    player_id: PlayerID,
 
     found_items: Vec<NetworkItem>,
     checked_locations: Vec<LocationID>,
+
+    data_packages: HashMap<String, MyDataPackage>,
+    games: HashMap<PlayerID, String>,
 }
+
+#[derive(Message)]
+struct ReceivedItemMessage {
+    item_name: String,
+    related_location_name: String,
+    graph_index_num: usize,
+}
+
+#[derive(Message, Default)]
+struct GoSaveDataPackages;
 
 fn init_connecting(
     _start: On<StartConnect>,
@@ -72,6 +95,8 @@ fn handle_server_message(
     state: &mut ResMut<ArchipelagoState>,
     ws: &mut WsClient,
     des: APServerMessage,
+    receive_writer: &mut MessageWriter<ReceivedItemMessage>,
+    save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
 ) {
     match des {
         APServerMessage::RoomInfo {
@@ -90,7 +115,25 @@ fn handle_server_message(
             if state.connected {
                 return;
             }
-            let msg = vec![APClientMessage::Connect {
+
+            let mut to_fetch = Vec::new();
+            for (game, checksum) in datapackage_checksums {
+                println!("got datapackage checksum for {}: {}", game, checksum);
+
+                if state.data_packages.contains_key(&game) {
+                    if state.data_packages[&game].checksum != checksum {
+                        to_fetch.push(game);
+                    }
+                } else {
+                    to_fetch.push(game);
+                }
+            }
+            let mut msg = vec![];
+            if to_fetch.len() > 0 {
+                msg.push(APClientMessage::GetDataPackage { games: to_fetch });
+            }
+
+            msg.push(APClientMessage::Connect {
                 password: state.password.clone(),
                 game: "Elementipelago".to_string(),
                 name: state.slot.clone(),
@@ -99,7 +142,7 @@ fn handle_server_message(
                 items_handling: 0b111,
                 tags: Vec::new(),
                 slot_data: true,
-            }];
+            });
             println!(
                 "I'm connecting, with json: {}",
                 serde_json::to_string(&msg).unwrap()
@@ -124,12 +167,23 @@ fn handle_server_message(
         } => {
             state.slotdata = Some(slot_data);
             state.checked_locations = checked_locations;
+            state.player_id = slot;
+
             state.connected = true;
 
             println!("Logged in, my state is {:?}", state);
         }
         APServerMessage::ReceivedItems { index, items } => {
-            todo!("Send message about received items")
+            receive_writer.write_batch(items.into_iter().map(|item| {
+                let game = &state.games[&item.player];
+                let data = &state.data_packages[game];
+                ReceivedItemMessage {
+                    item_name: state.data_packages["Elementipelago"].item_id_to_name[&item.item]
+                        .clone(),
+                    related_location_name: data.location_id_to_name[&item.location].clone(),
+                    graph_index_num: item.item as usize,
+                }
+            }));
         }
         APServerMessage::LocationInfo { locations } => {
             todo!("New info about a location")
@@ -154,8 +208,33 @@ fn handle_server_message(
             slot_info,
             hint_points,
         } => todo!(),
-        APServerMessage::PrintJSON(print_jsonmessage) => todo!(),
-        APServerMessage::DataPackage { data } => todo!(),
+        APServerMessage::PrintJSON(print_jsonmessage) => {
+            // TODO: print the jsonmessage for the user
+            println!("Got server message {:#?}", print_jsonmessage);
+        }
+        APServerMessage::DataPackage { data } => {
+            for (game, game_data) in data.games {
+                state.data_packages.insert(
+                    game,
+                    MyDataPackage {
+                        checksum: game_data.checksum,
+                        location_id_to_name: game_data
+                            .location_name_to_id
+                            .iter()
+                            .map(|(key, &value)| (value, key.clone()))
+                            .collect(),
+                        location_name_to_id: game_data.location_name_to_id,
+                        item_id_to_name: game_data
+                            .item_name_to_id
+                            .iter()
+                            .map(|(key, &value)| (value, key.clone()))
+                            .collect(),
+                        item_name_to_id: game_data.item_name_to_id,
+                    },
+                );
+            }
+            save_datapackages_writer.write_default();
+        }
         APServerMessage::Bounced {} => todo!(),
         APServerMessage::InvalidPacket {
             typ,
@@ -167,7 +246,12 @@ fn handle_server_message(
     }
 }
 
-fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
+fn poll_websocket(
+    mut client: ResMut<ArchipelagoClient>,
+    mut state: ResMut<ArchipelagoState>,
+    mut mw: MessageWriter<ReceivedItemMessage>,
+    mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
+) {
     let mut close_ws = false;
     if let Some(mws) = &client.ws {
         let mut ws = mws.lock().expect("Mutex is poisoned");
@@ -179,8 +263,12 @@ fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<Archi
                     close_ws = true;
                     break;
                 }
-                Err(websocket::WebSocketError::Other(wb)) => {
-                    break;
+                Err(websocket::WebSocketError::IoError(wb)) => {
+                    if wb.kind() == ErrorKind::WouldBlock {
+                        break;
+                    }
+                    eprintln!("{:?}", wb);
+                    panic!()
                 }
                 Err(e) => {
                     eprintln!("{:?}", e);
@@ -190,7 +278,13 @@ fn poll_websocket(mut client: ResMut<ArchipelagoClient>, mut state: ResMut<Archi
                     Ok(ldes) => {
                         let ldes: Vec<APServerMessage> = ldes;
                         for des in ldes {
-                            handle_server_message(&mut state, &mut ws, des)
+                            handle_server_message(
+                                &mut state,
+                                &mut ws,
+                                des,
+                                &mut mw,
+                                &mut save_datapackages_writer,
+                            )
                         }
                     }
                     Err(e) => {
@@ -226,7 +320,9 @@ pub struct ArchipelagoPlugin;
 
 impl Plugin for ArchipelagoPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ArchipelagoClient { ws: None })
+        app.add_message::<ReceivedItemMessage>()
+            .add_message::<GoSaveDataPackages>()
+            .insert_resource(ArchipelagoClient { ws: None })
             .insert_resource(ArchipelagoState {
                 connected: false,
                 address: "".to_string(),
@@ -235,6 +331,8 @@ impl Plugin for ArchipelagoPlugin {
                 slotdata: None,
                 found_items: vec![],
                 checked_locations: vec![],
+                data_packages: HashMap::new(),
+                games: HashMap::new(),
             })
             .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
             .add_systems(Startup, init_state)

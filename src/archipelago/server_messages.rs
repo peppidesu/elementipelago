@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use super::shared_types::*;
+use bevy::platform::collections::HashMap;
 use serde::Deserialize;
 use serde_repr::Deserialize_repr;
 
@@ -40,14 +39,20 @@ pub(super) struct NetworkPlayer {
 
 #[derive(Deserialize, Debug)]
 pub(super) struct NetworkItem {
-    item: ItemID,
-    location: LocationID,
-    player: PlayerID,
+    pub(super) item: ItemID,
+    pub(super) location: LocationID,
+    pub(super) player: PlayerID,
     flags: u8,
 }
 
 #[derive(Deserialize, Debug)]
-pub(super) struct SlotData {}
+#[serde(deny_unknown_fields)]
+pub(super) struct SlotData {
+    element_amount: usize,
+    filler_amount: usize,
+    intermediate_amount: usize,
+    graph_seed: usize,
+}
 
 #[derive(Deserialize)]
 #[serde(tag = "type")]
@@ -68,15 +73,31 @@ pub(super) enum NetworkSlot {
     } = 0b10,
 }
 
-#[derive(Deserialize)]
-pub(super) struct DataPackageObject {}
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub(super) struct DataPackageObject {
+    pub(super) checksum: String,
+    #[serde(default)]
+    item_name_groups: HashMap<String, Vec<String>>,
+    pub(super) item_name_to_id: HashMap<String, ItemID>,
+    #[serde(default)]
+    location_name_groups: HashMap<String, Vec<String>>,
+    pub(super) location_name_to_id: HashMap<String, LocationID>,
+}
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+pub(super) struct DataPackageGames {
+    pub(super) games: HashMap<String, DataPackageObject>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub(super) struct JsonData {
     text: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 #[serde(tag = "type")]
 pub(super) enum PrintJSONMessage {
     Join {
@@ -84,6 +105,13 @@ pub(super) enum PrintJSONMessage {
         team: TeamID,
         slot: PlayerID,
         tags: Vec<String>,
+    },
+    Tutorial {
+        data: Vec<JsonData>,
+    },
+    #[serde(untagged)]
+    Text {
+        data: Vec<JsonData>,
     },
 }
 
@@ -145,7 +173,7 @@ pub(super) enum APServerMessage {
     },
     PrintJSON(PrintJSONMessage),
     DataPackage {
-        data: DataPackageObject,
+        data: DataPackageGames,
     },
     Bounced {
         // IDK when this is used
