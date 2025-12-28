@@ -2,8 +2,9 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::util::*;
+use crate::{archipelago::ArchipelagoPlugin, util::*};
 
+mod archipelago;
 mod graph;
 mod input;
 mod util;
@@ -331,6 +332,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             PlayfieldPlugin,
+            ArchipelagoPlugin,
         ))
         .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
         .init_resource::<ElementSpriteSheet>()
