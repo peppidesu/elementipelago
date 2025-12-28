@@ -355,7 +355,6 @@ impl Plugin for ArchipelagoPlugin {
                 slot: "".to_string(),
                 password: "".to_string(),
                 slotdata: None,
-                found_items: vec![],
                 checked_locations: vec![],
                 data_packages: HashMap::new(),
                 games: HashMap::new(),
