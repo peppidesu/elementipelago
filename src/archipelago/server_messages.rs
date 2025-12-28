@@ -54,7 +54,7 @@ pub(super) struct SlotData {
     graph_seed: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
 #[repr(u8)]
 pub(super) enum NetworkSlot {
@@ -168,7 +168,7 @@ pub(super) enum APServerMessage {
         players: Option<Vec<NetworkPlayer>>,
         checked_locations: Option<Vec<isize>>,
         slot_data: Option<SlotData>,
-        slot_info: Option<HashMap<usize, NetworkSlot>>,
+        slot_info: Option<HashMap<PlayerID, NetworkSlot>>,
         hint_points: Option<isize>,
     },
     PrintJSON(PrintJSONMessage),

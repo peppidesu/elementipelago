@@ -12,11 +12,13 @@ use server_messages::{APServerMessage, SlotData};
 
 use crate::archipelago::{
     client_messages::APClientMessage,
+    consts::ELEMENT_ID_OFFSET,
     server_messages::{DataPackageObject, NetworkItem},
     shared_types::{APVersion, ItemID, LocationID, PlayerID},
 };
 
 mod client_messages;
+mod consts;
 mod server_messages;
 mod shared_types;
 
@@ -48,14 +50,13 @@ struct ArchipelagoState {
     slotdata: Option<SlotData>,
     player_id: PlayerID,
 
-    found_items: Vec<NetworkItem>,
     checked_locations: Vec<LocationID>,
 
     data_packages: HashMap<String, MyDataPackage>,
     games: HashMap<PlayerID, String>,
 }
 
-#[derive(Message)]
+#[derive(Message, Debug)]
 struct ReceivedItemMessage {
     item_name: String,
     related_location_name: String,
@@ -169,6 +170,29 @@ fn handle_server_message(
             state.checked_locations = checked_locations;
             state.player_id = slot;
 
+            // this is the server
+            state.games.insert(0, "Archipelago".to_string());
+            for (slot, nwslot) in slot_info {
+                println!("Game in slot {slot}: {:?}", nwslot);
+                match nwslot {
+                    server_messages::NetworkSlot::Spectator { name, game } => {
+                        state
+                            .games
+                            .insert(slot.parse().expect("slot is integer"), game);
+                    }
+                    server_messages::NetworkSlot::Player { name, game } => {
+                        state
+                            .games
+                            .insert(slot.parse().expect("slot is integer"), game);
+                    }
+                    server_messages::NetworkSlot::Group {
+                        name,
+                        game,
+                        group_members,
+                    } => todo!(),
+                }
+            }
+
             state.connected = true;
 
             println!("Logged in, my state is {:?}", state);
@@ -177,12 +201,14 @@ fn handle_server_message(
             receive_writer.write_batch(items.into_iter().map(|item| {
                 let game = &state.games[&item.player];
                 let data = &state.data_packages[game];
-                ReceivedItemMessage {
+                let msg = ReceivedItemMessage {
                     item_name: state.data_packages["Elementipelago"].item_id_to_name[&item.item]
                         .clone(),
                     related_location_name: data.location_id_to_name[&item.location].clone(),
-                    graph_index_num: item.item as usize,
-                }
+                    graph_index_num: item.item as usize - ELEMENT_ID_OFFSET,
+                };
+                // println!("Creating message: {msg:#?}");
+                msg
             }));
         }
         APServerMessage::LocationInfo { locations } => {
@@ -333,6 +359,7 @@ impl Plugin for ArchipelagoPlugin {
                 checked_locations: vec![],
                 data_packages: HashMap::new(),
                 games: HashMap::new(),
+                player_id: 0,
             })
             .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
             .add_systems(Startup, init_state)
