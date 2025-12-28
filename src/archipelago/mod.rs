@@ -10,14 +10,14 @@ use websocket::{
 
 use server_messages::{APServerMessage, SlotData};
 
+use crate::archipelago::server_messages::DataPackageObject;
 use crate::{
-    Recipes,
     archipelago::{
         client_messages::APClientMessage,
         consts::ELEMENT_ID_OFFSET,
-        server_messages::{DataPackageObject, NetworkItem},
         shared_types::{APVersion, ItemID, LocationID, PlayerID},
     },
+    game::Recipes,
 };
 
 mod client_messages;
@@ -373,7 +373,6 @@ impl Plugin for ArchipelagoPlugin {
                 player_id: 0,
             })
             .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
-            .add_systems(Startup, init_state)
             .add_observer(init_connecting);
     }
 }
