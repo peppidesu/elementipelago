@@ -1,16 +1,11 @@
 use std::{io::ErrorKind, sync::Mutex};
 
 use bevy::{asset::uuid::Uuid, platform::collections::HashMap, prelude::*};
-use serde::{Deserialize, Serialize};
-use serde_json::{from_str, json};
-use websocket::{
-    ClientBuilder, OwnedMessage, WebSocketError::NoDataAvailable, stream::sync::NetworkStream,
-    sync::Client,
-};
+use serde_json::from_str;
+use websocket::{ClientBuilder, OwnedMessage, stream::sync::NetworkStream, sync::Client};
 
 use server_messages::{APServerMessage, SlotData};
 
-use crate::archipelago::server_messages::DataPackageObject;
 use crate::{
     archipelago::{
         client_messages::APClientMessage,
@@ -72,7 +67,7 @@ struct GoSaveDataPackages;
 fn init_connecting(
     _start: On<StartConnect>,
     mut apclient: ResMut<ArchipelagoClient>,
-    mut state: ResMut<ArchipelagoState>,
+    state: ResMut<ArchipelagoState>,
 ) {
     if let Ok(mut client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
         match client.connect(None) {
@@ -134,7 +129,7 @@ fn handle_server_message(
                 }
             }
             let mut msg = vec![];
-            if to_fetch.len() > 0 {
+            if !to_fetch.is_empty() {
                 msg.push(APClientMessage::GetDataPackage { games: to_fetch });
             }
 
@@ -211,14 +206,14 @@ fn handle_server_message(
             receive_writer.write_batch(items.into_iter().map(|item| {
                 let game = &state.games[&item.player];
                 let data = &state.data_packages[game];
-                let msg = ReceivedItemMessage {
+
+                // println!("Creating message: {msg:#?}");
+                ReceivedItemMessage {
                     item_name: state.data_packages["Elementipelago"].item_id_to_name[&item.item]
                         .clone(),
                     related_location_name: data.location_id_to_name[&item.location].clone(),
                     graph_index_num: item.item as usize - ELEMENT_ID_OFFSET,
-                };
-                // println!("Creating message: {msg:#?}");
-                msg
+                }
             }));
         }
         APServerMessage::LocationInfo { locations } => {
@@ -348,10 +343,8 @@ fn init_state(mut commands: Commands, mut state: ResMut<ArchipelagoState>) {
 }
 
 // run when an item is merged or something (or on a timer with messages)
-fn send_websocket_msg(client: Res<ArchipelagoClient>, mut state: ResMut<ArchipelagoState>) {
-    if !state.connected {
-        return;
-    }
+fn send_websocket_msg(client: Res<ArchipelagoClient>, state: ResMut<ArchipelagoState>) {
+    if !state.connected {}
 }
 
 pub struct ArchipelagoPlugin;

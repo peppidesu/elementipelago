@@ -3,9 +3,9 @@
 use bevy::{
     asset::Assets,
     image::Image,
-    math::{Rect, Vec2, Vec3Swizzles, bounding::Aabb2d},
+    math::{Rect, Vec3Swizzles},
     sprite::Sprite,
-    transform::components::{GlobalTransform, Transform},
+    transform::components::GlobalTransform,
 };
 
 pub fn get_sprite_bounds(

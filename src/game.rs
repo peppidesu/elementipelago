@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{graph::create_graph, util::*};
+use crate::util::*;
 
 pub struct PlayfieldPlugin;
 
@@ -90,7 +90,7 @@ impl Recipes {
         self.0.as_ref().and_then(|map| {
             map.get(&(el1, el2))
                 .or_else(|| map.get(&(el2, el1)))
-                .map(|e| *e)
+                .copied()
         })
     }
 }
@@ -136,7 +136,7 @@ struct ElementDropped(Entity);
 
 pub struct AddElementBackground;
 impl EntityCommand for AddElementBackground {
-    fn apply(self, mut entity: EntityWorldMut) -> () {
+    fn apply(self, mut entity: EntityWorldMut) {
         let asset_server = entity.get_resource::<AssetServer>().unwrap();
         let element_bg = asset_server.load("element-bg.png");
 
@@ -157,9 +157,9 @@ pub struct SpawnElement {
 }
 
 impl Command for SpawnElement {
-    fn apply(self, world: &mut World) -> () {
+    fn apply(self, world: &mut World) {
         let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
-        let bundle = ElementBundle::build(self.id, self.pos, &sprite_sheet);
+        let bundle = ElementBundle::build(self.id, self.pos, sprite_sheet);
         world
             .commands()
             .spawn(bundle)
@@ -175,9 +175,9 @@ pub struct SpawnElementSource {
 }
 
 impl Command for SpawnElementSource {
-    fn apply(self, world: &mut World) -> () {
+    fn apply(self, world: &mut World) {
         let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
-        let bundle = ElementBundle::build(self.id, self.pos, &sprite_sheet);
+        let bundle = ElementBundle::build(self.id, self.pos, sprite_sheet);
         world
             .commands()
             .spawn((bundle, ElementSource))
@@ -191,7 +191,7 @@ pub struct GrabFromSource {
 }
 
 impl Command for GrabFromSource {
-    fn apply(self, world: &mut World) -> () {
+    fn apply(self, world: &mut World) {
         world
             .commands()
             .entity(self.entity)
