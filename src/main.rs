@@ -159,16 +159,19 @@ impl Command for GrabFromSource {
 
 /// Mapping of valid recipe ingredients to products
 #[derive(Resource)]
-struct Recipes(HashMap<(u64, u64), u64>);
+struct Recipes(Option<HashMap<(u64, u64), u64>>);
 
 impl Recipes {
     /// Get the product resulting from the given ingredients, if it exists.
     /// Lookup is done for every order of ingredients.
     fn get_recipe(&self, el1: u64, el2: u64) -> Option<u64> {
-        self.0
-            .get(&(el1, el2))
-            .or_else(|| self.0.get(&(el2, el1)))
-            .map(|e| *e)
+        match &self.0 {
+            Some(s) => s
+                .get(&(el1, el2))
+                .or_else(|| s.get(&(el2, el1)))
+                .map(|e| *e),
+            None => None,
+        }
     }
 }
 
@@ -325,9 +328,6 @@ fn setup(mut commands: Commands) {
 }
 
 fn main() {
-    let generated_graph = graph::create_graph(5, 5, 2827108, 5, 4).0;
-    println!("{:?}", generated_graph);
-
     App::new()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
@@ -336,7 +336,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
         .init_resource::<ElementSpriteSheet>()
-        .insert_resource(Recipes(generated_graph))
+        .insert_resource(Recipes(None))
         .add_systems(Startup, setup)
         .run();
 }
