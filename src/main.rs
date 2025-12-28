@@ -1,5 +1,3 @@
-#[cfg(target_os = "linux")]
-use bevy::window::CompositeAlphaMode;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
@@ -258,7 +256,7 @@ impl Plugin for PlayfieldPlugin {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, Msaa::Off));
 }
 
 fn main() {
