@@ -1,0 +1,22 @@
+# Progress tracker
+- [ ] Document and finish this readme
+- [x] Crafting tree generation
+- [x] Element dragging & merging
+- [ ] Archipelago server connection
+  - [x] Can connect
+  - [x] Translation to bevy messages
+  - [ ] Login screen
+  - [ ] Use location/item names for element display names
+- [ ] Procedural generation
+  - [ ] Intermediate item names
+  - [ ] More sprites to choose from  
+  - [ ] Smart sprite selection using location/item name
+- [ ] UI
+  - [ ] Scrolling element drawer
+  - [ ] Search bar
+  - [ ] Item names
+  - [ ] Archipelago chat
+- [ ] Polish
+  - [ ] Merge animation
+  - [ ] Sound effects
+  - [ ] Tooltips
