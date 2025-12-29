@@ -1,6 +1,5 @@
-use std::borrow::Cow;
 
-use bevy::{ecs::relationship, prelude::*, text::LineHeight, ui::FocusPolicy};
+use bevy::{prelude::*, text::LineHeight};
 use bevy_ui_text_input::{
     TextInputBuffer, TextInputMode, TextInputNode, TextInputPlugin, TextInputPrompt,
 };

@@ -3,7 +3,7 @@
 use bevy::{
     asset::Assets,
     ecs::message::{Message, MessageReader},
-    image::{Image, TextureAtlas, TextureAtlasLayout},
+    image::{Image, TextureAtlasLayout},
     math::{Rect, Vec2, Vec3Swizzles},
     sprite::Sprite,
     transform::components::GlobalTransform,

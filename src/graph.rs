@@ -76,12 +76,12 @@ pub fn create_graph(
             let mut to_place_type = None;
             while to_place_type.is_none() {
                 let typ = rng.get_random() % 3;
-                if typ == 0 && outputs_placed > inputs_placed && inputs_to_place.len() > 0 {
+                if typ == 0 && outputs_placed > inputs_placed && !inputs_to_place.is_empty() {
                     to_place_type = Some(Status::INPUT);
                     inputs_placed += 1;
-                } else if typ == 1 && intermediates_to_place.len() > 0 {
+                } else if typ == 1 && !intermediates_to_place.is_empty() {
                     to_place_type = Some(Status::INTERMEDIATE);
-                } else if typ == 2 && outputs_to_place.len() > 0 {
+                } else if typ == 2 && !outputs_to_place.is_empty() {
                     to_place_type = Some(Status::OUTPUT);
                     outputs_placed += 1;
                 }

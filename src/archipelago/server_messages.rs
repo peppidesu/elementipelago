@@ -1,6 +1,6 @@
 use crate::{
     archipelago::consts::START_ITEMS,
-    graph::{self, Element as GElement, Status},
+    graph::{self, Element as GElement},
 };
 
 use super::shared_types::*;
