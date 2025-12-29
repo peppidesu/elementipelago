@@ -5,7 +5,7 @@ pub(super) type TeamID = usize;
 pub(super) type ItemID = isize;
 pub(super) type LocationID = isize;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub(super) struct APVersion {
     major: usize,
     minor: usize,

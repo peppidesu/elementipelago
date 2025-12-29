@@ -8,7 +8,7 @@ use bevy::platform::collections::HashMap;
 use serde::Deserialize;
 use serde_repr::Deserialize_repr;
 
-#[derive(Deserialize_repr)]
+#[derive(Deserialize_repr, Debug)]
 #[repr(u8)]
 pub(super) enum Permission {
     Disabled = 0b000,
@@ -27,14 +27,14 @@ pub(super) enum APConnectionError {
     InvalidItemsHandling,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub(super) struct Permissions {
     release: Permission,
     collect: Permission,
     remaining: Permission,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub(super) struct NetworkPlayer {
     team: TeamID,
     slot: PlayerID,
@@ -132,7 +132,7 @@ pub(super) enum PrintJSONMessage {
     },
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "cmd")]
 pub(super) enum APServerMessage {
     RoomInfo {

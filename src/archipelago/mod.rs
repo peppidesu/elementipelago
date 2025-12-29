@@ -490,45 +490,23 @@ fn handle_ap_message(
             connected_writer.write_default();
         }
         APServerMessage::ReceivedItems { index, items } => {
-            receive_writer.write_batch(items.into_iter().map(|item| {
+            receive_writer.write_batch(items.into_iter().filter_map(|item| {
                 let game = &state.games[&item.player];
                 let data = &state.data_packages[game];
 
-                // println!("Creating message: {msg:#?}");
-                ReceivedItemMessage {
-                    item_name: state.data_packages["Elementipelago"].item_id_to_name[&item.item]
-                        .clone(),
-                    related_location_name: data.location_id_to_name[&item.location].clone(),
-                    graph_index_num: item.item as usize - ELEMENT_ID_OFFSET,
+                if item.item >= 100 {
+                    Some(ReceivedItemMessage {
+                        item_name: state.data_packages["Elementipelago"].item_id_to_name
+                            [&item.item]
+                            .clone(),
+                        related_location_name: data.location_id_to_name[&item.location].clone(),
+                        graph_index_num: item.item as usize - ELEMENT_ID_OFFSET,
+                    })
+                } else {
+                    println!("Skipping item: {item:#?} since it's not handled yet");
+                    None
                 }
             }));
-        }
-        APServerMessage::LocationInfo { locations } => {
-            todo!("New info about a location")
-        }
-        APServerMessage::RoomUpdate {
-            version,
-            generator_version,
-            tags,
-            password,
-            permissions,
-            hint_cost,
-            location_check_points,
-            games,
-            datapackage_checksums,
-            seed_name,
-            time,
-            team,
-            slot,
-            players,
-            checked_locations,
-            slot_data,
-            slot_info,
-            hint_points,
-        } => todo!(),
-        APServerMessage::PrintJSON(print_jsonmessage) => {
-            // TODO: print the jsonmessage for the user
-            println!("Got server message {:#?}", print_jsonmessage);
         }
         APServerMessage::DataPackage { data } => {
             for (game, game_data) in data.games {
@@ -553,14 +531,12 @@ fn handle_ap_message(
             }
             save_datapackages_writer.write_default();
         }
-        APServerMessage::Bounced {} => todo!(),
-        APServerMessage::InvalidPacket {
-            typ,
-            original_cmd,
-            text,
-        } => todo!(),
-        APServerMessage::Retrieved {} => todo!(),
-        APServerMessage::SetReply {} => todo!(),
+        message => {
+            eprintln!(
+                "Got message {:#?} but don't know what to do with it yet",
+                message
+            )
+        }
     }
 }
 
