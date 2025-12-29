@@ -2,15 +2,14 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::util::*;
+use crate::{AppState, atlases::ElementAtlas, util::*};
 
 pub struct PlayfieldPlugin;
 
 impl Plugin for PlayfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ElementDropped>()
-            .init_resource::<ElementSpriteSheet>()
-            .insert_resource(Recipes(None))
+            .init_resource::<ElementAtlas>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -52,13 +51,13 @@ struct ElementBundle {
 }
 
 impl ElementBundle {
-    fn build(id: u64, pos: Vec2, sprite_sheet: &ElementSpriteSheet) -> ElementBundle {
+    fn build(id: u64, pos: Vec2, atlas: &ElementAtlas) -> ElementBundle {
         let element = Element(id);
         let mut rng = SmallRng::seed_from_u64(id);
         let sprite = Sprite::from_atlas_image(
-            sprite_sheet.1.clone(),
+            atlas.1.clone(),
             TextureAtlas {
-                layout: sprite_sheet.0.clone(),
+                layout: atlas.0.clone(),
                 index: rng.random_range(0..13),
             },
         );
@@ -67,7 +66,6 @@ impl ElementBundle {
             element,
             transform: Transform {
                 translation: Vec3::new(pos.x, pos.y, Z_INDEX_DRAG),
-                scale: Vec3::splat(2.0),
                 ..default()
             },
             sprite,
@@ -95,33 +93,6 @@ impl Recipes {
     }
 }
 
-#[derive(Resource)]
-struct ElementSpriteSheet(Handle<TextureAtlasLayout>, Handle<Image>);
-
-impl FromWorld for ElementSpriteSheet {
-    fn from_world(world: &mut World) -> Self {
-        let texture_atlas = TextureAtlasLayout::from_grid(
-            (48, 48).into(), // The size of each image
-            1,               // The number of columns
-            13,              // The number of rows
-            None,            // Padding
-            None,            // Offset
-        );
-
-        let mut texture_atlases = world
-            .get_resource_mut::<Assets<TextureAtlasLayout>>()
-            .unwrap();
-        let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
-        let image = world
-            .get_resource::<AssetServer>()
-            .unwrap()
-            .load("atlas.png");
-
-        Self(texture_atlas_handle, image)
-    }
-}
-
 // ================================================================================================
 // Messages
 // ================================================================================================
@@ -134,88 +105,89 @@ struct ElementDropped(Entity);
 // Custom commands
 // ================================================================================================
 
-pub struct AddElementBackground;
-impl EntityCommand for AddElementBackground {
-    fn apply(self, mut entity: EntityWorldMut) {
-        let asset_server = entity.get_resource::<AssetServer>().unwrap();
-        let element_bg = asset_server.load("element-bg.png");
+mod cmd {
+    use crate::atlases::ElementAtlas;
 
-        entity.with_child((
-            Sprite::from_image(element_bg),
-            Transform {
-                translation: Vec2::ZERO.extend(Z_INDEX_BG_OFFSET),
-                ..default()
-            },
-            Pickable::default(),
-        ));
+    use super::*;
+
+    pub struct AddElementBackground;
+    impl EntityCommand for AddElementBackground {
+        fn apply(self, mut entity: EntityWorldMut) {
+            let asset_server = entity.get_resource::<AssetServer>().unwrap();
+            let element_bg = asset_server.load("element-bg.png");
+
+            entity.with_child((
+                Sprite::from_image(element_bg),
+                Transform {
+                    translation: Vec2::ZERO.extend(Z_INDEX_BG_OFFSET),
+                    ..default()
+                },
+                Pickable::default(),
+            ));
+        }
     }
-}
 
-pub struct SpawnElement {
-    id: u64,
-    pos: Vec2,
-}
-
-impl Command for SpawnElement {
-    fn apply(self, world: &mut World) {
-        let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
-        let bundle = ElementBundle::build(self.id, self.pos, sprite_sheet);
-        world
-            .commands()
-            .spawn(bundle)
-            .queue(AddElementBackground)
-            .observe(element_drag)
-            .observe(element_drag_end);
+    pub struct SpawnElement {
+        pub id: u64,
+        pub pos: Vec2,
     }
-}
 
-pub struct SpawnElementSource {
-    id: u64,
-    pos: Vec2,
-}
-
-impl Command for SpawnElementSource {
-    fn apply(self, world: &mut World) {
-        let sprite_sheet = world.get_resource::<ElementSpriteSheet>().unwrap();
-        let bundle = ElementBundle::build(self.id, self.pos, sprite_sheet);
-        world
-            .commands()
-            .spawn((bundle, ElementSource))
-            .queue(AddElementBackground)
-            .observe(source_drag_start);
+    impl Command for SpawnElement {
+        fn apply(self, world: &mut World) {
+            let atlas = world.get_resource::<ElementAtlas>().unwrap();
+            let bundle = ElementBundle::build(self.id, self.pos, atlas);
+            world
+                .commands()
+                .spawn(bundle)
+                .queue(AddElementBackground)
+                .observe(element_drag)
+                .observe(element_drag_end);
+        }
     }
-}
 
-pub struct GrabFromSource {
-    entity: Entity,
-}
+    pub struct SpawnElementSource {
+        pub id: u64,
+        pub pos: Vec2,
+    }
 
-impl Command for GrabFromSource {
-    fn apply(self, world: &mut World) {
-        world
-            .commands()
-            .entity(self.entity)
-            .clone_and_spawn()
-            .queue(AddElementBackground)
-            .observe(source_drag_start);
+    impl Command for SpawnElementSource {
+        fn apply(self, world: &mut World) {
+            let atlas = world.get_resource::<ElementAtlas>().unwrap();
+            let bundle = ElementBundle::build(self.id, self.pos, atlas);
+            world
+                .commands()
+                .spawn((bundle, ElementSource))
+                .queue(AddElementBackground)
+                .observe(source_drag_start);
+        }
+    }
 
-        world
-            .commands()
-            .entity(self.entity)
-            .remove::<ElementSource>()
-            .observe(element_drag)
-            .observe(element_drag_end);
+    pub struct GrabFromSource {
+        pub entity: Entity,
+    }
+
+    impl Command for GrabFromSource {
+        fn apply(self, world: &mut World) {
+            world
+                .commands()
+                .entity(self.entity)
+                .clone_and_spawn()
+                .queue(AddElementBackground)
+                .observe(source_drag_start);
+
+            world
+                .commands()
+                .entity(self.entity)
+                .remove::<ElementSource>()
+                .observe(element_drag)
+                .observe(element_drag_end);
+        }
     }
 }
 
 // ================================================================================================
 // Run conditions
 // ================================================================================================
-
-/// Run condition that triggers when any message of this type is received.
-fn any_message<T: Message>(mut reader: MessageReader<T>) -> bool {
-    reader.read().count() > 0
-}
 
 // ================================================================================================
 // Observers
@@ -237,7 +209,7 @@ fn source_drag_start(
         return;
     };
 
-    commands.queue(GrabFromSource { entity: src_root });
+    commands.queue(cmd::GrabFromSource { entity: src_root });
 }
 
 fn element_drag(
@@ -322,7 +294,7 @@ fn merge_elements(
             .interpolate_stable(&other_tf.translation().xy(), 0.5);
 
         // spawn product element
-        commands.queue(SpawnElement {
+        commands.queue(cmd::SpawnElement {
             id: result_el,
             pos: new_pos,
         });
@@ -334,7 +306,7 @@ fn merge_elements(
 }
 
 fn setup(mut commands: Commands) {
-    let gap = 144.0;
+    let gap = 72.0;
     let count = 15;
     let cols = 3;
     let height = (count / cols) as f32 * gap;
@@ -345,7 +317,7 @@ fn setup(mut commands: Commands) {
         let x = (i % cols) as f32 * gap + offset_x;
         let y = offset_y - (i / cols) as f32 * gap;
 
-        commands.queue(SpawnElementSource {
+        commands.queue(cmd::SpawnElementSource {
             id: i,
             pos: Vec2::new(x, y),
         });
