@@ -212,7 +212,6 @@ fn connect_button_system(
 }
 
 fn hide_when_connected(
-    mut commands: Commands,
     mut read_connected: MessageReader<ConnectedMessage>,
     mut root: Single<&mut Visibility, With<tag::Root>>,
 ) {

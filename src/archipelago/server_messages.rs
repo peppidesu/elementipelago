@@ -1,6 +1,6 @@
 use crate::{
     archipelago::consts::START_ITEMS,
-    graph::{self, Status},
+    graph::{self, Element as GElement, Status},
 };
 
 use super::shared_types::*;
@@ -60,7 +60,7 @@ pub(super) struct SlotData {
 }
 
 impl SlotData {
-    pub fn generate_graph(&self) -> HashMap<((u64, Status), (u64, Status)), Vec<(u64, Status)>> {
+    pub fn generate_graph(&self) -> (HashMap<(GElement, GElement), Vec<GElement>>, Vec<GElement>) {
         graph::create_graph(
             self.element_amount,
             self.element_amount + self.filler_amount,

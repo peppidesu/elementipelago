@@ -42,7 +42,7 @@ pub fn create_graph(
     seed: u64,
     intermediates: u64,
     start_items: u64,
-) -> HashMap<(Element, Element), Vec<Element>> {
+) -> (HashMap<(Element, Element), Vec<Element>>, Vec<Element>) {
     let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut used: HashSet<(usize, usize)> = HashSet::new();
     let mut rng = RNG::init(seed);
@@ -152,7 +152,14 @@ pub fn create_graph(
         }
     }
 
-    recipes_with_outputs
+    (
+        recipes_with_outputs,
+        (1..=inputs)
+            .map(|x| (x, Status::INPUT))
+            .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE)))
+            .chain((1..=outputs).map(|x| (x, Status::OUTPUT)))
+            .collect(),
+    )
 }
 
 #[cfg(test)]

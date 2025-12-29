@@ -10,12 +10,9 @@ mod util;
 
 use crate::{
     archipelago::ArchipelagoPlugin,
-    game::{PlayfieldPlugin, Recipes},
+    game::{PlayfieldPlugin, RecipeGraph},
     login::LoginScreenPlugin,
 };
-
-#[derive(Component)]
-pub struct Persistent;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, States)]
 pub enum AppState {
@@ -40,7 +37,7 @@ fn main() {
         ))
         .init_state::<AppState>()
         .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
-        .insert_resource(Recipes(None))
+        .insert_resource(RecipeGraph(None))
         .add_systems(Startup, setup)
         .run();
 }

@@ -12,7 +12,8 @@ use crate::{
         consts::ELEMENT_ID_OFFSET,
         shared_types::{APVersion, ItemID, LocationID, PlayerID},
     },
-    game::Recipes,
+    game::RecipeGraph,
+    graph,
 };
 
 mod client_messages;
@@ -58,10 +59,15 @@ pub struct ArchipelagoState {
 pub struct ConnectedMessage;
 
 #[derive(Message, Debug)]
-struct ReceivedItemMessage {
-    item_name: String,
-    related_location_name: String,
-    graph_index_num: usize,
+pub struct ReceivedItemMessage {
+    pub item_name: String,
+    pub related_location_name: String,
+    pub graph_index_num: usize,
+}
+
+#[derive(Message, Debug)]
+pub struct SendItemMessage {
+    pub element: graph::Element,
 }
 
 #[derive(Message, Default)]
@@ -99,7 +105,7 @@ fn handle_server_message(
     des: APServerMessage,
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
     save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
-    graph: &mut ResMut<Recipes>,
+    graph: &mut ResMut<RecipeGraph>,
     connected_writer: &mut MessageWriter<ConnectedMessage>,
 ) {
     match des {
@@ -287,7 +293,7 @@ fn poll_websocket(
     mut state: ResMut<ArchipelagoState>,
     mut mw: MessageWriter<ReceivedItemMessage>,
     mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
-    mut recipes: ResMut<Recipes>,
+    mut recipes: ResMut<RecipeGraph>,
     mut connected_writer: MessageWriter<ConnectedMessage>,
 ) {
     let mut close_ws = false;
@@ -350,8 +356,14 @@ fn init_state(mut commands: Commands, mut state: ResMut<ArchipelagoState>) {
 }
 
 // run when an item is merged or something (or on a timer with messages)
-fn send_websocket_msg(client: Res<ArchipelagoClient>, state: ResMut<ArchipelagoState>) {
-    if !state.connected {}
+fn send_websocket_msg(
+    mut read_send_item: MessageReader<SendItemMessage>,
+    client: Res<ArchipelagoClient>,
+    state: ResMut<ArchipelagoState>,
+) {
+    read_send_item.read().for_each(|msg| {
+        println!("Send item {:?}!", msg.element);
+    });
 }
 
 pub struct ArchipelagoPlugin;
@@ -361,6 +373,7 @@ impl Plugin for ArchipelagoPlugin {
         app.add_message::<ReceivedItemMessage>()
             .add_message::<GoSaveDataPackages>()
             .add_message::<ConnectedMessage>()
+            .add_message::<SendItemMessage>()
             .insert_resource(ArchipelagoClient { ws: None })
             .insert_resource(ArchipelagoState {
                 connected: false,
