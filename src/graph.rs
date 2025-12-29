@@ -1,6 +1,6 @@
 //! Recipe graph generation
 
-use bevy::platform::collections::HashMap;
+use bevy::platform::collections::{HashMap, HashSet};
 
 struct RNG {
     seed_x: u64,
@@ -27,12 +27,14 @@ impl RNG {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Status {
     INPUT,
     INTERMEDIATE,
     OUTPUT,
 }
+
+pub type Element = (u64, Status);
 
 pub fn create_graph(
     inputs: u64,
@@ -40,51 +42,117 @@ pub fn create_graph(
     seed: u64,
     intermediates: u64,
     start_items: u64,
-) -> (HashMap<(u64, u64), u64>, Vec<Status>) {
-    let mut recipes = HashMap::new();
-    let items_len = inputs + intermediates + outputs;
-    let mut statuses = vec![Status::INTERMEDIATE; items_len as usize];
-
+) -> HashMap<(Element, Element), Vec<Element>> {
+    let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
+    let mut used: HashSet<(usize, usize)> = HashSet::new();
     let mut rng = RNG::init(seed);
-    for idx in 0..(start_items as usize) {
-        statuses[idx] = Status::INPUT;
+
+    let mut inputs_to_place: Vec<u64> = (1..=inputs).collect();
+    let mut intermediates_to_place: Vec<u64> = (1..=intermediates).collect();
+    let mut outputs_to_place: Vec<u64> = (1..=outputs).collect();
+
+    for i in 1..=start_items {
+        dag_edges.push((0, 0, i, Status::INPUT));
+        inputs_to_place.retain(|&x| x != i);
     }
 
-    for i in start_items..items_len {
-        let mut item1: u64;
-        let mut item2: u64;
-        loop {
-            item1 = rng.get_random() % i;
-            item2 = rng.get_random() % i;
-            if !recipes.contains_key(&(item1, item2)) && !recipes.contains_key(&(item2, item1)) {
-                break;
+    let mut inputs_placed = 0;
+    let mut outputs_placed = 0;
+
+    let mut to_place_length =
+        inputs_to_place.len() + intermediates_to_place.len() + outputs_to_place.len();
+    while to_place_length > 0 {
+        let previous_items = dag_edges.len();
+        let mut new_layer = Vec::new();
+        let max_layer_size =
+            usize::min(previous_items * previous_items / 2 - 1, to_place_length - 1) as u64;
+        let new_layer_size = if max_layer_size == 0 {
+            1
+        } else {
+            (rng.get_random() % max_layer_size) + 1
+        };
+
+        for _ in 0..new_layer_size {
+            let mut to_place_type = None;
+            while to_place_type.is_none() {
+                let typ = rng.get_random() % 3;
+                if typ == 0 && outputs_placed > inputs_placed && inputs_to_place.len() > 0 {
+                    to_place_type = Some(Status::INPUT);
+                    inputs_placed += 1;
+                } else if typ == 1 && intermediates_to_place.len() > 0 {
+                    to_place_type = Some(Status::INTERMEDIATE);
+                } else if typ == 2 && outputs_to_place.len() > 0 {
+                    to_place_type = Some(Status::OUTPUT);
+                    outputs_placed += 1;
+                }
             }
+
+            let to_place_type = to_place_type.unwrap();
+
+            let mut input1_idx = rng.get_random() as usize % previous_items;
+            let mut input2_idx = rng.get_random() as usize % previous_items;
+
+            while used.contains(&(input1_idx, input2_idx)) {
+                input1_idx = rng.get_random() as usize % previous_items;
+                input2_idx = rng.get_random() as usize % previous_items;
+            }
+
+            used.insert((input1_idx, input2_idx));
+            used.insert((input2_idx, input1_idx));
+
+            let output_idx = (rng.get_random()
+                % match to_place_type {
+                    Status::INPUT => inputs_to_place.len(),
+                    Status::INTERMEDIATE => intermediates_to_place.len(),
+                    Status::OUTPUT => outputs_to_place.len(),
+                } as u64) as usize;
+
+            let output = match to_place_type {
+                Status::INPUT => inputs_to_place.remove(output_idx),
+                Status::INTERMEDIATE => intermediates_to_place.remove(output_idx),
+                Status::OUTPUT => outputs_to_place.remove(output_idx),
+            };
+
+            new_layer.push((input1_idx, input2_idx, output, to_place_type));
         }
-        recipes.insert((item1, item2), i);
+
+        to_place_length =
+            inputs_to_place.len() + intermediates_to_place.len() + outputs_to_place.len();
+        dag_edges.extend(new_layer);
     }
 
-    let r_items_len = items_len - start_items;
-    let mut inputs_to_place = inputs - start_items;
-    while inputs_to_place > 0 {
-        let idx = ((rng.get_random() % r_items_len) + start_items) as usize;
-        if statuses[idx] != Status::INTERMEDIATE {
-            continue;
+    // TODO: we may want to build the recipes in the hashmap directly eventually
+    let mut recipes_with_outputs: HashMap<(Element, Element), Vec<Element>> = HashMap::new();
+    for (in1, in2, output, typ) in dag_edges.iter() {
+        let input1;
+        let input2;
+        if in1 < in2 {
+            input1 = *in1;
+            input2 = *in2;
+        } else {
+            input1 = *in2;
+            input2 = *in1;
         }
-        statuses[idx] = Status::INPUT;
-        inputs_to_place -= 1;
+        let to_insert = match *typ {
+            Status::INPUT => (((0, Status::INPUT), (0, Status::INPUT)), (*output, *typ)),
+            Status::INTERMEDIATE | Status::OUTPUT => {
+                let i1 = dag_edges[input1];
+                let i2 = dag_edges[input2];
+                (((i1.2, i1.3), (i2.2, i2.3)), (*output, *typ))
+            }
+        };
+
+        if recipes_with_outputs.contains_key(&to_insert.0) {
+            recipes_with_outputs
+                .get_mut(&to_insert.0)
+                .expect("key is still in hashmap after check")
+                .push(to_insert.1);
+        } else {
+            recipes_with_outputs.insert(to_insert.0, vec![to_insert.1]);
+        }
     }
 
-    let mut outputs_to_place = inputs - start_items;
-    while outputs_to_place > 0 {
-        let idx = ((rng.get_random() % r_items_len) + start_items) as usize;
-        if statuses[idx] != Status::INTERMEDIATE {
-            continue;
-        }
-        statuses[idx] = Status::OUTPUT;
-        outputs_to_place -= 1;
-    }
-
-    (recipes, statuses)
+    recipes_with_outputs
 }
 
 #[cfg(test)]

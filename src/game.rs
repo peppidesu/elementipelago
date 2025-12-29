@@ -2,6 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
+use crate::graph::{Element as GElement, Status};
 use crate::util::*;
 
 pub struct PlayfieldPlugin;
@@ -38,7 +39,7 @@ const Z_INDEX_DRAG: f32 = 5.0;
 
 /// Element with a numerical ID
 #[derive(Component, Clone)]
-struct Element(u64);
+struct Element(GElement);
 /// Source element that creates new copies rather than being moved
 #[derive(Component, Clone)]
 struct ElementSource;
@@ -52,9 +53,9 @@ struct ElementBundle {
 }
 
 impl ElementBundle {
-    fn build(id: u64, pos: Vec2, sprite_sheet: &ElementSpriteSheet) -> ElementBundle {
+    fn build(id: GElement, pos: Vec2, sprite_sheet: &ElementSpriteSheet) -> ElementBundle {
         let element = Element(id);
-        let mut rng = SmallRng::seed_from_u64(id);
+        let mut rng = SmallRng::seed_from_u64(id.0);
         let sprite = Sprite::from_atlas_image(
             sprite_sheet.1.clone(),
             TextureAtlas {
@@ -81,16 +82,16 @@ impl ElementBundle {
 
 /// Mapping of valid recipe ingredients to products
 #[derive(Resource)]
-pub struct Recipes(pub Option<HashMap<(u64, u64), u64>>);
+pub struct Recipes(pub Option<HashMap<(GElement, GElement), Vec<GElement>>>);
 
 impl Recipes {
     /// Get the product resulting from the given ingredients, if it exists.
     /// Lookup is done for every order of ingredients.
-    fn get_recipe(&self, el1: u64, el2: u64) -> Option<u64> {
+    fn get_recipe(&self, el1: GElement, el2: GElement) -> Option<Vec<GElement>> {
         self.0.as_ref().and_then(|map| {
             map.get(&(el1, el2))
                 .or_else(|| map.get(&(el2, el1)))
-                .copied()
+                .cloned()
         })
     }
 }
@@ -152,7 +153,7 @@ impl EntityCommand for AddElementBackground {
 }
 
 pub struct SpawnElement {
-    id: u64,
+    id: GElement,
     pos: Vec2,
 }
 
@@ -170,7 +171,7 @@ impl Command for SpawnElement {
 }
 
 pub struct SpawnElementSource {
-    id: u64,
+    id: GElement,
     pos: Vec2,
 }
 
@@ -322,10 +323,12 @@ fn merge_elements(
             .interpolate_stable(&other_tf.translation().xy(), 0.5);
 
         // spawn product element
-        commands.queue(SpawnElement {
-            id: result_el,
-            pos: new_pos,
-        });
+        for r_el in result_el {
+            commands.queue(SpawnElement {
+                id: r_el,
+                pos: new_pos,
+            });
+        }
 
         // despawn ingredient elements
         commands.entity(dropped_root).despawn();
@@ -346,7 +349,7 @@ fn setup(mut commands: Commands) {
         let y = offset_y - (i / cols) as f32 * gap;
 
         commands.queue(SpawnElementSource {
-            id: i,
+            id: (i, Status::INPUT),
             pos: Vec2::new(x, y),
         });
     }
