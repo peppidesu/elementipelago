@@ -1,4 +1,7 @@
-use crate::{archipelago::consts::START_ITEMS, graph};
+use crate::{
+    archipelago::consts::START_ITEMS,
+    graph::{self, Status},
+};
 
 use super::shared_types::*;
 use bevy::platform::collections::HashMap;
@@ -57,7 +60,7 @@ pub(super) struct SlotData {
 }
 
 impl SlotData {
-    pub fn generate_graph(&self) -> HashMap<(u64, u64), u64> {
+    pub fn generate_graph(&self) -> HashMap<((u64, Status), (u64, Status)), Vec<(u64, Status)>> {
         graph::create_graph(
             self.element_amount,
             self.element_amount + self.filler_amount,
@@ -65,7 +68,6 @@ impl SlotData {
             self.intermediate_amount,
             START_ITEMS,
         )
-        .0
     }
 }
 
