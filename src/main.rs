@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
 mod archipelago;
-mod atlases;
+mod assets;
 mod game;
 mod graph;
 mod input;
@@ -10,7 +10,6 @@ mod util;
 
 use crate::{
     archipelago::ArchipelagoPlugin,
-    atlases::{ElementAtlas, UIAtlas},
     game::{PlayfieldPlugin, Recipes},
     login::LoginScreenPlugin,
 };

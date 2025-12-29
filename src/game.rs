@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{AppState, atlases::ElementAtlas, util::*};
+use crate::{AppState, assets::ElementAtlas, util::*};
 
 pub struct PlayfieldPlugin;
 
@@ -106,7 +106,7 @@ struct ElementDropped(Entity);
 // ================================================================================================
 
 mod cmd {
-    use crate::atlases::ElementAtlas;
+    use crate::assets::ElementAtlas;
 
     use super::*;
 

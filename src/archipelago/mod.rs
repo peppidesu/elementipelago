@@ -23,7 +23,7 @@ mod shared_types;
 type WsClient = Client<Box<dyn NetworkStream + Send>>;
 
 #[derive(Event)]
-struct StartConnect;
+pub struct StartConnect;
 
 #[derive(Resource)]
 struct ArchipelagoClient {
@@ -40,11 +40,11 @@ struct MyDataPackage {
 }
 
 #[derive(Resource, Debug)]
-struct ArchipelagoState {
+pub struct ArchipelagoState {
     connected: bool,
-    address: String,
-    slot: String,
-    password: String,
+    pub address: String,
+    pub slot: String,
+    pub password: String,
     slotdata: Option<SlotData>,
     player_id: PlayerID,
 
@@ -53,6 +53,9 @@ struct ArchipelagoState {
     data_packages: HashMap<String, MyDataPackage>,
     games: HashMap<PlayerID, String>,
 }
+
+#[derive(Message, Debug, Default)]
+pub struct ConnectedMessage;
 
 #[derive(Message, Debug)]
 struct ReceivedItemMessage {
@@ -97,6 +100,7 @@ fn handle_server_message(
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
     save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
     graph: &mut ResMut<Recipes>,
+    connected_writer: &mut MessageWriter<ConnectedMessage>,
 ) {
     match des {
         APServerMessage::RoomInfo {
@@ -201,6 +205,7 @@ fn handle_server_message(
             state.connected = true;
 
             println!("Logged in, my state is {:?}", state);
+            connected_writer.write_default();
         }
         APServerMessage::ReceivedItems { index, items } => {
             receive_writer.write_batch(items.into_iter().map(|item| {
@@ -283,6 +288,7 @@ fn poll_websocket(
     mut mw: MessageWriter<ReceivedItemMessage>,
     mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
     mut recipes: ResMut<Recipes>,
+    mut connected_writer: MessageWriter<ConnectedMessage>,
 ) {
     let mut close_ws = false;
     if let Some(mws) = &client.ws {
@@ -317,6 +323,7 @@ fn poll_websocket(
                                 &mut mw,
                                 &mut save_datapackages_writer,
                                 &mut recipes,
+                                &mut connected_writer,
                             )
                         }
                     }
@@ -353,6 +360,7 @@ impl Plugin for ArchipelagoPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ReceivedItemMessage>()
             .add_message::<GoSaveDataPackages>()
+            .add_message::<ConnectedMessage>()
             .insert_resource(ArchipelagoClient { ws: None })
             .insert_resource(ArchipelagoState {
                 connected: false,
