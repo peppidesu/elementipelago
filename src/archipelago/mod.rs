@@ -1,11 +1,17 @@
-use std::{io::ErrorKind, sync::Mutex};
+use std::time::Duration;
 
-use bevy::{asset::uuid::Uuid, platform::collections::HashMap, prelude::*};
+use bevy::asset::uuid::Uuid;
+use bevy::{platform::collections::HashMap, prelude::*};
+use crossbeam_channel::{Receiver, Sender};
+use futures::{SinkExt, StreamExt};
 use serde_json::from_str;
-use websocket::{ClientBuilder, OwnedMessage, stream::sync::NetworkStream, sync::Client};
+use url::Url;
+use yawc::frame::{FrameView, OpCode};
+use yawc::{CompressionLevel, Options, WebSocket};
 
 use server_messages::{APServerMessage, SlotData};
 
+use crate::graph::Status;
 use crate::{
     archipelago::{
         client_messages::APClientMessage,
@@ -21,14 +27,33 @@ mod consts;
 mod server_messages;
 mod shared_types;
 
-type WsClient = Client<Box<dyn NetworkStream + Send>>;
-
 #[derive(Event)]
 pub struct StartConnect;
 
+/// Commands sent from Bevy -> WS thread.
+#[derive(Debug)]
+enum WsCommand {
+    /// Connect to the given URL (or host:port). The WS thread will try `wss://` first, then `ws://`.
+    Connect { address: String },
+    /// Send a text message (JSON).
+    SendText(String),
+    /// Close/shutdown the WS thread.
+    Shutdown,
+}
+
+/// Events sent from WS thread -> Bevy.
+#[derive(Debug)]
+enum WsEvent {
+    Connected { url: String },
+    ConnectionError { error: String },
+    Disconnected { reason: String },
+    TextMessage(String),
+}
+
 #[derive(Resource)]
 struct ArchipelagoClient {
-    ws: Option<Mutex<WsClient>>,
+    cmd_tx: Option<Sender<WsCommand>>,
+    evt_rx: Option<Receiver<WsEvent>>,
 }
 
 #[derive(Debug)]
@@ -59,54 +84,302 @@ pub struct ArchipelagoState {
 pub struct ConnectedMessage;
 
 #[derive(Message, Debug)]
+pub struct SendItemMessage {
+    pub element: graph::Element,
+}
+
+#[derive(Message, Debug)]
+pub enum ConnectionErrorMessage {
+    UriParseError,
+    ConnectionFailed(String),
+}
+
+#[derive(Message, Debug)]
 pub struct ReceivedItemMessage {
     pub item_name: String,
     pub related_location_name: String,
     pub graph_index_num: usize,
 }
 
-#[derive(Message, Debug)]
-pub struct SendItemMessage {
-    pub element: graph::Element,
-}
-
 #[derive(Message, Default)]
 struct GoSaveDataPackages;
+
+fn normalize_urls(input: &str) -> Vec<Url> {
+    let wss = format!("wss://{input}");
+    let ws = format!("ws://{input}");
+
+    let mut out = Vec::new();
+    if let Ok(u) = Url::parse(&wss) {
+        out.push(u);
+    }
+    if let Ok(u) = Url::parse(&ws) {
+        out.push(u);
+    }
+    out
+}
+
+fn spawn_ws_thread() -> (Sender<WsCommand>, Receiver<WsEvent>) {
+    let (cmd_tx, cmd_rx) = crossbeam_channel::unbounded::<WsCommand>();
+    let (evt_tx, evt_rx) = crossbeam_channel::unbounded::<WsEvent>();
+
+    std::thread::Builder::new()
+        .name("archipelago_ws".to_string())
+        .spawn(move || {
+            // WS thread owns a tokio runtime.
+            let rt = match tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .worker_threads(1)
+                .thread_name("archipelago_ws_tokio")
+                .build()
+            {
+                Ok(rt) => rt,
+                Err(e) => {
+                    let _ = evt_tx.send(WsEvent::ConnectionError {
+                        error: format!("failed to create tokio runtime: {e:?}"),
+                    });
+                    return;
+                }
+            };
+
+            rt.block_on(async move {
+                ws_thread_main(cmd_rx, evt_tx).await;
+            });
+        })
+        .expect("failed to spawn archipelago_ws thread");
+
+    (cmd_tx, evt_rx)
+}
+
+async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
+    let mut ws: Option<WebSocket> = None;
+    let mut connected_url: Option<String> = None;
+
+    // Compression options: enable permessage-deflate negotiation with a reasonable level.
+    // (Negotiation happens during handshake when compression is set.)
+    let options = Options::default()
+        .with_compression_level(CompressionLevel::new(6))
+        .with_utf8()
+        .with_no_delay();
+
+    loop {
+        // Drain commands quickly.
+        while let Ok(cmd) = cmd_rx.try_recv() {
+            match cmd {
+                WsCommand::Connect { address } => {
+                    // Drop any existing socket.
+                    ws = None;
+                    connected_url = None;
+
+                    let candidates = normalize_urls(&address);
+
+                    if candidates.is_empty() {
+                        let _ = evt_tx.send(WsEvent::ConnectionError {
+                            error: format!("could not parse address into ws/wss URL: {address}"),
+                        });
+                        continue;
+                    }
+
+                    let mut last_err: Option<String> = None;
+
+                    for url in candidates {
+                        let url_s = url.to_string();
+
+                        // Connect using yawc builder so we can apply Options (compression etc).
+                        let attempt = WebSocket::connect(url).with_options(options.clone()).await;
+
+                        match attempt {
+                            Ok(sock) => {
+                                connected_url = Some(url_s.clone());
+                                ws = Some(sock);
+                                let _ = evt_tx.send(WsEvent::Connected { url: url_s });
+                                last_err = None;
+                                break;
+                            }
+                            Err(e) => {
+                                last_err = Some(format!("{e:?}"));
+                                continue;
+                            }
+                        }
+                    }
+
+                    if let Some(err) = last_err {
+                        let _ = evt_tx.send(WsEvent::ConnectionError {
+                            error: format!("failed to connect (after fallback attempts): {err}"),
+                        });
+                    }
+                }
+                WsCommand::SendText(text) => {
+                    if let Some(sock) = ws.as_mut() {
+                        // yawc expects frames; for application messages we send Text.
+                        if let Err(e) = sock.send(FrameView::text(text).into()).await {
+                            let _ = evt_tx.send(WsEvent::Disconnected {
+                                reason: format!("send error: {e:?}"),
+                            });
+                            ws = None;
+                            connected_url = None;
+                        }
+                    }
+                }
+                WsCommand::Shutdown => {
+                    if let Some(sock) = ws.as_mut() {
+                        let _ = sock
+                            .send(FrameView::close(yawc::close::CloseCode::Normal, b"bye").into())
+                            .await;
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Read from socket if connected.
+        if let Some(sock) = ws.as_mut() {
+            // Use a small timeout so we can keep checking cmd_rx without async bridging.
+            match tokio::time::timeout(Duration::from_millis(10), sock.next()).await {
+                Ok(Some(frame)) => {
+                    // `frame` is a full Frame; convert to a view and handle opcodes.
+                    let view: yawc::frame::FrameView = frame.into();
+                    match view.opcode {
+                        OpCode::Text => {
+                            // Options::with_utf8 ensures text is valid utf8, but payload is bytes.
+                            match std::str::from_utf8(&view.payload) {
+                                Ok(s) => {
+                                    let _ = evt_tx.send(WsEvent::TextMessage(s.to_string()));
+                                }
+                                Err(e) => {
+                                    let _ = evt_tx.send(WsEvent::Disconnected {
+                                        reason: format!("invalid utf8 from server: {e:?}"),
+                                    });
+                                    ws = None;
+                                    connected_url = None;
+                                }
+                            }
+                        }
+                        OpCode::Close => {
+                            let _ = evt_tx.send(WsEvent::Disconnected {
+                                reason: "server closed connection".to_string(),
+                            });
+                            ws = None;
+                            connected_url = None;
+                        }
+                        // yawc auto-responds to Ping with Pong (client behavior),
+                        // but still yields the frame; we can ignore.
+                        _ => {}
+                    }
+                }
+                Ok(None) => {
+                    // Stream ended.
+                    let _ = evt_tx.send(WsEvent::Disconnected {
+                        reason: "connection ended".to_string(),
+                    });
+                    ws = None;
+                    connected_url = None;
+                }
+                Err(_) => {
+                    // timeout: just loop again
+                }
+            }
+        } else {
+            // Not connected: back off a bit to avoid busy looping.
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
+}
+
+// -------------------------
+// Bevy systems
+// -------------------------
 
 fn init_connecting(
     _start: On<StartConnect>,
     mut apclient: ResMut<ArchipelagoClient>,
-    state: ResMut<ArchipelagoState>,
+    mut state: ResMut<ArchipelagoState>,
+    mut error_writer: MessageWriter<ConnectionErrorMessage>,
 ) {
-    if let Ok(mut client) = ClientBuilder::new(&format!("wss://{}", state.address)) {
-        match client.connect(None) {
-            Ok(client) => {
-                client.set_nonblocking(true).unwrap();
-                apclient.ws = Some(Mutex::new(client));
+    // Ensure worker exists.
+    if apclient.cmd_tx.is_none() || apclient.evt_rx.is_none() {
+        let (cmd_tx, evt_rx) = spawn_ws_thread();
+        apclient.cmd_tx = Some(cmd_tx);
+        apclient.evt_rx = Some(evt_rx);
+    }
+
+    // Ask the worker to connect (it will do wss->ws fallback automatically).
+    let Some(cmd_tx) = apclient.cmd_tx.as_ref() else {
+        error_writer.write(ConnectionErrorMessage::ConnectionFailed(
+            "missing command sender".to_string(),
+        ));
+        return;
+    };
+
+    if state.address.trim().is_empty() {
+        error_writer.write(ConnectionErrorMessage::UriParseError);
+        return;
+    }
+
+    // Trigger connect
+    let _ = cmd_tx.send(WsCommand::Connect {
+        address: state.address.clone(),
+    });
+}
+
+fn poll_websocket(
+    mut commands: Commands,
+    apclient: Res<ArchipelagoClient>,
+    mut state: ResMut<ArchipelagoState>,
+    mut connected_writer: MessageWriter<ConnectedMessage>,
+    mut error_writer: MessageWriter<ConnectionErrorMessage>,
+    mut receive_writer: MessageWriter<ReceivedItemMessage>,
+    mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
+    mut graph: ResMut<RecipeGraph>,
+) {
+    let Some(evt_rx) = apclient.evt_rx.as_ref() else {
+        return;
+    };
+
+    // Drain all available events each tick.
+    while let Ok(evt) = evt_rx.try_recv() {
+        match evt {
+            WsEvent::Connected { url: _ } => {}
+            WsEvent::ConnectionError { error } => {
+                state.connected = false;
+                error_writer.write(ConnectionErrorMessage::ConnectionFailed(error));
             }
-            Err(TlsHandshakeFailure) => {
-                let c = ClientBuilder::new(&format!("ws://{}", state.address))
-                    .unwrap()
-                    .connect(None)
-                    .unwrap();
-                c.set_nonblocking(true).unwrap();
-                apclient.ws = Some(Mutex::new(c));
+            WsEvent::Disconnected { reason: _ } => {
+                state.connected = false;
             }
-            Err(e) => eprintln!("can't connect to websocket due to error {:?}", e),
+            WsEvent::TextMessage(text) => match from_str::<Vec<APServerMessage>>(&text) {
+                Ok(des) => {
+                    for msg in des {
+                        handle_ap_message(
+                            &mut commands,
+                            &mut state,
+                            msg,
+                            &mut receive_writer,
+                            &mut save_datapackages_writer,
+                            &mut connected_writer,
+                            &apclient,
+                            &mut graph,
+                        );
+                    }
+                }
+                Err(e) => {
+                    warn!("Can't decode AP message: {e:?}\nraw: {text}");
+                }
+            },
         }
-    } else {
-        eprintln!("Can't parse url")
     }
 }
 
-fn handle_server_message(
+/// Put your existing APServerMessage handling here.
+/// This stub keeps the file self-contained; replace body with your original match tree.
+fn handle_ap_message(
+    commands: &mut Commands,
     state: &mut ResMut<ArchipelagoState>,
-    ws: &mut WsClient,
     des: APServerMessage,
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
     save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
-    graph: &mut ResMut<RecipeGraph>,
     connected_writer: &mut MessageWriter<ConnectedMessage>,
+    apclient: &ArchipelagoClient,
+    graph: &mut ResMut<RecipeGraph>,
 ) {
     match des {
         APServerMessage::RoomInfo {
@@ -158,8 +431,11 @@ fn handle_server_message(
                 serde_json::to_string(&msg).unwrap()
             );
 
-            ws.send_message(&OwnedMessage::Text(serde_json::to_string(&msg).unwrap()))
-                .unwrap();
+            if let Some(sender) = &apclient.cmd_tx {
+                sender
+                    .send(WsCommand::SendText(serde_json::to_string(&msg).unwrap()))
+                    .expect("ap cmd_tx channel closed")
+            };
         }
         APServerMessage::ConnectionRefused { errors } => {
             state.connected = false;
@@ -288,82 +564,36 @@ fn handle_server_message(
     }
 }
 
-fn poll_websocket(
-    mut client: ResMut<ArchipelagoClient>,
-    mut state: ResMut<ArchipelagoState>,
-    mut mw: MessageWriter<ReceivedItemMessage>,
-    mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
-    mut recipes: ResMut<RecipeGraph>,
-    mut connected_writer: MessageWriter<ConnectedMessage>,
-) {
-    let mut close_ws = false;
-    if let Some(mws) = &client.ws {
-        let mut ws = mws.lock().expect("Mutex is poisoned");
-        loop {
-            match ws.recv_message() {
-                // TODO: handle the errors better
-                Ok(OwnedMessage::Ping(p)) => ws.send_message(&OwnedMessage::Pong(p)).unwrap(),
-                Ok(OwnedMessage::Close(data)) => {
-                    close_ws = true;
-                    break;
-                }
-                Err(websocket::WebSocketError::IoError(wb)) => {
-                    if wb.kind() == ErrorKind::WouldBlock {
-                        break;
-                    }
-                    eprintln!("{:?}", wb);
-                    panic!()
-                }
-                Err(e) => {
-                    eprintln!("{:?}", e);
-                    panic!()
-                }
-                Ok(OwnedMessage::Text(str)) => match from_str(&str) {
-                    Ok(ldes) => {
-                        let ldes: Vec<APServerMessage> = ldes;
-                        for des in ldes {
-                            handle_server_message(
-                                &mut state,
-                                &mut ws,
-                                des,
-                                &mut mw,
-                                &mut save_datapackages_writer,
-                                &mut recipes,
-                                &mut connected_writer,
-                            )
-                        }
-                    }
-                    Err(e) => {
-                        println!("Can't decode: {}, got err {:?}", str, e);
-                        panic!();
-                    }
-                },
-
-                _ => todo!("websocket message type not handled"),
-            }
-        }
-    }
-    if close_ws {
-        client.ws = None;
-    }
-}
-
-fn init_state(mut commands: Commands, mut state: ResMut<ArchipelagoState>) {
-    state.address = "localhost:38281".to_string();
-    state.slot = "Player1".to_string();
-
-    commands.trigger(StartConnect);
-}
-
-// run when an item is merged or something (or on a timer with messages)
 fn send_websocket_msg(
     mut read_send_item: MessageReader<SendItemMessage>,
-    client: Res<ArchipelagoClient>,
-    state: ResMut<ArchipelagoState>,
+    apclient: Res<ArchipelagoClient>,
+    state: Res<ArchipelagoState>,
 ) {
+    if !state.connected {
+        return;
+    }
+    let Some(cmd_tx) = apclient.cmd_tx.as_ref() else {
+        return;
+    };
     read_send_item.read().for_each(|msg| {
-        println!("Send item {:?}!", msg.element);
+        if msg.element.1 == Status::OUTPUT {
+            cmd_tx
+                .send(WsCommand::SendText(
+                    serde_json::to_string(&vec![APClientMessage::LocationChecks {
+                        locations: vec![msg.element.0 as isize],
+                    }])
+                    .expect("can't make json from client message"),
+                ))
+                .expect("can't send message to websocket queue");
+        }
     });
+
+    // Example: if you later add an event/queue, you’d serialize and send here:
+    // let msg = APClientMessage::GetDataPackage { game: "..." .into() };
+    // if let Ok(json) = serde_json::to_string(&msg) {
+    //     let _ = cmd_tx.send(WsCommand::SendText(json));
+    // }
+    let _ = cmd_tx; // silence unused if you keep this empty for now
 }
 
 pub struct ArchipelagoPlugin;
@@ -374,7 +604,11 @@ impl Plugin for ArchipelagoPlugin {
             .add_message::<GoSaveDataPackages>()
             .add_message::<ConnectedMessage>()
             .add_message::<SendItemMessage>()
-            .insert_resource(ArchipelagoClient { ws: None })
+            .add_message::<ConnectionErrorMessage>()
+            .insert_resource(ArchipelagoClient {
+                cmd_tx: None,
+                evt_rx: None,
+            })
             .insert_resource(ArchipelagoState {
                 connected: false,
                 address: "".to_string(),
