@@ -480,6 +480,17 @@ fn handle_ap_message(
                     .generate_graph(),
             );
 
+            // use checked_locations to generate the compounds that should be received
+            receive_writer.write_batch(state.checked_locations.iter().filter_map(|&location| {
+                if location < LOCATION_AMOUNT as isize {
+                    Some(ReceivedItemMessage {
+                        element: (location as u64, Status::OUTPUT),
+                    })
+                } else {
+                    None
+                }
+            }));
+
             // this is the server
             state.games.insert(0, "Archipelago".to_string());
             for (slot, nwslot) in slot_info {
