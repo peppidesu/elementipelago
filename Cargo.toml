@@ -8,6 +8,7 @@ bevy = { version = "0.17.3", features = ["bevy_picking"] }
 bevy_embedded_assets = "0.14.0"
 bevy_ui_text_input = "0.6.0"
 crossbeam-channel = "0.5.15"
+dirs = "6.0.0"
 float-ord = "0.3.2"
 futures = "0.3.31"
 rand = "0.9.2"

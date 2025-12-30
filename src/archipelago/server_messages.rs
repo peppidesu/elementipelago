@@ -5,7 +5,7 @@ use crate::{
 
 use super::shared_types::*;
 use bevy::platform::collections::HashMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
 #[derive(Deserialize_repr, Debug)]
@@ -90,7 +90,7 @@ pub(super) enum NetworkSlot {
     } = 0b10,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub(super) struct DataPackageObject {
     pub(super) checksum: String,

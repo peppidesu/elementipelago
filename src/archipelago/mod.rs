@@ -1,3 +1,4 @@
+use std::fs::read_to_string;
 use std::time::Duration;
 
 use bevy::asset::uuid::Uuid;
@@ -5,6 +6,7 @@ use bevy::platform::collections::HashSet;
 use bevy::{platform::collections::HashMap, prelude::*};
 use crossbeam_channel::{Receiver, Sender};
 use futures::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use url::Url;
 use yawc::frame::{FrameView, OpCode};
@@ -12,6 +14,7 @@ use yawc::{CompressionLevel, Options, WebSocket};
 
 use server_messages::{APServerMessage, SlotData};
 
+use crate::archipelago::datapackage::{DataPackageSave, save_datapackage};
 use crate::graph::Status;
 use crate::{
     archipelago::{
@@ -25,6 +28,7 @@ use crate::{
 
 mod client_messages;
 mod consts;
+mod datapackage;
 mod server_messages;
 mod shared_types;
 
@@ -57,7 +61,7 @@ struct ArchipelagoClient {
     evt_rx: Option<Receiver<WsEvent>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct MyDataPackage {
     checksum: String,
     location_name_to_id: HashMap<String, LocationID>,
@@ -82,6 +86,38 @@ pub struct ArchipelagoState {
     hint_points: isize,
 }
 
+fn init_datapackages() -> HashMap<String, MyDataPackage> {
+    let dir = dirs::cache_dir().unwrap();
+    let datapackage_dir = dir.join("elementipelago").join("datapackages");
+
+    let mut data_packages = HashMap::new();
+
+    let Ok(dir) = std::fs::read_dir(datapackage_dir) else {
+        return data_packages;
+    };
+
+    for file in dir {
+        let Ok(file) = file else {
+            continue;
+        };
+
+        let Ok(content) = read_to_string(file.path()) else {
+            continue;
+        };
+
+        let Ok(dps) = serde_json::from_str::<DataPackageSave>(&content) else {
+            continue;
+        };
+
+        let game = dps.game;
+        let datapackage = dps.datapackage;
+
+        data_packages.insert(game, datapackage);
+    }
+
+    return data_packages;
+}
+
 impl Default for ArchipelagoState {
     fn default() -> Self {
         Self {
@@ -92,7 +128,7 @@ impl Default for ArchipelagoState {
             slotdata: None,
             player_id: 0,
             checked_locations: Default::default(),
-            data_packages: Default::default(),
+            data_packages: init_datapackages(),
             games: Default::default(),
             hint_points: 0,
         }
@@ -117,9 +153,6 @@ pub enum ConnectionErrorMessage {
 pub struct ReceivedItemMessage {
     pub element: graph::Element,
 }
-
-#[derive(Message, Default)]
-struct GoSaveDataPackages;
 
 fn normalize_urls(input: &str) -> Vec<Url> {
     let wss = format!("wss://{input}");
@@ -345,7 +378,6 @@ fn poll_websocket(
     mut connected_writer: MessageWriter<ConnectedMessage>,
     mut error_writer: MessageWriter<ConnectionErrorMessage>,
     mut receive_writer: MessageWriter<ReceivedItemMessage>,
-    mut save_datapackages_writer: MessageWriter<GoSaveDataPackages>,
     mut graph: ResMut<RecipeGraph>,
 ) {
     let Some(evt_rx) = apclient.evt_rx.as_ref() else {
@@ -371,7 +403,6 @@ fn poll_websocket(
                             &mut state,
                             msg,
                             &mut receive_writer,
-                            &mut save_datapackages_writer,
                             &mut connected_writer,
                             &apclient,
                             &mut graph,
@@ -393,7 +424,6 @@ fn handle_ap_message(
     state: &mut ResMut<ArchipelagoState>,
     des: APServerMessage,
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
-    save_datapackages_writer: &mut MessageWriter<GoSaveDataPackages>,
     connected_writer: &mut MessageWriter<ConnectedMessage>,
     apclient: &ArchipelagoClient,
     graph: &mut ResMut<RecipeGraph>,
@@ -422,6 +452,10 @@ fn handle_ap_message(
 
                 if state.data_packages.contains_key(&game) {
                     if state.data_packages[&game].checksum != checksum {
+                        println!(
+                            "I have package checksum {} for game {}, which is different than {}",
+                            state.data_packages[&game].checksum, game, checksum
+                        );
                         to_fetch.push(game);
                     }
                 } else {
@@ -524,26 +558,24 @@ fn handle_ap_message(
         }
         APServerMessage::DataPackage { data } => {
             for (game, game_data) in data.games {
-                state.data_packages.insert(
-                    game,
-                    MyDataPackage {
-                        checksum: game_data.checksum,
-                        location_id_to_name: game_data
-                            .location_name_to_id
-                            .iter()
-                            .map(|(key, &value)| (value, key.clone()))
-                            .collect(),
-                        location_name_to_id: game_data.location_name_to_id,
-                        item_id_to_name: game_data
-                            .item_name_to_id
-                            .iter()
-                            .map(|(key, &value)| (value, key.clone()))
-                            .collect(),
-                        item_name_to_id: game_data.item_name_to_id,
-                    },
-                );
+                let mdp = MyDataPackage {
+                    checksum: game_data.checksum,
+                    location_id_to_name: game_data
+                        .location_name_to_id
+                        .iter()
+                        .map(|(key, &value)| (value, key.clone()))
+                        .collect(),
+                    location_name_to_id: game_data.location_name_to_id,
+                    item_id_to_name: game_data
+                        .item_name_to_id
+                        .iter()
+                        .map(|(key, &value)| (value, key.clone()))
+                        .collect(),
+                    item_name_to_id: game_data.item_name_to_id,
+                };
+                let _ = save_datapackage(&game, &mdp);
+                state.data_packages.insert(game, mdp);
             }
-            save_datapackages_writer.write_default();
         }
         APServerMessage::RoomUpdate {
             version,
@@ -663,7 +695,6 @@ pub struct ArchipelagoPlugin;
 impl Plugin for ArchipelagoPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ReceivedItemMessage>()
-            .add_message::<GoSaveDataPackages>()
             .add_message::<ConnectedMessage>()
             .add_message::<SendItemMessage>()
             .add_message::<ConnectionErrorMessage>()
