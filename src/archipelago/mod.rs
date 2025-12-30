@@ -12,6 +12,7 @@ use yawc::{CompressionLevel, Options, WebSocket};
 
 use server_messages::{APServerMessage, SlotData};
 
+use crate::archipelago::consts::{ELEMENT_AMOUNT, INTERMEDIATE_AMOUNT, LOCATION_AMOUNT};
 use crate::graph::Status;
 use crate::{
     archipelago::{
@@ -512,9 +513,27 @@ fn handle_ap_message(
                 let game = &state.games[&item.player];
                 let data = &state.data_packages[game];
 
-                if item.item >= 100 {
+                let start = 0;
+                let element_start = start + ELEMENT_ID_OFFSET as isize;
+                let intermediate_start = element_start + ELEMENT_AMOUNT as isize;
+                let intermediate_end = intermediate_start + INTERMEDIATE_AMOUNT as isize;
+
+                if item.item < start {
+                    println!("Skipping item: {item:#?} since it's not handled yet");
+                    None
+                } else if item.item < element_start {
+                    println!("one of the useful/filler items");
+                    None
+                } else if item.item < intermediate_start as isize {
                     Some(ReceivedItemMessage {
-                        element: (item.item as u64 - ELEMENT_ID_OFFSET + 1, Status::INPUT),
+                        element: (item.item as u64 + 1 - element_start as u64, Status::INPUT),
+                    })
+                } else if item.item < intermediate_end {
+                    Some(ReceivedItemMessage {
+                        element: (
+                            item.item as u64 + 1 - intermediate_start as u64,
+                            Status::INTERMEDIATE,
+                        ),
                     })
                 } else {
                     println!("Skipping item: {item:#?} since it's not handled yet");
@@ -640,22 +659,43 @@ fn send_websocket_msg(
     let Some(cmd_tx) = apclient.cmd_tx.as_ref() else {
         return;
     };
-    read_send_item.read().for_each(|msg| {
-        if msg.element.1 == Status::OUTPUT {
-            if state.checked_locations.contains(&(msg.element.0 as isize)) {
-                println!("Location already checked: {:?}", state.checked_locations);
-                return;
+
+    let locations: Vec<isize> = read_send_item
+        .read()
+        .filter_map(|msg| match msg.element.1 {
+            Status::INPUT => None,
+            Status::INTERMEDIATE => {
+                if state
+                    .checked_locations
+                    .contains(&(msg.element.0 as isize + LOCATION_AMOUNT as isize))
+                {
+                    None
+                } else {
+                    Some((msg.element.0 + LOCATION_AMOUNT) as isize)
+                }
             }
-            cmd_tx
-                .send(WsCommand::SendText(
-                    serde_json::to_string(&vec![APClientMessage::LocationChecks {
-                        locations: vec![msg.element.0 as isize],
-                    }])
-                    .expect("can't make json from client message"),
-                ))
-                .expect("can't send message to websocket queue");
-        }
-    });
+            Status::OUTPUT => {
+                if state.checked_locations.contains(&(msg.element.0 as isize)) {
+                    None
+                } else {
+                    Some((msg.element.0) as isize)
+                }
+            }
+        })
+        .collect();
+
+    if locations.len() == 0 {
+        return;
+    }
+
+    cmd_tx
+        .send(WsCommand::SendText(
+            serde_json::to_string(&vec![APClientMessage::LocationChecks {
+                locations: locations,
+            }])
+            .expect("can't make json from client message"),
+        ))
+        .expect("can't send message to websocket queue");
 }
 
 pub struct ArchipelagoPlugin;
