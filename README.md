@@ -5,16 +5,19 @@
 - [ ] Archipelago server connection
   - [x] Can connect
   - [x] Translation to bevy messages
-  - [ ] Login screen
+  - [x] Login screen
+  - [x] Item receiving
+  - [ ] Item sending
   - [ ] Use location/item names for element display names
 - [ ] Procedural generation
   - [ ] Intermediate item names
   - [ ] More sprites to choose from  
   - [ ] Smart sprite selection using location/item name
 - [ ] UI
-  - [ ] Scrolling element drawer
+  - [x] Scrolling element drawer
   - [ ] Search bar
   - [ ] Item names
+  - [ ] Tooltip for long names
   - [ ] Archipelago chat
 - [ ] Polish
   - [ ] Merge animation

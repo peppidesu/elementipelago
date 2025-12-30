@@ -1,3 +1,4 @@
+use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
@@ -13,6 +14,7 @@ pub struct PlayfieldPlugin;
 impl Plugin for PlayfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ElementDropped>()
+            .add_message::<SpawnFromSource>()
             .init_resource::<ElementAtlas>()
             .add_systems(Startup, setup_drawer)
             .add_systems(
@@ -20,6 +22,7 @@ impl Plugin for PlayfieldPlugin {
                 (
                     (
                         merge_elements,
+                        remove_elements_dropped_in_drawer,
                         recalculate_element_z_order.run_if(any_message::<ElementDropped>),
                     )
                         .chain(),
@@ -29,6 +32,10 @@ impl Plugin for PlayfieldPlugin {
                     )
                         .chain(),
                 ),
+            )
+            .add_systems(
+                PostUpdate,
+                spawn_from_source.before(TransformSystems::Propagate),
             )
             .add_observer(on_scroll_handler);
     }
@@ -52,9 +59,7 @@ const Z_INDEX_DRAG: f32 = 5.0;
 struct Element(GElement);
 /// Source element that creates new copies rather than being moved
 #[derive(Component)]
-struct ElementSource {
-    unlocked: bool,
-}
+struct ElementSource;
 
 #[derive(Component)]
 struct ElementDrawer;
@@ -118,6 +123,9 @@ impl RecipeGraph {
 #[derive(Message)]
 struct ElementDropped(Entity);
 
+#[derive(Message)]
+struct SpawnFromSource(Vec2, GElement);
+
 // ================================================================================================
 // Custom commands
 // ================================================================================================
@@ -145,14 +153,13 @@ mod cmd {
     pub struct SpawnElement {
         pub id: GElement,
         pub pos: Vec2,
-        pub from_src_drop: bool,
+        pub emit_dropped: bool,
     }
 
     impl Command for SpawnElement {
         fn apply(self, world: &mut World) {
             let atlas = world.get_resource::<ElementAtlas>().unwrap();
             let bundle = ElementBundle::build(self.id, self.pos, atlas);
-
             let mut commands = world.commands();
             let entity = commands
                 .spawn(bundle)
@@ -161,16 +168,12 @@ mod cmd {
                 .observe(element_drag_end)
                 .id();
 
-            if self.from_src_drop {
+            if self.emit_dropped {
                 commands.write_message(ElementDropped(entity));
             }
         }
     }
 }
-
-// ================================================================================================
-// Run conditions
-// ================================================================================================
 
 // ================================================================================================
 // Observers
@@ -185,7 +188,7 @@ fn element_drag_end(
 
 fn source_drag_end(
     drag_end: On<Pointer<DragEnd>>,
-    mut commands: Commands,
+    mut write_spawn_from_source: MessageWriter<SpawnFromSource>,
     camera_query: Single<(&Camera, &GlobalTransform)>,
     mut el_query: Query<(&Element, &mut UiTransform), With<ElementSource>>,
 ) {
@@ -196,11 +199,7 @@ fn source_drag_end(
 
     if let Ok(worldpos) = camera.viewport_to_world_2d(camera_tf, drag_end.pointer_location.position)
     {
-        commands.queue(SpawnElement {
-            id: el.0,
-            pos: worldpos,
-            from_src_drop: true,
-        });
+        write_spawn_from_source.write(SpawnFromSource(worldpos, el.0));
     }
 }
 
@@ -247,13 +246,63 @@ fn recalculate_element_z_order(
         });
 }
 
+fn spawn_from_source(
+    mut commands: Commands,
+    mut read_spawn_from_source: MessageReader<SpawnFromSource>,
+) {
+    read_spawn_from_source.read().for_each(|msg| {
+        commands.queue(SpawnElement {
+            id: msg.1,
+            pos: msg.0,
+            emit_dropped: true,
+        });
+    });
+}
+
+fn remove_elements_dropped_in_drawer(
+    mut commands: Commands,
+    mut dropped_msg: MessageReader<ElementDropped>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    drawer: Single<(&ComputedNode, &UiGlobalTransform), With<ElementDrawer>>,
+    camera: Single<(&Camera, &GlobalTransform)>,
+    assets_atlas: Res<Assets<TextureAtlasLayout>>,
+    assets_image: Res<Assets<Image>>,
+    element_query: Query<(&GlobalTransform, &Sprite), Without<ElementSource>>,
+) {
+    let (camera, camera_tf) = *camera;
+    dropped_msg.read().for_each(|msg| {
+        let Ok((dropped_tf, dropped_sprite)) = element_query.get(msg.0) else {
+            return;
+        };
+        let dropped_bb =
+            get_sprite_bounds(dropped_sprite, dropped_tf, &assets_image, &assets_atlas);
+        let new_min = camera
+            .world_to_viewport(camera_tf, dropped_bb.min.extend(0.0))
+            .unwrap();
+        let new_max = camera
+            .world_to_viewport(camera_tf, dropped_bb.max.extend(0.0))
+            .unwrap();
+
+        let dropped_bb = Rect::from_corners(new_min, new_max);
+
+        let drawer_bb = Rect::from_center_size(
+            drawer.1.translation / window.scale_factor(),
+            drawer.0.size() / window.scale_factor(),
+        );
+
+        if !dropped_bb.intersect(drawer_bb).is_empty() {
+            commands.entity(msg.0).despawn();
+        }
+    });
+}
+
 fn merge_elements(
     mut commands: Commands,
+    mut dropped_msg: MessageReader<ElementDropped>,
+    mut write_send_item: MessageWriter<SendItemMessage>,
     recipes: Res<RecipeGraph>,
     assets_atlas: Res<Assets<TextureAtlasLayout>>,
     assets_image: Res<Assets<Image>>,
-    mut dropped_msg: MessageReader<ElementDropped>,
-    mut write_send_item: MessageWriter<SendItemMessage>,
     element_query: Query<(Entity, &Element, &GlobalTransform, &Sprite), Without<ElementSource>>,
 ) {
     dropped_msg.read().for_each(|msg| {
@@ -298,7 +347,7 @@ fn merge_elements(
             commands.queue(cmd::SpawnElement {
                 id: r_el,
                 pos: new_pos,
-                from_src_drop: false,
+                emit_dropped: false,
             });
             write_send_item.write(SendItemMessage { element: r_el });
         }
@@ -313,14 +362,13 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
     let drawer = (
         ElementDrawer,
         Node {
-            width: percent(25),
             flex_direction: FlexDirection::Column,
+            flex_grow: 1.0,
             overflow: Overflow::scroll_y(),
-            left: px(0),
-            height: percent(100),
+            padding: UiRect::all(px(5)),
+            margin: UiRect::all(px(5)),
             ..default()
         },
-        ZIndex(-1),
         ImageNode::from_atlas_image(
             atlas.1.clone(),
             TextureAtlas {
@@ -333,8 +381,17 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
             ..default()
         })),
     );
+    let root = (
+        Node {
+            left: px(0),
+            width: percent(25),
+            height: percent(100),
+            ..default()
+        },
+        ZIndex(-1),
+    );
 
-    commands.spawn(drawer);
+    commands.spawn((root, children![drawer]));
 }
 
 fn on_scroll_handler(
@@ -394,61 +451,60 @@ fn populate_drawer(
     let bold_font = asset_server.load("fuzzybubbles-bold.ttf");
 
     for el in elements {
-        let el_source = commands
-            .spawn((
-                Node {
-                    width: px(48),
-                    height: px(48),
-                    ..default()
-                },
-                Element(*el),
-                ElementSource { unlocked: false },
-                Pickable::default(),
-                ImageNode::from_atlas_image(
-                    el_atlas.1.clone(),
-                    TextureAtlas {
-                        layout: el_atlas.0.clone(),
-                        index: 0,
+        commands.entity(*drawer).with_children(|parent| {
+            parent
+                .spawn((
+                    Node {
+                        align_items: AlignItems::Center,
+                        height: px(0),
+                        ..default()
                     },
-                ),
-            ))
-            .observe(source_drag)
-            .observe(source_drag_end)
-            .id();
-
-        let el_label = commands
-            .spawn((
-                Node { ..default() },
-                Text::new(format!(
-                    "{} #{}",
-                    match el.1 {
-                        Status::INPUT => "Element",
-                        Status::INTERMEDIATE => "Intermediate",
-                        Status::OUTPUT => "Compound",
-                    },
-                    el.0
-                )),
-                TextFont {
-                    font: bold_font.clone(),
-                    font_size: 12.0,
-                    ..default()
-                },
-                TextColor(Color::BLACK),
-            ))
-            .id();
-
-        let item = commands
-            .spawn((
-                Node {
-                    align_items: AlignItems::Center,
-                    height: px(0),
-                    ..default()
-                },
-                Visibility::Hidden,
-            ))
-            .add_children(&[el_label, el_source])
-            .id();
-        commands.entity(*drawer).add_child(item);
+                    Visibility::Hidden,
+                ))
+                .with_children(|parent| {
+                    parent.spawn((
+                        Node {
+                            flex_grow: 1.0,
+                            ..default()
+                        },
+                        Text::new(format!(
+                            "{} #{}",
+                            match el.1 {
+                                Status::INPUT => "Element",
+                                Status::INTERMEDIATE => "Intermediate",
+                                Status::OUTPUT => "Compound",
+                            },
+                            el.0
+                        )),
+                        TextFont {
+                            font: bold_font.clone(),
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(Color::BLACK),
+                    ));
+                    parent
+                        .spawn((
+                            Node {
+                                width: px(48),
+                                height: px(48),
+                                ..default()
+                            },
+                            Element(*el),
+                            ElementSource,
+                            Pickable::default(),
+                            ImageNode::from_atlas_image(
+                                el_atlas.1.clone(),
+                                TextureAtlas {
+                                    layout: el_atlas.0.clone(),
+                                    index: 0,
+                                },
+                            ),
+                        ))
+                        .observe(source_drag)
+                        .observe(source_drag_end);
+                });
+        });
     }
 }
 
