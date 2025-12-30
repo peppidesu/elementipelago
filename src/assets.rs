@@ -36,6 +36,6 @@ macro_rules! auto_atlas_resource {
 }
 
 auto_atlas_resource! {
-    ElementAtlas("element-atlas.png", (48, 48), 1, 13),
+    ElementAtlas("element-atlas.png", (48, 48), 5, 5),
     UiAtlas("ui-atlas.png", (32, 32), 4, 4)
 }
