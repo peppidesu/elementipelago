@@ -441,6 +441,7 @@ fn populate_drawer(
             .spawn((
                 Node {
                     align_items: AlignItems::Center,
+                    height: px(0),
                     ..default()
                 },
                 Visibility::Hidden,
@@ -455,6 +456,7 @@ fn on_item_received(
     mut read_item_received: MessageReader<ReceivedItemMessage>,
     src_query: Query<(&Element, &ChildOf), With<ElementSource>>,
     mut vis_query: Query<&mut Visibility>,
+    mut node_query: Query<&mut Node>,
 ) {
     read_item_received.read().for_each(|msg| {
         if let Some((_, parent)) = src_query
@@ -462,6 +464,7 @@ fn on_item_received(
             .find(|(el, _)| el.0.1 == Status::INPUT && el.0.0 == (msg.graph_index_num) as u64)
         {
             *vis_query.get_mut(parent.0).unwrap() = Visibility::Inherited;
+            node_query.get_mut(parent.0).unwrap().height = auto();
         }
     });
 }
