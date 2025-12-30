@@ -440,7 +440,12 @@ fn on_scroll_handler(
     let Ok((mut scroll_position, node, computed)) = query.get_mut(scroll.entity) else {
         return;
     };
-    let mut delta = Vec2::new(scroll.x, -scroll.y) * 24.0;
+
+    let mut delta = Vec2::new(scroll.x, -scroll.y);
+    if matches!(scroll.unit, bevy::input::mouse::MouseScrollUnit::Line) {
+        delta *= 24.0;
+    }
+
     let max_offset = (computed.content_size() - computed.size()) * computed.inverse_scale_factor();
 
     if node.overflow.x == OverflowAxis::Scroll && delta.x != 0. {
