@@ -521,9 +521,6 @@ fn handle_ap_message(
         }
         APServerMessage::ReceivedItems { index, items } => {
             receive_writer.write_batch(items.into_iter().filter_map(|item| {
-                let game = &state.games[&item.player];
-                let data = &state.data_packages[game];
-
                 let start = 0;
                 let element_start = start + ELEMENT_ID_OFFSET as isize;
                 let intermediate_start = element_start + ELEMENT_AMOUNT as isize;
