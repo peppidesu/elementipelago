@@ -1,45 +1,63 @@
-use bevy::platform::collections::HashMap;
+use bevy::{
+    math::{URect, UVec2},
+    platform::collections::HashMap,
+};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
-struct ImageSize {
-    w: usize,
-    h: usize,
+#[derive(Deserialize, Clone)]
+pub struct ImageSize {
+    pub w: u32,
+    pub h: u32,
+}
+
+impl Into<UVec2> for ImageSize {
+    fn into(self) -> UVec2 {
+        UVec2 {
+            x: self.w,
+            y: self.h,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]
 pub struct ImageRect {
-    pub x: usize,
-    pub y: usize,
-    pub w: usize,
-    pub h: usize,
+    pub x: u32,
+    pub y: u32,
+    pub w: u32,
+    pub h: u32,
+}
+
+impl Into<URect> for ImageRect {
+    fn into(self) -> URect {
+        URect::new(self.x, self.y, self.x + self.w, self.y + self.h)
+    }
 }
 
 #[derive(Deserialize)]
-struct AtlasMeta {
-    app: String,
-    version: String,
-    image: String,
-    format: String,
-    size: ImageSize,
-    scale: String, // TODO: parse this string into a float
+pub struct AtlasMeta {
+    pub app: String,
+    pub version: String,
+    pub image: String,
+    pub format: String,
+    pub size: ImageSize,
+    pub scale: String, // TODO: parse this string into a float
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct AtlasFrame {
-    frame: ImageRect,
-    rotated: bool,
-    trimmed: bool,
-    sprite_source_size: ImageRect,
-    source_size: ImageSize,
-    duration: usize,
+pub struct AtlasFrame {
+    pub frame: ImageRect,
+    pub rotated: bool,
+    pub trimmed: bool,
+    pub sprite_source_size: ImageRect,
+    pub source_size: ImageSize,
+    pub duration: usize,
 }
 
 #[derive(Deserialize)]
 pub struct AtlasDef {
-    meta: AtlasMeta,
-    frames: HashMap<String, AtlasFrame>,
+    pub meta: AtlasMeta,
+    pub frames: HashMap<String, AtlasFrame>,
 }
 
 impl AtlasDef {

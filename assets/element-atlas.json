@@ -204,7 +204,7 @@
   "meta": {
     "app": "http://www.aseprite.org/",
     "version": "1.3.13",
-    "image": "output.png",
+    "image": "element-atlas.png",
     "format": "RGBA8888",
     "size": { "w": 240, "h": 240 },
     "scale": "1"
