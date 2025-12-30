@@ -457,10 +457,7 @@ fn on_item_received(
     mut vis_query: Query<&mut Visibility>,
 ) {
     read_item_received.read().for_each(|msg| {
-        if let Some((_, parent)) = src_query
-            .iter()
-            .find(|(el, _)| el.0.1 == Status::INPUT && el.0.0 == (msg.graph_index_num) as u64)
-        {
+        if let Some((_, parent)) = src_query.iter().find(|(el, _)| el.0 == msg.element) {
             *vis_query.get_mut(parent.0).unwrap() = Visibility::Inherited;
         }
     });
