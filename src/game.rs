@@ -74,9 +74,9 @@ struct ElementBundle {
     sprite: Sprite,
 }
 
-fn get_element_icon_idx(id: GElement) -> usize {
+fn get_element_icon_idx(id: GElement, name_to_idx: &HashMap<String, usize>) -> usize {
     let key = FixedState::with_seed(42069).hash_one(id);
-    (key % 25) as usize
+    (key as usize % name_to_idx.len())
 }
 
 fn get_element_display_name(id: GElement) -> String {
@@ -98,7 +98,7 @@ impl ElementBundle {
             atlas.1.clone(),
             TextureAtlas {
                 layout: atlas.0.clone(),
-                index: get_element_icon_idx(id),
+                index: get_element_icon_idx(id, &atlas.2),
             },
         );
         ElementBundle {
@@ -533,7 +533,7 @@ fn populate_drawer(
                                 el_atlas.1.clone(),
                                 TextureAtlas {
                                     layout: el_atlas.0.clone(),
-                                    index: get_element_icon_idx(*el),
+                                    index: get_element_icon_idx(*el, &el_atlas.2),
                                 },
                             ),
                         ))
