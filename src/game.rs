@@ -300,6 +300,7 @@ fn merge_elements(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
     mut write_send_item: MessageWriter<SendItemMessage>,
+    mut write_received_item: MessageWriter<ReceivedItemMessage>,
     recipes: Res<RecipeGraph>,
     assets_atlas: Res<Assets<TextureAtlasLayout>>,
     assets_image: Res<Assets<Image>>,
@@ -350,6 +351,7 @@ fn merge_elements(
                 emit_dropped: false,
             });
             write_send_item.write(SendItemMessage { element: r_el });
+            write_received_item.write(ReceivedItemMessage { element: r_el });
         }
 
         // despawn ingredient elements
