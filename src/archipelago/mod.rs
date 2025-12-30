@@ -115,9 +115,7 @@ pub enum ConnectionErrorMessage {
 
 #[derive(Message, Debug)]
 pub struct ReceivedItemMessage {
-    pub item_name: String,
-    pub related_location_name: String,
-    pub graph_index_num: usize,
+    pub element: graph::Element,
 }
 
 #[derive(Message, Default)]
@@ -516,11 +514,7 @@ fn handle_ap_message(
 
                 if item.item >= 100 {
                     Some(ReceivedItemMessage {
-                        item_name: state.data_packages["Elementipelago"].item_id_to_name
-                            [&item.item]
-                            .clone(),
-                        related_location_name: data.location_id_to_name[&item.location].clone(),
-                        graph_index_num: item.item as usize - ELEMENT_ID_OFFSET,
+                        element: (item.item as u64 - ELEMENT_ID_OFFSET + 1, Status::INPUT),
                     })
                 } else {
                     println!("Skipping item: {item:#?} since it's not handled yet");
