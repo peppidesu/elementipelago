@@ -1,6 +1,6 @@
 # Progress tracker 
 
-## (MVP stage 1)
+## MVP stage 1
 - [x] Crafting tree generation
 - [x] Element dragging & merging
   - [x] Trash elements dragged into drawer
@@ -29,6 +29,7 @@
   - [ ] Smart sprite selection using location/item name
 - [ ] Tooltip for long names
 - [ ] Scrollbar
+- [ ] Windows support
 
 ## Later™
 - [ ] Search bar

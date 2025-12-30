@@ -14,6 +14,7 @@ use crate::{
     game::{PlayfieldPlugin, RecipeGraph},
     login::LoginScreenPlugin,
 };
+use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode as EmbeddedAssetPluginMode};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, States)]
 pub enum AppState {
@@ -36,6 +37,9 @@ fn setup(mut commands: Commands, mut window: Single<&mut Window, With<PrimaryWin
 fn main() {
     App::new()
         .add_plugins((
+            EmbeddedAssetPlugin {
+                mode: EmbeddedAssetPluginMode::ReplaceDefault,
+            },
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             LoginScreenPlugin,
             PlayfieldPlugin,
