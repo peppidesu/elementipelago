@@ -1,7 +1,9 @@
+use bevy::platform::hash::FixedState;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
+use std::hash::BuildHasher;
 
 use crate::archipelago::{ConnectedMessage, ReceivedItemMessage, SendItemMessage};
 use crate::assets::{ElementAtlas, UiAtlas};
@@ -72,15 +74,31 @@ struct ElementBundle {
     sprite: Sprite,
 }
 
+fn get_element_icon_idx(id: GElement) -> usize {
+    let key = FixedState::with_seed(42069).hash_one(id);
+    (key % 25) as usize
+}
+
+fn get_element_display_name(id: GElement) -> String {
+    format!(
+        "{} #{}",
+        match id.1 {
+            Status::INPUT => "Element",
+            Status::INTERMEDIATE => "Intermediate",
+            Status::OUTPUT => "Compound",
+        },
+        id.0
+    )
+}
+
 impl ElementBundle {
     fn build(id: GElement, pos: Vec2, atlas: &ElementAtlas) -> ElementBundle {
         let element = Element(id);
-        let mut rng = SmallRng::seed_from_u64(id.0);
         let sprite = Sprite::from_atlas_image(
             atlas.1.clone(),
             TextureAtlas {
                 layout: atlas.0.clone(),
-                index: rng.random_range(0..13),
+                index: get_element_icon_idx(id),
             },
         );
         ElementBundle {
@@ -159,10 +177,28 @@ mod cmd {
     impl Command for SpawnElement {
         fn apply(self, world: &mut World) {
             let atlas = world.get_resource::<ElementAtlas>().unwrap();
+            let asset_server = world.get_resource::<AssetServer>().unwrap();
+            let font = asset_server.load("fuzzybubbles-bold.ttf");
             let bundle = ElementBundle::build(self.id, self.pos, atlas);
+
             let mut commands = world.commands();
             let entity = commands
                 .spawn(bundle)
+                .with_children(|parent| {
+                    parent.spawn((
+                        Transform {
+                            translation: Vec3::new(0.0, -48.0, 0.0),
+                            ..default()
+                        },
+                        Text2d::new(get_element_display_name(self.id)),
+                        TextFont {
+                            font,
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor::BLACK,
+                    ));
+                })
                 .queue(AddElementBackground)
                 .observe(element_drag)
                 .observe(element_drag_end)
@@ -365,10 +401,11 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
         ElementDrawer,
         Node {
             flex_direction: FlexDirection::Column,
+            column_gap: px(10),
             flex_grow: 1.0,
             overflow: Overflow::scroll_y(),
-            padding: UiRect::all(px(5)),
-            margin: UiRect::all(px(5)),
+            padding: UiRect::all(px(10)),
+            margin: UiRect::all(px(10)),
             ..default()
         },
         ImageNode::from_atlas_image(
@@ -469,15 +506,7 @@ fn populate_drawer(
                             flex_grow: 1.0,
                             ..default()
                         },
-                        Text::new(format!(
-                            "{} #{}",
-                            match el.1 {
-                                Status::INPUT => "Element",
-                                Status::INTERMEDIATE => "Intermediate",
-                                Status::OUTPUT => "Compound",
-                            },
-                            el.0
-                        )),
+                        Text::new(get_element_display_name(*el)),
                         TextFont {
                             font: bold_font.clone(),
                             font_size: 12.0,
@@ -499,7 +528,7 @@ fn populate_drawer(
                                 el_atlas.1.clone(),
                                 TextureAtlas {
                                     layout: el_atlas.0.clone(),
-                                    index: 0,
+                                    index: get_element_icon_idx(*el),
                                 },
                             ),
                         ))

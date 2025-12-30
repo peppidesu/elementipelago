@@ -143,7 +143,7 @@ fn spawn_ws_thread() -> (Sender<WsCommand>, Receiver<WsEvent>) {
         .name("archipelago_ws".to_string())
         .spawn(move || {
             // WS thread owns a tokio runtime.
-            let rt = match tokio::runtime::Builder::new_multi_thread()
+            let rt = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .worker_threads(1)
                 .thread_name("archipelago_ws_tokio")

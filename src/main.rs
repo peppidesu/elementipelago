@@ -24,8 +24,13 @@ pub enum AppState {
 
 fn setup(mut commands: Commands, mut window: Single<&mut Window, With<PrimaryWindow>>) {
     commands.spawn((Camera2d, Msaa::Off));
+    window.resize_constraints.min_width = 640.0;
+    window.resize_constraints.min_height = 480.0;
 
-    window.resolution.set_scale_factor_override(Some(3.0));
+    let base_scale = window.resolution.base_scale_factor();
+    window
+        .resolution
+        .set_scale_factor_override(Some(base_scale * 2.0));
 }
 
 fn main() {

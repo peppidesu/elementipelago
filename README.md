@@ -1,25 +1,38 @@
-# Progress tracker
-- [ ] Document and finish this readme
+# Progress tracker 
+
+## (MVP stage 1)
 - [x] Crafting tree generation
 - [x] Element dragging & merging
-- [ ] Archipelago server connection
+  - [x] Trash elements dragged into drawer
+  - [x] Spawn elements using drawer
+  - [x] Merge elements dropped on top of eachother
+- [x] Archipelago server connection
   - [x] Can connect
   - [x] Translation to bevy messages
   - [x] Login screen
   - [x] Item receiving
-  - [ ] Item sending
-  - [ ] Use location/item names for element display names
+  - [x] Item sending
+  - [x] Update available items in drawer
+- [x] Random sprite selection
+- [x] Scrolling element drawer
+  
+## MVP stage 2
+- [ ] Code refactor
+- [ ] Document and finish this readme
+- [ ] Saving
+  - [ ] Progress
+  - [ ] Connection info
+- [ ] AP location/item name for element display name
 - [ ] Procedural generation
   - [ ] Intermediate item names
   - [ ] More sprites to choose from  
   - [ ] Smart sprite selection using location/item name
-- [ ] UI
-  - [x] Scrolling element drawer
-  - [ ] Search bar
-  - [ ] Item names
-  - [ ] Tooltip for long names
-  - [ ] Archipelago chat
-- [ ] Polish
-  - [ ] Merge animation
-  - [ ] Sound effects
-  - [ ] Tooltips
+- [ ] Tooltip for long names
+- [ ] Scrollbar
+
+## Later (tm)
+- [ ] Search bar
+- [ ] Archipelago chat
+- [ ] Merge animation
+- [ ] Sound effects
+- [ ] WASM support
