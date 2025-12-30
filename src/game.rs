@@ -254,6 +254,7 @@ fn merge_elements(
     assets_image: Res<Assets<Image>>,
     mut dropped_msg: MessageReader<ElementDropped>,
     mut write_send_item: MessageWriter<SendItemMessage>,
+    mut write_received_item: MessageWriter<ReceivedItemMessage>,
     element_query: Query<(Entity, &Element, &GlobalTransform, &Sprite), Without<ElementSource>>,
 ) {
     dropped_msg.read().for_each(|msg| {
@@ -301,6 +302,7 @@ fn merge_elements(
                 from_src_drop: false,
             });
             write_send_item.write(SendItemMessage { element: r_el });
+            write_received_item.write(ReceivedItemMessage { element: r_el });
         }
 
         // despawn ingredient elements
