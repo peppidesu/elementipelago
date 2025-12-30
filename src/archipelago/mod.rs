@@ -638,6 +638,16 @@ fn handle_ap_message(
                 eprintln!("Unhandled room update: players, {players:?}")
             }
             if let Some(checked) = checked_locations {
+                // use checked_locations to generate the compounds that should be received
+                receive_writer.write_batch(checked.iter().filter_map(|&location| {
+                    if location < LOCATION_AMOUNT as isize {
+                        Some(ReceivedItemMessage {
+                            element: (location as u64, Status::OUTPUT),
+                        })
+                    } else {
+                        None
+                    }
+                }));
                 state.checked_locations.extend(checked.into_iter());
             }
             if let Some(slot_data) = slot_data {
