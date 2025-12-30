@@ -30,7 +30,7 @@
 - [ ] Tooltip for long names
 - [ ] Scrollbar
 
-## Later (tm)
+## Later™
 - [ ] Search bar
 - [ ] Archipelago chat
 - [ ] Merge animation
