@@ -109,8 +109,25 @@ pub(super) struct DataPackageGames {
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-pub(super) struct JsonData {
-    text: String,
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
+pub(super) enum JsonData {
+    PlayerId {
+        text: String,
+    },
+    ItemId {
+        text: String,
+        player: PlayerID,
+        flags: u8,
+    },
+    LocationId {
+        text: String,
+        player: PlayerID,
+    },
+    #[serde(untagged)]
+    Text {
+        text: String,
+    },
 }
 
 #[derive(Deserialize, Debug)]
@@ -126,6 +143,11 @@ pub(super) enum PrintJSONMessage {
     Tutorial {
         data: Vec<JsonData>,
     },
+    ItemSend {
+        data: Vec<JsonData>,
+        receiving: PlayerID,
+        item: NetworkItem,
+    },
     #[serde(untagged)]
     Text {
         data: Vec<JsonData>,
@@ -133,6 +155,7 @@ pub(super) enum PrintJSONMessage {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 #[serde(tag = "cmd")]
 pub(super) enum APServerMessage {
     RoomInfo {

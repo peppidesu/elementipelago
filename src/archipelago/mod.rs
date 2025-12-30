@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::asset::uuid::Uuid;
+use bevy::platform::collections::HashSet;
 use bevy::{platform::collections::HashMap, prelude::*};
 use crossbeam_channel::{Receiver, Sender};
 use futures::{SinkExt, StreamExt};
@@ -74,10 +75,28 @@ pub struct ArchipelagoState {
     slotdata: Option<SlotData>,
     player_id: PlayerID,
 
-    checked_locations: Vec<LocationID>,
+    checked_locations: HashSet<LocationID>,
 
     data_packages: HashMap<String, MyDataPackage>,
     games: HashMap<PlayerID, String>,
+    hint_points: isize,
+}
+
+impl Default for ArchipelagoState {
+    fn default() -> Self {
+        Self {
+            connected: false,
+            address: "".to_string(),
+            slot: "".to_string(),
+            password: "".to_string(),
+            slotdata: None,
+            player_id: 0,
+            checked_locations: Default::default(),
+            data_packages: Default::default(),
+            games: Default::default(),
+            hint_points: 0,
+        }
+    }
 }
 
 #[derive(Message, Debug, Default)]
@@ -452,8 +471,9 @@ fn handle_ap_message(
             hint_points,
         } => {
             state.slotdata = Some(slot_data);
-            state.checked_locations = checked_locations;
+            state.checked_locations = checked_locations.into_iter().collect();
             state.player_id = slot;
+            state.hint_points = hint_points;
 
             graph.0 = Some(
                 (state.slotdata.as_ref())
@@ -531,6 +551,81 @@ fn handle_ap_message(
             }
             save_datapackages_writer.write_default();
         }
+        APServerMessage::RoomUpdate {
+            version,
+            generator_version,
+            tags,
+            password,
+            permissions,
+            hint_cost,
+            location_check_points,
+            games,
+            datapackage_checksums,
+            seed_name,
+            time,
+            team,
+            slot,
+            players,
+            checked_locations,
+            slot_data,
+            slot_info,
+            hint_points,
+        } => {
+            if let Some(version) = version {
+                eprintln!("Unhandled room update: version, {version:?}")
+            }
+            if let Some(generator_version) = generator_version {
+                eprintln!("Unhandled room update: generator_version, {generator_version:?}")
+            }
+            if let Some(tags) = tags {
+                eprintln!("Unhandled room update: tags, {tags:?}")
+            }
+            if let Some(password) = password {
+                eprintln!("Unhandled room update: password, {password:?}")
+            }
+            if let Some(permissions) = permissions {
+                eprintln!("Unhandled room update: permissions, {permissions:?}")
+            }
+            if let Some(hint_cost) = hint_cost {
+                eprintln!("Unhandled room update: hint_cost, {hint_cost:?}")
+            }
+            if let Some(location_check_points) = location_check_points {
+                eprintln!("Unhandled room update: location_check_points, {location_check_points:?}")
+            }
+            if let Some(games) = games {
+                eprintln!("Unhandled room update: games, {games:?}")
+            }
+            if let Some(datapackage_checksums) = datapackage_checksums {
+                eprintln!("Unhandled room update: datapackage_checksums, {datapackage_checksums:?}")
+            }
+            if let Some(seed_name) = seed_name {
+                eprintln!("Unhandled room update: seed_name, {seed_name:?}")
+            }
+            if let Some(time) = time {
+                eprintln!("Unhandled room update: time, {time:?}")
+            }
+            if let Some(team) = team {
+                eprintln!("Unhandled room update: team, {team:?}")
+            }
+            if let Some(slot) = slot {
+                eprintln!("Unhandled room update: slot, {slot:?}")
+            }
+            if let Some(players) = players {
+                eprintln!("Unhandled room update: players, {players:?}")
+            }
+            if let Some(checked) = checked_locations {
+                state.checked_locations.extend(checked.into_iter());
+            }
+            if let Some(slot_data) = slot_data {
+                eprintln!("Unhandled room update: slot_data, {slot_data:?}")
+            }
+            if let Some(slot_info) = slot_info {
+                eprintln!("Unhandled room update: slot_info, {slot_info:?}")
+            }
+            if let Some(hint_points) = hint_points {
+                state.hint_points = hint_points;
+            }
+        }
         message => {
             eprintln!(
                 "Got message {:#?} but don't know what to do with it yet",
@@ -553,6 +648,10 @@ fn send_websocket_msg(
     };
     read_send_item.read().for_each(|msg| {
         if msg.element.1 == Status::OUTPUT {
+            if state.checked_locations.contains(&(msg.element.0 as isize)) {
+                println!("Location already checked: {:?}", state.checked_locations);
+                return;
+            }
             cmd_tx
                 .send(WsCommand::SendText(
                     serde_json::to_string(&vec![APClientMessage::LocationChecks {
@@ -563,13 +662,6 @@ fn send_websocket_msg(
                 .expect("can't send message to websocket queue");
         }
     });
-
-    // Example: if you later add an event/queue, you’d serialize and send here:
-    // let msg = APClientMessage::GetDataPackage { game: "..." .into() };
-    // if let Ok(json) = serde_json::to_string(&msg) {
-    //     let _ = cmd_tx.send(WsCommand::SendText(json));
-    // }
-    let _ = cmd_tx; // silence unused if you keep this empty for now
 }
 
 pub struct ArchipelagoPlugin;
@@ -585,17 +677,7 @@ impl Plugin for ArchipelagoPlugin {
                 cmd_tx: None,
                 evt_rx: None,
             })
-            .insert_resource(ArchipelagoState {
-                connected: false,
-                address: "".to_string(),
-                slot: "".to_string(),
-                password: "".to_string(),
-                slotdata: None,
-                checked_locations: vec![],
-                data_packages: HashMap::new(),
-                games: HashMap::new(),
-                player_id: 0,
-            })
+            .insert_resource(ArchipelagoState::default())
             .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
             .add_observer(init_connecting);
     }
