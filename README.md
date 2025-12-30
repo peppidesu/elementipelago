@@ -20,7 +20,7 @@
 - [ ] Code refactor
 - [ ] Document and finish this readme
 - [ ] Saving
-  - [ ] Progress
+  - [x] Progress
   - [ ] Connection info
 - [ ] AP location/item name for element display name
 - [ ] Procedural generation
