@@ -1,6 +1,7 @@
 use bevy::{platform::collections::HashMap, prelude::*};
 
-use crate::atlas::AtlasDef;
+mod atlas;
+use atlas::AtlasDef;
 
 macro_rules! auto_atlas_resource {
     ($($name:ident ($path:expr)),*) => {
@@ -17,7 +18,7 @@ macro_rules! auto_atlas_resource {
 
             impl FromWorld for $name {
                 fn from_world(world: &mut World) -> Self {
-                    let config_str = include_str!(concat!("../assets/", $path));
+                    let config_str = include_str!(concat!("../../assets/", $path));
                     let config: AtlasDef = serde_json::from_str(config_str).expect(concat!("assets/",$path," is invalid json"));
                     let image_path = config.meta.image;
 

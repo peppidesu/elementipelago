@@ -2,7 +2,6 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 mod archipelago;
 mod assets;
-mod atlas;
 mod game;
 mod graph;
 mod input;
