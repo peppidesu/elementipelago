@@ -355,7 +355,7 @@ fn remove_elements_dropped_in_drawer(
     mut dropped_msg: MessageReader<ElementDropped>,
     window: Single<&Window, With<PrimaryWindow>>,
     drawer: Single<(&ComputedNode, &UiGlobalTransform), With<ElementDrawer>>,
-    camera: Single<(&Camera, &GlobalTransform)>,
+    camera: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
     assets_atlas: Res<Assets<TextureAtlasLayout>>,
     assets_image: Res<Assets<Image>>,
     element_query: Query<(&GlobalTransform, &Sprite), Without<ElementSource>>,
