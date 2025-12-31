@@ -10,11 +10,11 @@ pub struct ImageSize {
     pub h: u32,
 }
 
-impl Into<UVec2> for ImageSize {
-    fn into(self) -> UVec2 {
+impl From<ImageSize> for UVec2 {
+    fn from(val: ImageSize) -> Self {
         UVec2 {
-            x: self.w,
-            y: self.h,
+            x: val.w,
+            y: val.h,
         }
     }
 }
@@ -27,12 +27,13 @@ pub struct ImageRect {
     pub h: u32,
 }
 
-impl Into<URect> for ImageRect {
-    fn into(self) -> URect {
-        URect::new(self.x, self.y, self.x + self.w, self.y + self.h)
+impl From<ImageRect> for URect {
+    fn from(val: ImageRect) -> Self {
+        URect::new(val.x, val.y, val.x + val.w, val.y + val.h)
     }
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct AtlasMeta {
     pub app: String,
@@ -43,6 +44,7 @@ pub struct AtlasMeta {
     pub scale: String, // TODO: parse this string into a float
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AtlasFrame {
@@ -58,12 +60,4 @@ pub struct AtlasFrame {
 pub struct AtlasDef {
     pub meta: AtlasMeta,
     pub frames: HashMap<String, AtlasFrame>,
-}
-
-impl AtlasDef {
-    pub fn get_sprite_location(&self, name: &str) -> Option<ImageRect> {
-        self.frames
-            .get(name)
-            .and_then(|frame| Some(frame.frame.clone()))
-    }
 }

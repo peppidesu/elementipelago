@@ -2,6 +2,7 @@ use super::shared_types::*;
 use bevy::asset::uuid::Uuid;
 use serde::Serialize;
 
+#[allow(dead_code)]
 #[derive(Serialize)]
 #[serde(tag = "cmd")]
 pub(super) enum APClientMessage {
@@ -15,7 +16,7 @@ pub(super) enum APClientMessage {
         tags: Vec<String>,
         slot_data: bool, // Want true
     },
-    ConnectUpdata {
+    ConnectUpdate {
         items_handling: u8, // Want 0b111
         tags: Vec<String>,
     },

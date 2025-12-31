@@ -2,7 +2,6 @@ use bevy::platform::hash::FixedState;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
-use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::hash::BuildHasher;
 
 use crate::archipelago::{ConnectedMessage, ReceivedItemMessage, SendItemMessage};
@@ -76,7 +75,7 @@ struct ElementBundle {
 
 fn get_element_icon_idx(id: GElement, name_to_idx: &HashMap<String, usize>) -> usize {
     let key = FixedState::with_seed(42069).hash_one(id);
-    (key as usize % name_to_idx.len())
+    key as usize % name_to_idx.len()
 }
 
 fn get_element_display_name(id: GElement) -> String {
