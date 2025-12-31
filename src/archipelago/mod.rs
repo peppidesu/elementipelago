@@ -512,7 +512,7 @@ fn handle_ap_message(
             receive_writer.write_batch(state.checked_locations.iter().filter_map(|&location| {
                 if location < LOCATION_AMOUNT as isize {
                     Some(ReceivedItemMessage {
-                        element: (location as u64, Status::OUTPUT),
+                        element: (location as u64, Status::OUTPUT).into(),
                     })
                 } else {
                     None
@@ -562,14 +562,16 @@ fn handle_ap_message(
                     None
                 } else if item.item < intermediate_start {
                     Some(ReceivedItemMessage {
-                        element: (item.item as u64 + 1 - element_start as u64, Status::INPUT),
+                        element: (item.item as u64 + 1 - element_start as u64, Status::INPUT)
+                            .into(),
                     })
                 } else if item.item < intermediate_end {
                     Some(ReceivedItemMessage {
                         element: (
                             item.item as u64 + 1 - intermediate_start as u64,
                             Status::INTERMEDIATE,
-                        ),
+                        )
+                            .into(),
                     })
                 } else {
                     println!("Skipping item: {item:#?} since it's not handled yet");
@@ -665,7 +667,7 @@ fn handle_ap_message(
                 receive_writer.write_batch(checked.iter().filter_map(|&location| {
                     if location < LOCATION_AMOUNT as isize {
                         Some(ReceivedItemMessage {
-                            element: (location as u64, Status::OUTPUT),
+                            element: (location as u64, Status::OUTPUT).into(),
                         })
                     } else {
                         None
@@ -706,23 +708,23 @@ fn send_websocket_msg(
 
     let locations: Vec<isize> = read_send_item
         .read()
-        .filter_map(|msg| match msg.element.1 {
+        .filter_map(|msg| match msg.element.typ {
             Status::INPUT => None,
             Status::INTERMEDIATE => {
                 if state
                     .checked_locations
-                    .contains(&(msg.element.0 as isize + LOCATION_AMOUNT as isize))
+                    .contains(&(msg.element.id as isize + LOCATION_AMOUNT as isize))
                 {
                     None
                 } else {
-                    Some((msg.element.0 + LOCATION_AMOUNT) as isize)
+                    Some((msg.element.id + LOCATION_AMOUNT) as isize)
                 }
             }
             Status::OUTPUT => {
-                if state.checked_locations.contains(&(msg.element.0 as isize)) {
+                if state.checked_locations.contains(&(msg.element.id as isize)) {
                     None
                 } else {
-                    Some((msg.element.0) as isize)
+                    Some((msg.element.id) as isize)
                 }
             }
         })
@@ -734,10 +736,8 @@ fn send_websocket_msg(
 
     cmd_tx
         .send(WsCommand::SendText(
-            serde_json::to_string(&vec![APClientMessage::LocationChecks {
-                locations,
-            }])
-            .expect("can't make json from client message"),
+            serde_json::to_string(&vec![APClientMessage::LocationChecks { locations }])
+                .expect("can't make json from client message"),
         ))
         .expect("can't send message to websocket queue");
 }

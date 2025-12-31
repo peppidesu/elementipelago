@@ -1,6 +1,11 @@
 //! Recipe graph generation
 
-use bevy::platform::collections::{HashMap, HashSet};
+use std::fmt::Display;
+
+use bevy::{
+    ecs::{component::Component, resource::Resource},
+    platform::collections::{HashMap, HashSet},
+};
 
 struct RNG {
     seed_x: u64,
@@ -34,7 +39,59 @@ pub enum Status {
     OUTPUT,
 }
 
-pub type Element = (u64, Status);
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Component)]
+pub struct Element {
+    pub id: u64,
+    pub typ: Status,
+}
+
+impl Display for Element {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} #{}",
+            match self.typ {
+                Status::INPUT => "Element",
+                Status::INTERMEDIATE => "Intermediate",
+                Status::OUTPUT => "Compound",
+            },
+            self.id
+        )
+    }
+}
+
+impl From<(usize, usize, u64, Status)> for Element {
+    fn from(value: (usize, usize, u64, Status)) -> Self {
+        Element {
+            id: value.2,
+            typ: value.3,
+        }
+    }
+}
+
+impl From<(u64, Status)> for Element {
+    fn from(value: (u64, Status)) -> Self {
+        Element {
+            id: value.0,
+            typ: value.1,
+        }
+    }
+}
+
+#[derive(Debug, Resource)]
+pub struct ElementGraph {
+    pub recipe_map: HashMap<(Element, Element), Vec<Element>>,
+    pub element_list: Vec<Element>,
+}
+
+impl ElementGraph {
+    pub fn get(&self, el1: &Element, el2: &Element) -> Option<Vec<Element>> {
+        self.recipe_map
+            .get(&(el1.to_owned(), el2.to_owned()))
+            .or_else(|| self.recipe_map.get(&(el2.to_owned(), el1.to_owned())))
+            .cloned()
+    }
+}
 
 pub fn create_graph(
     inputs: u64,
@@ -42,7 +99,7 @@ pub fn create_graph(
     seed: u64,
     intermediates: u64,
     start_items: u64,
-) -> (HashMap<(Element, Element), Vec<Element>>, Vec<Element>) {
+) -> ElementGraph {
     let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut used: HashSet<(usize, usize)> = HashSet::new();
     let mut rng = RNG::init(seed);
@@ -134,11 +191,17 @@ pub fn create_graph(
             input2 = *in1;
         }
         let to_insert = match *typ {
-            Status::INPUT => (((0, Status::INPUT), (0, Status::INPUT)), (*output, *typ)),
+            Status::INPUT => (
+                ((0, Status::INPUT).into(), (0, Status::INPUT).into()),
+                (*output, *typ).into(),
+            ),
             Status::INTERMEDIATE | Status::OUTPUT => {
                 let i1 = dag_edges[input1];
                 let i2 = dag_edges[input2];
-                (((i1.2, i1.3), (i2.2, i2.3)), (*output, *typ))
+                (
+                    ((i1.2, i1.3).into(), (i2.2, i2.3).into()),
+                    (*output, *typ).into(),
+                )
             }
         };
 
@@ -152,14 +215,14 @@ pub fn create_graph(
         }
     }
 
-    (
-        recipes_with_outputs,
-        (1..=inputs)
-            .map(|x| (x, Status::INPUT))
-            .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE)))
-            .chain((1..=outputs).map(|x| (x, Status::OUTPUT)))
+    ElementGraph {
+        recipe_map: recipes_with_outputs,
+        element_list: (1..=inputs)
+            .map(|x| (x, Status::INPUT).into())
+            .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE).into()))
+            .chain((1..=outputs).map(|x| (x, Status::OUTPUT).into()))
             .collect(),
-    )
+    }
 }
 
 #[cfg(test)]
