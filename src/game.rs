@@ -1,5 +1,7 @@
+use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::observer::ObservedBy;
 use bevy::platform::hash::FixedState;
+use bevy::render::Render;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
@@ -219,7 +221,12 @@ mod cmd {
 fn element_drag_end(
     drag_drop: On<Pointer<DragEnd>>,
     mut dropped_msg: MessageWriter<ElementDropped>,
+    mut commands: Commands,
 ) {
+    commands
+        .entity(drag_drop.entity)
+        .remove_recursive::<Children, RenderLayers>()
+        .insert_recursive::<Children>(RenderLayers::layer(0));
     dropped_msg.write(ElementDropped(drag_drop.entity));
 }
 
@@ -231,19 +238,16 @@ struct ElementDragAdder {
 
 fn source_drag_start(
     drag_start: On<Pointer<DragStart>>,
-    mut el_query: Query<&Element, With<ElementSource>>,
-    camera_query: Single<(&Camera, &GlobalTransform)>,
+    el_query: Query<&Element, With<ElementSource>>,
+    camera_query: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
     mut commands: Commands,
     el_atlas: Res<ElementAtlas>,
     asset_server: Res<AssetServer>,
 ) {
     let font = asset_server.load("fuzzybubbles-bold.ttf");
-    let el = match el_query.get_mut(drag_start.entity) {
-        Ok(wa) => wa,
-        Err(e) => {
-            eprintln!("got error {e:?} when trying to get drag_start");
-            return;
-        }
+
+    let Ok(el) = el_query.get(drag_start.entity) else {
+        return;
     };
 
     let (camera, camera_tf) = *camera_query;
@@ -287,6 +291,8 @@ fn source_drag_start(
                 ));
             })
             .queue(AddElementBackground)
+            .remove_recursive::<Children, RenderLayers>()
+            .insert_recursive::<Children>(RenderLayers::layer(1))
             .observe(element_drag)
             .observe(element_drag_end);
     }
@@ -294,7 +300,7 @@ fn source_drag_start(
 
 fn element_drag(
     drag: On<Pointer<Drag>>,
-    camera_query: Single<(&Camera, &GlobalTransform)>,
+    camera_query: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
     mut tf: Query<&mut Transform>,
 ) {
     let (camera, camera_tf) = *camera_query;
