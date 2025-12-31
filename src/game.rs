@@ -1,3 +1,4 @@
+use bevy::ecs::observer::ObservedBy;
 use bevy::platform::hash::FixedState;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
@@ -7,7 +8,7 @@ use std::hash::BuildHasher;
 
 use crate::archipelago::{ConnectedMessage, ReceivedItemMessage, SendItemMessage};
 use crate::assets::{ElementAtlas, UiAtlas};
-use crate::game::cmd::SpawnElement;
+use crate::game::cmd::{AddElementBackground, SpawnElement};
 use crate::graph::{Element as GElement, Status};
 use crate::util::*;
 
@@ -222,20 +223,72 @@ fn element_drag_end(
     dropped_msg.write(ElementDropped(drag_drop.entity));
 }
 
-fn source_drag_end(
-    drag_end: On<Pointer<DragEnd>>,
-    mut write_spawn_from_source: MessageWriter<SpawnFromSource>,
+#[derive(Bundle)]
+struct ElementDragAdder {
+    sprite: Sprite,
+    transform: Transform,
+}
+
+fn source_drag_start(
+    drag_start: On<Pointer<DragStart>>,
+    mut el_query: Query<&Element, With<ElementSource>>,
     camera_query: Single<(&Camera, &GlobalTransform)>,
-    mut el_query: Query<(&Element, &mut UiTransform), With<ElementSource>>,
+    mut commands: Commands,
+    el_atlas: Res<ElementAtlas>,
+    asset_server: Res<AssetServer>,
 ) {
+    let font = asset_server.load("fuzzybubbles-bold.ttf");
+    let el = match el_query.get_mut(drag_start.entity) {
+        Ok(wa) => wa,
+        Err(e) => {
+            eprintln!("got error {e:?} when trying to get drag_start");
+            return;
+        }
+    };
+
     let (camera, camera_tf) = *camera_query;
-    let (el, mut tf) = el_query.get_mut(drag_end.entity).unwrap();
-
-    tf.translation = Val2::ZERO;
-
-    if let Ok(worldpos) = camera.viewport_to_world_2d(camera_tf, drag_end.pointer_location.position)
+    if let Ok(worldpos) =
+        camera.viewport_to_world_2d(camera_tf, drag_start.pointer_location.position)
     {
-        write_spawn_from_source.write(SpawnFromSource(worldpos, el.0));
+        let new_entity = commands
+            .spawn((Pickable::default(), Element(el.0.clone())))
+            .observe(source_drag_start)
+            .id();
+
+        commands
+            .entity(drag_start.entity)
+            .move_components::<(ElementSource, Node, ImageNode, ObservedBy, ChildOf)>(new_entity)
+            .insert(ElementDragAdder {
+                sprite: Sprite::from_atlas_image(
+                    el_atlas.1.clone(),
+                    TextureAtlas {
+                        layout: el_atlas.0.clone(),
+                        index: get_element_icon_idx(el.0, &el_atlas.2),
+                    },
+                ),
+                transform: Transform {
+                    translation: worldpos.extend(Z_INDEX_DRAG),
+                    ..default()
+                },
+            })
+            .with_children(|parent| {
+                parent.spawn((
+                    Transform {
+                        translation: Vec3::new(0.0, -48.0, 0.0),
+                        ..default()
+                    },
+                    Text2d::new(get_element_display_name(el.0)),
+                    TextFont {
+                        font,
+                        font_size: 12.0,
+                        ..default()
+                    },
+                    TextColor::BLACK,
+                ));
+            })
+            .queue(AddElementBackground)
+            .observe(element_drag)
+            .observe(element_drag_end);
     }
 }
 
@@ -252,10 +305,6 @@ fn element_drag(
         tf.translation += (delta - zero).extend(0.0);
         tf.translation.z = Z_INDEX_DRAG;
     }
-}
-
-fn source_drag(drag: On<Pointer<Drag>>, mut tf: Query<&mut UiTransform>) {
-    tf.get_mut(drag.entity).unwrap().translation = Val2::px(drag.distance.x, drag.distance.y);
 }
 
 // ================================================================================================
@@ -537,8 +586,7 @@ fn populate_drawer(
                                 },
                             ),
                         ))
-                        .observe(source_drag)
-                        .observe(source_drag_end);
+                        .observe(source_drag_start);
                 });
         });
     }
