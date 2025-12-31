@@ -1,10 +1,4 @@
-use bevy::{
-    camera::visibility::RenderLayers,
-    log::{Level, LogPlugin},
-    prelude::*,
-    ui::{FocusPolicy, UiStack},
-    window::PrimaryWindow,
-};
+use bevy::{camera::visibility::RenderLayers, prelude::*, window::PrimaryWindow};
 
 mod archipelago;
 mod assets;
@@ -61,12 +55,7 @@ fn main() {
             EmbeddedAssetPlugin {
                 mode: EmbeddedAssetPluginMode::ReplaceDefault,
             },
-            DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-                .set(LogPlugin {
-                    //level: Level::DEBUG,
-                    ..default()
-                }),
+            DefaultPlugins.set(ImagePlugin::default_nearest()),
             LoginScreenPlugin,
             PlayfieldPlugin,
             ArchipelagoPlugin,
