@@ -7,14 +7,14 @@ use bevy::{
     platform::collections::{HashMap, HashSet},
 };
 
-struct RNG {
+struct Rng {
     seed_x: u64,
     seed_y: u64,
 }
 
-impl RNG {
+impl Rng {
     pub fn init(seed: u64) -> Self {
-        RNG {
+        Rng {
             seed_x: seed,
             seed_y: seed << 1,
         }
@@ -34,9 +34,9 @@ impl RNG {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Status {
-    INPUT,
-    INTERMEDIATE,
-    OUTPUT,
+    Input,
+    Intermediate,
+    Output,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Component)]
@@ -51,9 +51,9 @@ impl Display for Element {
             f,
             "{} #{}",
             match self.typ {
-                Status::INPUT => "Element",
-                Status::INTERMEDIATE => "Intermediate",
-                Status::OUTPUT => "Compound",
+                Status::Input => "Element",
+                Status::Intermediate => "Intermediate",
+                Status::Output => "Compound",
             },
             self.id
         )
@@ -102,14 +102,14 @@ pub fn create_graph(
 ) -> ElementGraph {
     let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut used: HashSet<(usize, usize)> = HashSet::new();
-    let mut rng = RNG::init(seed);
+    let mut rng = Rng::init(seed);
 
     let mut inputs_to_place: Vec<u64> = (1..=inputs).collect();
     let mut intermediates_to_place: Vec<u64> = (1..=intermediates).collect();
     let mut outputs_to_place: Vec<u64> = (1..=outputs).collect();
 
     for i in 1..=start_items {
-        dag_edges.push((0, 0, i, Status::INPUT));
+        dag_edges.push((0, 0, i, Status::Input));
         inputs_to_place.retain(|&x| x != i);
     }
 
@@ -134,12 +134,12 @@ pub fn create_graph(
             while to_place_type.is_none() {
                 let typ = rng.get_random() % 3;
                 if typ == 0 && outputs_placed > inputs_placed && !inputs_to_place.is_empty() {
-                    to_place_type = Some(Status::INPUT);
+                    to_place_type = Some(Status::Input);
                     inputs_placed += 1;
                 } else if typ == 1 && !intermediates_to_place.is_empty() {
-                    to_place_type = Some(Status::INTERMEDIATE);
+                    to_place_type = Some(Status::Intermediate);
                 } else if typ == 2 && !outputs_to_place.is_empty() {
-                    to_place_type = Some(Status::OUTPUT);
+                    to_place_type = Some(Status::Output);
                     outputs_placed += 1;
                 }
             }
@@ -159,15 +159,15 @@ pub fn create_graph(
 
             let output_idx = (rng.get_random()
                 % match to_place_type {
-                    Status::INPUT => inputs_to_place.len(),
-                    Status::INTERMEDIATE => intermediates_to_place.len(),
-                    Status::OUTPUT => outputs_to_place.len(),
+                    Status::Input => inputs_to_place.len(),
+                    Status::Intermediate => intermediates_to_place.len(),
+                    Status::Output => outputs_to_place.len(),
                 } as u64) as usize;
 
             let output = match to_place_type {
-                Status::INPUT => inputs_to_place.remove(output_idx),
-                Status::INTERMEDIATE => intermediates_to_place.remove(output_idx),
-                Status::OUTPUT => outputs_to_place.remove(output_idx),
+                Status::Input => inputs_to_place.remove(output_idx),
+                Status::Intermediate => intermediates_to_place.remove(output_idx),
+                Status::Output => outputs_to_place.remove(output_idx),
             };
 
             new_layer.push((input1_idx, input2_idx, output, to_place_type));
@@ -191,11 +191,11 @@ pub fn create_graph(
             input2 = *in1;
         }
         let to_insert = match *typ {
-            Status::INPUT => (
-                ((0, Status::INPUT).into(), (0, Status::INPUT).into()),
+            Status::Input => (
+                ((0, Status::Input).into(), (0, Status::Input).into()),
                 (*output, *typ).into(),
             ),
-            Status::INTERMEDIATE | Status::OUTPUT => {
+            Status::Intermediate | Status::Output => {
                 let i1 = dag_edges[input1];
                 let i2 = dag_edges[input2];
                 (
@@ -218,9 +218,9 @@ pub fn create_graph(
     ElementGraph {
         recipe_map: recipes_with_outputs,
         element_list: (1..=inputs)
-            .map(|x| (x, Status::INPUT).into())
-            .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE).into()))
-            .chain((1..=outputs).map(|x| (x, Status::OUTPUT).into()))
+            .map(|x| (x, Status::Input).into())
+            .chain((1..=intermediates).map(|x| (x, Status::Intermediate).into()))
+            .chain((1..=outputs).map(|x| (x, Status::Output).into()))
             .collect(),
     }
 }
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_rng_values() {
-        let mut rng = RNG::init(29992);
+        let mut rng = Rng::init(29992);
         for i in 0..100 {
             println!("value {} -> {}", i, rng.get_random());
         }

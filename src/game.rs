@@ -81,7 +81,7 @@ impl ElementBundle {
             atlas.1.clone(),
             TextureAtlas {
                 layout: atlas.0.clone(),
-                index: get_element_icon_idx(&element, &atlas.2),
+                index: get_element_icon_idx(element, &atlas.2),
             },
         );
         ElementBundle {
@@ -274,6 +274,7 @@ fn spawn_from_source(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn remove_elements_dropped_in_drawer(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
@@ -311,6 +312,7 @@ fn remove_elements_dropped_in_drawer(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn merge_elements(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
@@ -342,7 +344,7 @@ fn merge_elements(
             // Only elements that can merge with this one
             .filter_map(|(r, el, tf, _)| {
                 recipes
-                    .get_recipe(&dropped_el, &el)
+                    .get_recipe(dropped_el, el)
                     .map(|result| (r, tf, result))
             })
             // Element with highest z-order (top-most)
@@ -514,7 +516,7 @@ fn populate_drawer(
                                 el_atlas.1.clone(),
                                 TextureAtlas {
                                     layout: el_atlas.0.clone(),
-                                    index: get_element_icon_idx(&el, &el_atlas.2),
+                                    index: get_element_icon_idx(el, &el_atlas.2),
                                 },
                             ),
                         ))
@@ -532,10 +534,7 @@ fn on_item_received(
     mut node_query: Query<&mut Node>,
 ) {
     read_item_received.read().for_each(|msg| {
-        if let Some((_, parent)) = src_query
-            .into_iter()
-            .find(|&(el, _)| el.to_owned() == msg.element)
-        {
+        if let Some((_, parent)) = src_query.into_iter().find(|&(el, _)| *el == msg.element) {
             *vis_query.get_mut(parent.0).unwrap() = Visibility::Inherited;
             node_query.get_mut(parent.0).unwrap().height = auto();
         }
