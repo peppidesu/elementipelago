@@ -19,7 +19,6 @@ pub struct PlayfieldPlugin;
 impl Plugin for PlayfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ElementDropped>()
-            .add_message::<SpawnFromSource>()
             .init_resource::<ElementAtlas>()
             .add_systems(Startup, setup_drawer)
             .add_systems(
@@ -37,10 +36,6 @@ impl Plugin for PlayfieldPlugin {
                     )
                         .chain(),
                 ),
-            )
-            .add_systems(
-                PostUpdate,
-                spawn_from_source.before(TransformSystems::Propagate),
             )
             .add_observer(on_scroll_handler);
     }
@@ -143,9 +138,6 @@ impl RecipeGraph {
 /// Message indicating an element was just dropped
 #[derive(Message)]
 struct ElementDropped(Entity);
-
-#[derive(Message)]
-struct SpawnFromSource(Vec2, GElement);
 
 // ================================================================================================
 // Custom commands
@@ -335,19 +327,6 @@ fn recalculate_element_z_order(
                 i as f32 / count as f32,
             );
         });
-}
-
-fn spawn_from_source(
-    mut commands: Commands,
-    mut read_spawn_from_source: MessageReader<SpawnFromSource>,
-) {
-    read_spawn_from_source.read().for_each(|msg| {
-        commands.queue(SpawnElement {
-            id: msg.1,
-            pos: msg.0,
-            emit_dropped: true,
-        });
-    });
 }
 
 fn remove_elements_dropped_in_drawer(
