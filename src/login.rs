@@ -199,12 +199,9 @@ fn connect_button_system(
 ) {
     match *interaction {
         Interaction::Pressed => {
-            // ap_state.address = input_addr.get_text();
-            // ap_state.slot = input_slot.get_text();
-            // ap_state.password = input_pass.get_text();
-            ap_state.address = "localhost:38281".to_string();
-            ap_state.slot = "noa".to_string();
-            ap_state.password = "".to_string();
+            ap_state.address = input_addr.get_text();
+            ap_state.slot = input_slot.get_text();
+            ap_state.password = input_pass.get_text();
 
             println!(
                 "connecting to {} with {} and {}",
