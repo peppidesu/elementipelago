@@ -411,7 +411,7 @@ fn poll_websocket(
                     }
                 }
                 Err(e) => {
-                    warn!("Can't decode AP message: {e:?}\nraw: {text}");
+                    eprintln!("Can't decode AP message: {e:?}\nraw: {text}");
                 }
             },
         }

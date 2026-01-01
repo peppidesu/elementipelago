@@ -23,13 +23,7 @@ pub enum AppState {
 }
 
 fn setup(mut commands: Commands, mut window: Single<&mut Window, With<PrimaryWindow>>) {
-    commands.spawn((
-        Camera2d,
-        Msaa::Off,
-        IsDefaultUiCamera,
-        UiPickingCamera,
-        MeshPickingCamera,
-    ));
+    commands.spawn((Camera2d, Msaa::Off, IsDefaultUiCamera, UiPickingCamera));
     commands.spawn((
         Camera2d,
         Msaa::Off,
@@ -63,10 +57,6 @@ fn main() {
         .init_state::<AppState>()
         .insert_resource(UiPickingSettings {
             require_markers: true,
-        })
-        .insert_resource(MeshPickingSettings {
-            require_markers: true,
-            ..default()
         })
         .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
         .insert_resource(RecipeGraph(None))

@@ -4,7 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.17.3", features = ["bevy_picking"] }
+bevy = { version = "0.17.3", default-features = false, features = [
+"bevy_state",
+"bevy_picking",
+"bevy_ui_picking_backend",
+"bevy_sprite",
+"bevy_sprite_render",
+"png",
+"debug",
+"x11",
+"wayland",
+"multi_threaded"
+] }
 bevy_embedded_assets = "0.14.0"
 bevy_ui_text_input = "0.6.0"
 crossbeam-channel = "0.5.15"
