@@ -128,7 +128,6 @@ pub fn create_graph(
     }
 
     dag_edges.extend(compound_edges);
-    println!("graph edges: {:?}", dag_edges);
 
     // TODO: we may want to build the recipes in the hashmap directly eventually
     let mut recipes_with_outputs: HashMap<(Element, Element), Vec<Element>> = HashMap::new();
