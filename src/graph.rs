@@ -99,8 +99,10 @@ pub fn create_graph(
     seed: u64,
     intermediates: u64,
     start_items: u64,
+    compounds_are_ingredients: bool,
 ) -> ElementGraph {
     let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
+    let mut compound_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut used: HashSet<(usize, usize)> = HashSet::new();
     let mut rng = Rng::init(seed);
 
@@ -170,13 +172,19 @@ pub fn create_graph(
                 Status::Output => outputs_to_place.remove(output_idx),
             };
 
-            new_layer.push((input1_idx, input2_idx, output, to_place_type));
+            if compounds_are_ingredients || to_place_type != Status::OUTPUT {
+                new_layer.push((input1_idx, input2_idx, output, to_place_type));
+            } else {
+                compound_edges.push((input1_idx, input2_idx, output, to_place_type));
+            }
         }
 
         to_place_length =
             inputs_to_place.len() + intermediates_to_place.len() + outputs_to_place.len();
         dag_edges.extend(new_layer);
     }
+
+    dag_edges.extend(compound_edges);
 
     // TODO: we may want to build the recipes in the hashmap directly eventually
     let mut recipes_with_outputs: HashMap<(Element, Element), Vec<Element>> = HashMap::new();
@@ -215,18 +223,27 @@ pub fn create_graph(
         }
     }
 
+    let base_items = (1..=inputs)
+        .map(|x| (x, Status::INPUT).into())
+        .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE).into()));
+
+    let all_items = if compounds_are_ingredients {
+        base_items
+            .chain((1..=outputs).map(|x| (x, Status::OUTPUT).into()))
+            .collect()
+    } else {
+        base_items.collect()
+    };
     ElementGraph {
-        recipe_map: recipes_with_outputs,
-        element_list: (1..=inputs)
-            .map(|x| (x, Status::Input).into())
-            .chain((1..=intermediates).map(|x| (x, Status::Intermediate).into()))
-            .chain((1..=outputs).map(|x| (x, Status::Output).into()))
-            .collect(),
-    }
+      recipe_map: recipes_with_outputs, 
+      element_list: all_items
+  }
 }
 
 #[cfg(test)]
 mod tests {
+    // these tests aren't truly tests, but instead ways to check for inconsitencies with the graph
+    // generation in the apworld instead.
     use super::*;
 
     #[test]
@@ -235,12 +252,12 @@ mod tests {
         for i in 0..100 {
             println!("value {} -> {}", i, rng.get_random());
         }
-        assert_eq!(true, false)
+        //assert_eq!(true, false)
     }
 
     #[test]
     fn test_graph() {
-        println!("graph {:?}", create_graph(10, 10, 2827108, 10, 4));
+        println!("graph {:?}", create_graph(10, 10, 2827108, 10, 4, false));
         assert_eq!(true, false)
     }
 }

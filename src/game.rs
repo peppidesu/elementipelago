@@ -1,4 +1,7 @@
+use bevy::camera::visibility::RenderLayers;
+use bevy::ecs::observer::ObservedBy;
 use bevy::platform::hash::FixedState;
+use bevy::render::Render;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
@@ -6,8 +9,8 @@ use std::hash::BuildHasher;
 
 use crate::archipelago::{ConnectedMessage, ReceivedItemMessage, SendItemMessage};
 use crate::assets::{ElementAtlas, UiAtlas};
-use crate::game::cmd::SpawnElement;
-use crate::graph::{Element, ElementGraph};
+use crate::game::cmd::{AddElementBackground, SpawnElement};
+use crate::graph::{Element, Status};
 use crate::util::*;
 
 pub struct PlayfieldPlugin;
@@ -15,7 +18,6 @@ pub struct PlayfieldPlugin;
 impl Plugin for PlayfieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ElementDropped>()
-            .add_message::<SpawnFromSource>()
             .init_resource::<ElementAtlas>()
             .add_systems(Startup, setup_drawer)
             .add_systems(
@@ -33,10 +35,6 @@ impl Plugin for PlayfieldPlugin {
                     )
                         .chain(),
                 ),
-            )
-            .add_systems(
-                PostUpdate,
-                spawn_from_source.before(TransformSystems::Propagate),
             )
             .add_observer(on_scroll_handler);
     }
@@ -120,9 +118,6 @@ impl RecipeGraph {
 #[derive(Message)]
 struct ElementDropped(Entity);
 
-#[derive(Message)]
-struct SpawnFromSource(Vec2, Element);
-
 // ================================================================================================
 // Custom commands
 // ================================================================================================
@@ -197,30 +192,86 @@ mod cmd {
 fn element_drag_end(
     drag_drop: On<Pointer<DragEnd>>,
     mut dropped_msg: MessageWriter<ElementDropped>,
+    mut commands: Commands,
 ) {
+    commands
+        .entity(drag_drop.entity)
+        .remove_recursive::<Children, RenderLayers>()
+        .insert_recursive::<Children>(RenderLayers::layer(0));
     dropped_msg.write(ElementDropped(drag_drop.entity));
 }
 
-fn source_drag_end(
-    drag_end: On<Pointer<DragEnd>>,
-    mut write_spawn_from_source: MessageWriter<SpawnFromSource>,
-    camera_query: Single<(&Camera, &GlobalTransform)>,
-    mut el_query: Query<(&Element, &mut UiTransform), With<ElementSource>>,
+#[derive(Bundle)]
+struct ElementDragAdder {
+    sprite: Sprite,
+    transform: Transform,
+}
+
+fn source_drag_start(
+    drag_start: On<Pointer<DragStart>>,
+    el_query: Query<&Element, With<ElementSource>>,
+    camera_query: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
+    mut commands: Commands,
+    el_atlas: Res<ElementAtlas>,
+    asset_server: Res<AssetServer>,
 ) {
+    let font = asset_server.load("fuzzybubbles-bold.ttf");
+
+    let Ok(el) = el_query.get(drag_start.entity) else {
+        return;
+    };
+
     let (camera, camera_tf) = *camera_query;
-    let (el, mut tf) = el_query.get_mut(drag_end.entity).unwrap();
-
-    tf.translation = Val2::ZERO;
-
-    if let Ok(worldpos) = camera.viewport_to_world_2d(camera_tf, drag_end.pointer_location.position)
+    if let Ok(worldpos) =
+        camera.viewport_to_world_2d(camera_tf, drag_start.pointer_location.position)
     {
-        write_spawn_from_source.write(SpawnFromSource(worldpos, el.clone()));
+        let new_entity = commands
+            .spawn((Pickable::default(), Element(el.0.clone())))
+            .observe(source_drag_start)
+            .id();
+
+        commands
+            .entity(drag_start.entity)
+            .move_components::<(ElementSource, Node, ImageNode, ObservedBy, ChildOf)>(new_entity)
+            .insert(ElementDragAdder {
+                sprite: Sprite::from_atlas_image(
+                    el_atlas.1.clone(),
+                    TextureAtlas {
+                        layout: el_atlas.0.clone(),
+                        index: get_element_icon_idx(el.0, &el_atlas.2),
+                    },
+                ),
+                transform: Transform {
+                    translation: worldpos.extend(Z_INDEX_DRAG),
+                    ..default()
+                },
+            })
+            .with_children(|parent| {
+                parent.spawn((
+                    Transform {
+                        translation: Vec3::new(0.0, -48.0, 0.0),
+                        ..default()
+                    },
+                    Text2d::new(get_element_display_name(el.0)),
+                    TextFont {
+                        font,
+                        font_size: 12.0,
+                        ..default()
+                    },
+                    TextColor::BLACK,
+                ));
+            })
+            .queue(AddElementBackground)
+            .remove_recursive::<Children, RenderLayers>()
+            .insert_recursive::<Children>(RenderLayers::layer(1))
+            .observe(element_drag)
+            .observe(element_drag_end);
     }
 }
 
 fn element_drag(
     drag: On<Pointer<Drag>>,
-    camera_query: Single<(&Camera, &GlobalTransform)>,
+    camera_query: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
     mut tf: Query<&mut Transform>,
 ) {
     let (camera, camera_tf) = *camera_query;
@@ -231,10 +282,6 @@ fn element_drag(
         tf.translation += (delta - zero).extend(0.0);
         tf.translation.z = Z_INDEX_DRAG;
     }
-}
-
-fn source_drag(drag: On<Pointer<Drag>>, mut tf: Query<&mut UiTransform>) {
-    tf.get_mut(drag.entity).unwrap().translation = Val2::px(drag.distance.x, drag.distance.y);
 }
 
 // ================================================================================================
@@ -261,26 +308,13 @@ fn recalculate_element_z_order(
         });
 }
 
-fn spawn_from_source(
-    mut commands: Commands,
-    mut read_spawn_from_source: MessageReader<SpawnFromSource>,
-) {
-    read_spawn_from_source.read().for_each(|msg| {
-        commands.queue(SpawnElement {
-            id: msg.1.clone(),
-            pos: msg.0,
-            emit_dropped: true,
-        });
-    });
-}
-
 #[allow(clippy::too_many_arguments)]
 fn remove_elements_dropped_in_drawer(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
     window: Single<&Window, With<PrimaryWindow>>,
     drawer: Single<(&ComputedNode, &UiGlobalTransform), With<ElementDrawer>>,
-    camera: Single<(&Camera, &GlobalTransform)>,
+    camera: Single<(&Camera, &GlobalTransform), With<UiPickingCamera>>,
     assets_atlas: Res<Assets<TextureAtlasLayout>>,
     assets_image: Res<Assets<Image>>,
     element_query: Query<(&GlobalTransform, &Sprite), Without<ElementSource>>,
@@ -520,8 +554,7 @@ fn populate_drawer(
                                 },
                             ),
                         ))
-                        .observe(source_drag)
-                        .observe(source_drag_end);
+                        .observe(source_drag_start);
                 });
         });
     }

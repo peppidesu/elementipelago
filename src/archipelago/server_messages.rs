@@ -5,7 +5,7 @@ use crate::{
 
 use super::shared_types::*;
 use bevy::platform::collections::HashMap;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error};
 use serde_repr::Deserialize_repr;
 
 #[derive(Deserialize_repr, Debug)]
@@ -53,6 +53,21 @@ pub(super) struct NetworkItem {
     flags: u8,
 }
 
+fn int_to_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match u8::deserialize(deserializer)? {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(Error::custom("expected 0 or 1")),
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub(super) struct SlotData {
@@ -60,6 +75,8 @@ pub(super) struct SlotData {
     filler_amount: u64,
     intermediate_amount: u64,
     graph_seed: u64,
+    #[serde(default = "default_true", deserialize_with = "int_to_bool")]
+    compounds_are_ingredients: bool,
 }
 
 impl SlotData {
@@ -70,6 +87,7 @@ impl SlotData {
             self.graph_seed,
             self.intermediate_amount,
             START_ITEMS,
+            self.compounds_are_ingredients,
         )
     }
 }
