@@ -1,4 +1,3 @@
-
 use bevy::{prelude::*, text::LineHeight};
 use bevy_ui_text_input::{
     TextInputBuffer, TextInputMode, TextInputNode, TextInputPlugin, TextInputPrompt,
@@ -63,6 +62,7 @@ fn input_field(
         },
         children![(
             ui_tag,
+            Pickable::default(),
             TextInputNode {
                 mode: TextInputMode::SingleLine,
                 clear_on_submit: false,
@@ -203,6 +203,10 @@ fn connect_button_system(
             ap_state.slot = input_slot.get_text();
             ap_state.password = input_pass.get_text();
 
+            println!(
+                "connecting to {} with {} and {}",
+                ap_state.address, ap_state.slot, ap_state.password
+            );
             commands.trigger(StartConnect);
         }
         Interaction::Hovered => {}
