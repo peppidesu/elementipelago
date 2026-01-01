@@ -1,65 +1,84 @@
-use bevy::{camera::visibility::RenderLayers, prelude::*, window::PrimaryWindow};
-
-mod archipelago;
-mod assets;
-mod game;
-mod graph;
-mod input;
-mod login;
-mod util;
-
-use crate::{
-    archipelago::ArchipelagoPlugin,
-    game::{PlayfieldPlugin, RecipeGraph},
-    login::LoginScreenPlugin,
+use macroquad::{
+    miniquad::window::screen_size,
+    prelude::*,
+    ui::{Skin, hash, root_ui, widgets},
 };
-use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode as EmbeddedAssetPluginMode};
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, States)]
-pub enum AppState {
-    #[default]
-    Login,
-    InGame,
-}
+mod login;
 
-fn setup(mut commands: Commands, mut window: Single<&mut Window, With<PrimaryWindow>>) {
-    commands.spawn((Camera2d, Msaa::Off, IsDefaultUiCamera, UiPickingCamera));
-    commands.spawn((
-        Camera2d,
-        Msaa::Off,
-        Camera {
-            order: 1,
-            clear_color: ClearColorConfig::None,
-            ..default()
-        },
-        RenderLayers::layer(1),
-    ));
-    window.resize_constraints.min_width = 640.0;
-    window.resize_constraints.min_height = 480.0;
+#[macroquad::main("Elementipelago")]
+async fn main() {
+    let font = load_ttf_font("assets/fuzzybubbles-regular.ttf")
+        .await
+        .unwrap();
+    let skin = {
+        let label_style = root_ui()
+            .style_builder()
+            .with_font(&font)
+            .unwrap()
+            .text_color(BLACK)
+            .font_size(24)
+            .margin(RectOffset::new(0., 0., 5., 5.))
+            .build();
 
-    let base_scale = window.resolution.base_scale_factor();
-    window
-        .resolution
-        .set_scale_factor_override(Some(base_scale * 2.0));
-}
+        let group_style = root_ui()
+            .style_builder()
+            .background(
+                Image::from_file_with_format(
+                    include_bytes!("../assets/ui-atlas.png"),
+                    Some(ImageFormat::Png),
+                )
+                .unwrap(),
+            )
+            .background_margin(RectOffset::new(0., 0., 0., 0.))
+            .build();
 
-fn main() {
-    App::new()
-        .add_plugins((
-            EmbeddedAssetPlugin {
-                mode: EmbeddedAssetPluginMode::ReplaceDefault,
-            },
-            DefaultPlugins.set(ImagePlugin::default_nearest()),
-            LoginScreenPlugin,
-            PlayfieldPlugin,
-            ArchipelagoPlugin,
-        ))
-        .init_state::<AppState>()
-        .insert_resource(UiPickingSettings {
-            require_markers: true,
-        })
-        .insert_resource(ClearColor(Color::srgb(0.9, 0.9, 0.9)))
-        .insert_resource(RecipeGraph(None))
-        .add_systems(Startup, setup)
-        .run();
+        let button_style = root_ui()
+            .style_builder()
+            .background(
+                Image::from_file_with_format(
+                    include_bytes!("../assets/ui-atlas.png"),
+                    Some(ImageFormat::Png),
+                )
+                .unwrap()
+                .sub_image(Rect::new(0., 0., 32., 32.)),
+            )
+            .background_margin(RectOffset::new(0., 0., 0., 0.))
+            .with_font(&font)
+            .unwrap()
+            .text_color(BLACK)
+            .font_size(20)
+            .build();
+
+        let editbox_style = root_ui()
+            .style_builder()
+            .background_margin(RectOffset::new(0., 0., 0., 0.))
+            .margin(RectOffset::new(0., 0., 5., 5.))
+            .color(GREEN)
+            .with_font(&font)
+            .unwrap()
+            .text_color(BLACK)
+            .color_selected(PURPLE)
+            .font_size(24)
+            .build();
+
+        Skin {
+            label_style,
+            button_style,
+            group_style,
+            editbox_style,
+            ..root_ui().default_skin()
+        }
+    };
+
+    root_ui().push_skin(&skin);
+    loop {
+        clear_background(WHITE);
+
+        let mut storage = quad_storage::STORAGE.lock().unwrap();
+
+        login::enter_login(&mut storage, &font).await;
+
+        next_frame().await
+    }
 }

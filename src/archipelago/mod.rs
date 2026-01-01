@@ -1,9 +1,7 @@
+use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
 use std::time::Duration;
 
-use bevy::asset::uuid::Uuid;
-use bevy::platform::collections::HashSet;
-use bevy::{platform::collections::HashMap, prelude::*};
 use crossbeam_channel::{Receiver, Sender};
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -33,9 +31,6 @@ mod datapackage;
 mod server_messages;
 mod shared_types;
 
-#[derive(Event)]
-pub struct StartConnect;
-
 /// Commands sent from Bevy -> WS thread.
 #[derive(Debug)]
 enum WsCommand {
@@ -56,7 +51,7 @@ enum WsEvent {
     TextMessage(String),
 }
 
-#[derive(Resource)]
+#[derive()]
 struct ArchipelagoClient {
     cmd_tx: Option<Sender<WsCommand>>,
     evt_rx: Option<Receiver<WsEvent>>,
@@ -71,7 +66,7 @@ struct MyDataPackage {
     item_id_to_name: HashMap<ItemID, String>,
 }
 
-#[derive(Resource, Debug)]
+#[derive(Debug)]
 pub struct ArchipelagoState {
     connected: bool,
     pub address: String,
@@ -136,21 +131,21 @@ impl Default for ArchipelagoState {
     }
 }
 
-#[derive(Message, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ConnectedMessage;
 
-#[derive(Message, Debug)]
+#[derive(Debug)]
 pub struct SendItemMessage {
     pub element: graph::Element,
 }
 
-#[derive(Message, Debug)]
+#[derive(Debug)]
 pub enum ConnectionErrorMessage {
     UriParseError,
     ConnectionFailed(String),
 }
 
-#[derive(Message, Debug)]
+#[derive(Debug)]
 pub struct ReceivedItemMessage {
     pub element: graph::Element,
 }
@@ -173,30 +168,32 @@ fn spawn_ws_thread() -> (Sender<WsCommand>, Receiver<WsEvent>) {
     let (cmd_tx, cmd_rx) = crossbeam_channel::unbounded::<WsCommand>();
     let (evt_tx, evt_rx) = crossbeam_channel::unbounded::<WsEvent>();
 
-    std::thread::Builder::new()
-        .name("archipelago_ws".to_string())
-        .spawn(move || {
-            // WS thread owns a tokio runtime.
-            let rt = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .worker_threads(1)
-                .thread_name("archipelago_ws_tokio")
-                .build()
-            {
-                Ok(rt) => rt,
-                Err(e) => {
-                    let _ = evt_tx.send(WsEvent::ConnectionError {
-                        error: format!("failed to create tokio runtime: {e:?}"),
-                    });
-                    return;
-                }
-            };
+    // TODO: make a websocket connection
 
-            rt.block_on(async move {
-                ws_thread_main(cmd_rx, evt_tx).await;
-            });
-        })
-        .expect("failed to spawn archipelago_ws thread");
+    // std::thread::Builder::new()
+    //     .name("archipelago_ws".to_string())
+    //     .spawn(move || {
+    //         // WS thread owns a tokio runtime.
+    //         let rt = match tokio::runtime::Builder::new_current_thread()
+    //             .enable_all()
+    //             .worker_threads(1)
+    //             .thread_name("archipelago_ws_tokio")
+    //             .build()
+    //         {
+    //             Ok(rt) => rt,
+    //             Err(e) => {
+    //                 let _ = evt_tx.send(WsEvent::ConnectionError {
+    //                     error: format!("failed to create tokio runtime: {e:?}"),
+    //                 });
+    //                 return;
+    //             }
+    //         };
+    //
+    //         rt.block_on(async move {
+    //             ws_thread_main(cmd_rx, evt_tx).await;
+    //         });
+    //     })
+    //     .expect("failed to spawn archipelago_ws thread");
 
     (cmd_tx, evt_rx)
 }
@@ -285,7 +282,7 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
         // Read from socket if connected.
         if let Some(sock) = ws.as_mut() {
             // Use a small timeout so we can keep checking cmd_rx without async bridging.
-            match tokio::time::timeout(Duration::from_millis(10), sock.next()).await {
+            match sock.next().await {
                 Ok(Some(frame)) => {
                     // `frame` is a full Frame; convert to a view and handle opcodes.
                     let view: yawc::frame::FrameView = frame.into();
@@ -331,7 +328,7 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
             }
         } else {
             // Not connected: back off a bit to avoid busy looping.
-            tokio::time::sleep(Duration::from_millis(10)).await;
+            // nah, fuck that shit
         }
     }
 }
@@ -746,22 +743,4 @@ fn send_websocket_msg(
             .expect("can't make json from client message"),
         ))
         .expect("can't send message to websocket queue");
-}
-
-pub struct ArchipelagoPlugin;
-
-impl Plugin for ArchipelagoPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<ReceivedItemMessage>()
-            .add_message::<ConnectedMessage>()
-            .add_message::<SendItemMessage>()
-            .add_message::<ConnectionErrorMessage>()
-            .insert_resource(ArchipelagoClient {
-                cmd_tx: None,
-                evt_rx: None,
-            })
-            .insert_resource(ArchipelagoState::default())
-            .add_systems(FixedUpdate, (poll_websocket, send_websocket_msg))
-            .add_observer(init_connecting);
-    }
 }

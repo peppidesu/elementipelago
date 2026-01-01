@@ -1,224 +1,95 @@
-use bevy::{prelude::*, text::LineHeight};
-use bevy_ui_text_input::{
-    TextInputBuffer, TextInputMode, TextInputNode, TextInputPlugin, TextInputPrompt,
+use std::default::Default;
+
+use macroquad::{
+    camera::{Camera2D, set_camera},
+    color::{BLACK, GREEN, WHITE},
+    math::vec2,
+    miniquad::window::screen_size,
+    text::{Font, TextParams, draw_text_ex},
+    texture::get_screen_data,
+    ui::{
+        self, Skin, hash, root_ui,
+        widgets::{self, Editbox, Group, InputText, Label},
+    },
+    window::{clear_background, next_frame, screen_height, screen_width},
 };
+use quad_storage::LocalStorage;
 
-use crate::{
-    archipelago::{ArchipelagoState, ConnectedMessage, StartConnect},
-    assets::UiAtlas,
-};
-
-pub struct LoginScreenPlugin;
-impl Plugin for LoginScreenPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
-        app.add_plugins(TextInputPlugin)
-            .init_resource::<UiAtlas>()
-            .add_systems(Startup, setup)
-            .add_systems(Update, connect_button_system)
-            .add_systems(Update, hide_when_connected);
-    }
+struct InputFields {
+    url: String,
+    slot: String,
+    password: String,
 }
 
-mod tag {
-    use super::*;
+pub async fn enter_login(storage: &mut LocalStorage, font: &Font) {
+    storage.set("login_complete", "false");
 
-    #[derive(Component)]
-    pub struct Root;
+    let url = storage.get("url").unwrap_or_else(|| {
+        storage.set("url", "");
+        "".to_string()
+    });
+    let slot = storage.get("slot").unwrap_or_else(|| {
+        storage.set("slot", "");
+        "".to_string()
+    });
+    let password = storage.get("password").unwrap_or_else(|| {
+        storage.set("password", "");
+        "".to_string()
+    });
 
-    #[derive(Component)]
-    pub struct InputAddress;
-
-    #[derive(Component)]
-    pub struct InputSlotName;
-
-    #[derive(Component)]
-    pub struct InputPassword;
-
-    #[derive(Component)]
-    pub struct ButtonConnect;
-}
-
-fn input_field(
-    ui_tag: impl Component,
-    prompt: impl Into<String>,
-    atlas: &UiAtlas,
-    font: Handle<Font>,
-) -> impl Bundle {
-    (
-        ImageNode::from_atlas_image(
-            atlas.1.clone(),
-            TextureAtlas {
-                layout: atlas.0.clone(),
-                index: 4,
-            },
-        )
-        .with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(6.),
-            ..default()
-        })),
-        Node {
-            padding: UiRect::all(px(5)),
-            ..default()
-        },
-        children![(
-            ui_tag,
-            Pickable::default(),
-            TextInputNode {
-                mode: TextInputMode::SingleLine,
-                clear_on_submit: false,
-                ..Default::default()
-            },
-            TextColor(Color::srgb(0., 0., 0.)),
-            TextFont {
-                font,
-                font_size: 18.0,
-                line_height: LineHeight::Px(20.0),
-                ..default()
-            },
-            Node {
-                width: px(250),
-                height: px(20),
-                ..default()
-            },
-            TextInputPrompt::new(prompt),
-        )],
-    )
-}
-
-fn setup(mut commands: Commands, atlas: Res<UiAtlas>, asset_server: Res<AssetServer>) {
-    let bold_font = asset_server.load("fuzzybubbles-bold.ttf");
-    let regular_font = asset_server.load("fuzzybubbles-regular.ttf");
-    let root = (
-        tag::Root,
-        Node {
-            width: percent(100),
-            height: percent(100),
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(1., 1., 1., 0.5)),
-    );
-
-    let square = (
-        ImageNode::from_atlas_image(
-            atlas.1.clone(),
-            TextureAtlas {
-                layout: atlas.0.clone(),
-                index: 0,
-            },
-        )
-        .with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(6.),
-            ..default()
-        })),
-        Node {
-            margin: UiRect::all(px(50)),
-            padding: UiRect::all(px(20)),
-            flex_grow: 1.0,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            row_gap: px(5),
-            ..default()
-        },
-    );
-
-    let text = (
-        Node { ..default() },
-        Text::new("elementipelago"),
-        TextFont {
-            font: bold_font.clone(),
-            font_size: 32.0,
-            ..default()
-        },
-        TextColor(Color::srgb(0., 0., 0.)),
-    );
-
-    let submit_button = (
-        ImageNode::from_atlas_image(
-            atlas.1.clone(),
-            TextureAtlas {
-                layout: atlas.0.clone(),
-                index: 1,
-            },
-        )
-        .with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(8.),
-            ..default()
-        })),
-        Node {
-            padding: UiRect::all(px(5)),
-            ..default()
-        },
-        Button,
-        tag::ButtonConnect,
-        Name::new("btn_connect"),
-        children![(
-            Text::new("Connect"),
-            TextFont {
-                font: bold_font,
-                font_size: 24.0,
-                ..default()
-            },
-            TextColor(Color::BLACK),
-        )],
-    );
-
-    commands.spawn((
-        root,
-        children![(
-            square,
-            children![
-                text,
-                input_field(
-                    tag::InputAddress,
-                    "archipelago.gg:12345",
-                    &atlas,
-                    regular_font.clone()
-                ),
-                input_field(
-                    tag::InputSlotName,
-                    "slot name",
-                    &atlas,
-                    regular_font.clone()
-                ),
-                input_field(tag::InputPassword, "password", &atlas, regular_font.clone()),
-                submit_button
-            ]
-        )],
-    ));
-}
-
-fn connect_button_system(
-    mut commands: Commands,
-    mut ap_state: ResMut<ArchipelagoState>,
-    interaction: Single<&Interaction, (Changed<Interaction>, With<tag::ButtonConnect>)>,
-    input_addr: Single<&TextInputBuffer, With<tag::InputAddress>>,
-    input_slot: Single<&TextInputBuffer, With<tag::InputSlotName>>,
-    input_pass: Single<&TextInputBuffer, With<tag::InputPassword>>,
-) {
-    match *interaction {
-        Interaction::Pressed => {
-            ap_state.address = input_addr.get_text();
-            ap_state.slot = input_slot.get_text();
-            ap_state.password = input_pass.get_text();
-
-            println!(
-                "connecting to {} with {} and {}",
-                ap_state.address, ap_state.slot, ap_state.password
-            );
-            commands.trigger(StartConnect);
-        }
-        Interaction::Hovered => {}
-        Interaction::None => {}
+    let mut input_fields = InputFields {
+        url,
+        slot,
+        password,
     };
+
+    loop {
+        if render_login(font, &mut input_fields).await {
+            break;
+        }
+
+        next_frame().await
+    }
 }
 
-fn hide_when_connected(
-    mut read_connected: MessageReader<ConnectedMessage>,
-    mut root: Single<&mut Visibility, With<tag::Root>>,
-) {
-    if read_connected.read().count() > 0 {
-        **root = Visibility::Hidden;
-    }
+async fn render_login(font: &Font, tmp: &mut InputFields) -> bool {
+    let title_skin = {
+        let label_style = root_ui()
+            .style_builder()
+            .with_font(&font)
+            .unwrap()
+            .text_color(BLACK)
+            .font_size(48)
+            .build();
+
+        Skin {
+            label_style,
+            ..root_ui().default_skin()
+        }
+    };
+
+    clear_background(WHITE);
+
+    let screen_size = screen_size();
+    let screen_size = vec2(screen_size.0, screen_size.1);
+
+    let login_box_size = screen_size * 0.4;
+    let login_box_offset = screen_size * 0.3;
+
+    widgets::Group::new(hash!(), login_box_size)
+        .position(login_box_offset)
+        .ui(&mut *root_ui(), |ui| {
+            ui.push_skin(&title_skin);
+            ui.label(None, "Elementipelago");
+            ui.pop_skin();
+            Group::new(hash!(), login_box_size * vec2(1., 0.8))
+                .position(login_box_size * vec2(0., 0.2))
+                .ui(ui, |ui| {
+                    ui.input_text(hash!(), "Server", &mut tmp.url);
+                    ui.input_text(hash!(), "Slot", &mut tmp.slot);
+                    ui.input_text(hash!(), "Password", &mut tmp.password);
+                });
+        });
+
+    false
 }
