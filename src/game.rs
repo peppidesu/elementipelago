@@ -1,7 +1,10 @@
 use bevy::camera::visibility::RenderLayers;
 use bevy::ecs::observer::ObservedBy;
+use bevy::ecs::relationship::RelatedSpawner;
+use bevy::picking::hover::Hovered;
 use bevy::platform::hash::FixedState;
 use bevy::render::Render;
+use bevy::ui_widgets::{ControlOrientation, CoreScrollbarThumb, Scrollbar, ScrollbarPlugin};
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
@@ -18,7 +21,8 @@ pub struct PlayfieldPlugin;
 
 impl Plugin for PlayfieldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<ElementDropped>()
+        app.add_plugins(ScrollbarPlugin)
+            .add_message::<ElementDropped>()
             .init_resource::<ElementAtlas>()
             .add_systems(Startup, setup_drawer)
             .add_systems(
@@ -433,13 +437,17 @@ fn merge_elements(
 fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
     let drawer = (
         ElementDrawer,
+        Pickable {
+            should_block_lower: false,
+            is_hoverable: true,
+        },
         Node {
             flex_direction: FlexDirection::Column,
             column_gap: px(10),
             flex_grow: 1.0,
-            overflow: Overflow::scroll_y(),
             padding: UiRect::all(px(10)),
             margin: UiRect::all(px(10)),
+            overflow: Overflow::scroll_y(),
             ..default()
         },
         ImageNode::from_atlas_image(
@@ -454,17 +462,66 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
             ..default()
         })),
     );
+
     let root = (
         Node {
+            display: Display::Grid,
             left: px(0),
-            width: percent(25),
+            width: percent(30),
+            min_width: px(200),
             height: percent(100),
+            grid_template_columns: vec![RepeatedGridTrack::flex(1, 1.), RepeatedGridTrack::auto(1)],
+            column_gap: px(2),
             ..default()
         },
         ZIndex(-1),
+        Children::spawn(SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
+            let drawer_id = parent.spawn(drawer).id();
+
+            let atlas_img = parent.world().resource::<UiAtlas>().1.clone();
+            let atlas_layout = parent.world().resource::<UiAtlas>().0.clone();
+            parent.spawn((
+                Node {
+                    width: px(13),
+                    grid_row: GridPlacement::start(1),
+                    padding: UiRect::vertical(px(10)),
+                    margin: UiRect::vertical(px(10)),
+                    grid_column: GridPlacement::start(2),
+                    ..default()
+                },
+                Scrollbar {
+                    orientation: ControlOrientation::Vertical,
+                    target: drawer_id,
+                    min_thumb_length: 8.0,
+                },
+                children![(
+                    Node {
+                        position_type: PositionType::Absolute,
+                        ..default()
+                    },
+                    Pickable {
+                        should_block_lower: false,
+                        is_hoverable: true,
+                    },
+                    Hovered::default(),
+                    ImageNode::from_atlas_image(
+                        atlas_img,
+                        TextureAtlas {
+                            layout: atlas_layout,
+                            index: 0,
+                        },
+                    )
+                    .with_mode(NodeImageMode::Sliced(TextureSlicer {
+                        border: BorderRect::all(6.),
+                        ..default()
+                    })),
+                    CoreScrollbarThumb,
+                )],
+            ));
+        })),
     );
 
-    commands.spawn((root, children![drawer]));
+    commands.spawn(root);
 }
 
 fn on_scroll_handler(
@@ -533,8 +590,12 @@ fn populate_drawer(
             parent
                 .spawn((
                     Node {
+                        display: Display::Grid,
+                        grid_template_columns: vec![GridTrack::flex(1.), GridTrack::min_content()],
+                        right: px(0),
                         align_items: AlignItems::Center,
                         height: px(0),
+                        max_width: percent(100),
                         ..default()
                     },
                     Visibility::Hidden,
@@ -551,6 +612,7 @@ fn populate_drawer(
                             font_size: 12.0,
                             ..default()
                         },
+                        TextLayout::new_with_linebreak(LineBreak::WordOrCharacter),
                         TextColor(Color::BLACK),
                     ));
                     parent
