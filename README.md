@@ -28,7 +28,7 @@
   - [ ] More sprites to choose from  
   - [ ] Smart sprite selection using location/item name
 - [ ] Tooltip for long names
-- [ ] Scrollbar
+- [x] Scrollbar
 - [ ] Windows support
 
 ## Later™
