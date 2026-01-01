@@ -437,6 +437,10 @@ fn merge_elements(
 fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
     let drawer = (
         ElementDrawer,
+        Pickable {
+            should_block_lower: false,
+            is_hoverable: true,
+        },
         Node {
             flex_direction: FlexDirection::Column,
             column_gap: px(10),
@@ -464,6 +468,7 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
             display: Display::Grid,
             left: px(0),
             width: percent(30),
+            min_width: px(200),
             height: percent(100),
             grid_template_columns: vec![RepeatedGridTrack::flex(1, 1.), RepeatedGridTrack::auto(1)],
             column_gap: px(2),
@@ -473,8 +478,8 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
         Children::spawn(SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
             let drawer_id = parent.spawn(drawer).id();
 
-            let atlas_img = parent.world().get_resource::<UiAtlas>().unwrap().1.clone();
-            let atlas_layout = parent.world().get_resource::<UiAtlas>().unwrap().0.clone();
+            let atlas_img = parent.world().resource::<UiAtlas>().1.clone();
+            let atlas_layout = parent.world().resource::<UiAtlas>().0.clone();
             parent.spawn((
                 Node {
                     width: px(13),
@@ -493,6 +498,10 @@ fn setup_drawer(mut commands: Commands, atlas: Res<UiAtlas>) {
                     Node {
                         position_type: PositionType::Absolute,
                         ..default()
+                    },
+                    Pickable {
+                        should_block_lower: false,
+                        is_hoverable: true,
                     },
                     Hovered::default(),
                     ImageNode::from_atlas_image(
@@ -581,6 +590,9 @@ fn populate_drawer(
             parent
                 .spawn((
                     Node {
+                        display: Display::Grid,
+                        grid_template_columns: vec![GridTrack::flex(1.), GridTrack::min_content()],
+                        right: px(0),
                         align_items: AlignItems::Center,
                         height: px(0),
                         max_width: percent(100),
@@ -600,6 +612,7 @@ fn populate_drawer(
                             font_size: 12.0,
                             ..default()
                         },
+                        TextLayout::new_with_linebreak(LineBreak::WordOrCharacter),
                         TextColor(Color::BLACK),
                     ));
                     parent
