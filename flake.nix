@@ -19,7 +19,10 @@
       system:
       let
         overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs {
+          inherit system overlays;
+          config.allowUnfree = true;
+        };
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = [
             "rust-src"
@@ -48,6 +51,7 @@
             glib.dev
             pkg-config
             openssl
+            aseprite
           ];
 
           shellHook = ''
