@@ -1,15 +1,20 @@
 //! Recipe graph generation
 
-use bevy::platform::collections::{HashMap, HashSet};
+use std::fmt::Display;
 
-struct RNG {
+use bevy::{
+    ecs::{component::Component, resource::Resource},
+    platform::collections::{HashMap, HashSet},
+};
+
+struct Rng {
     seed_x: u64,
     seed_y: u64,
 }
 
-impl RNG {
+impl Rng {
     pub fn init(seed: u64) -> Self {
-        RNG {
+        Rng {
             seed_x: seed,
             seed_y: seed << 1,
         }
@@ -29,12 +34,64 @@ impl RNG {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Status {
-    INPUT,
-    INTERMEDIATE,
-    OUTPUT,
+    Input,
+    Intermediate,
+    Output,
 }
 
-pub type Element = (u64, Status);
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Component)]
+pub struct Element {
+    pub id: u64,
+    pub typ: Status,
+}
+
+impl Display for Element {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} #{}",
+            match self.typ {
+                Status::Input => "Element",
+                Status::Intermediate => "Intermediate",
+                Status::Output => "Compound",
+            },
+            self.id
+        )
+    }
+}
+
+impl From<(usize, usize, u64, Status)> for Element {
+    fn from(value: (usize, usize, u64, Status)) -> Self {
+        Element {
+            id: value.2,
+            typ: value.3,
+        }
+    }
+}
+
+impl From<(u64, Status)> for Element {
+    fn from(value: (u64, Status)) -> Self {
+        Element {
+            id: value.0,
+            typ: value.1,
+        }
+    }
+}
+
+#[derive(Debug, Resource)]
+pub struct ElementGraph {
+    pub recipe_map: HashMap<(Element, Element), Vec<Element>>,
+    pub element_list: Vec<Element>,
+}
+
+impl ElementGraph {
+    pub fn get(&self, el1: &Element, el2: &Element) -> Option<Vec<Element>> {
+        self.recipe_map
+            .get(&(el1.to_owned(), el2.to_owned()))
+            .or_else(|| self.recipe_map.get(&(el2.to_owned(), el1.to_owned())))
+            .cloned()
+    }
+}
 
 pub fn create_graph(
     inputs: u64,
@@ -43,18 +100,18 @@ pub fn create_graph(
     intermediates: u64,
     start_items: u64,
     compounds_are_ingredients: bool,
-) -> (HashMap<(Element, Element), Vec<Element>>, Vec<Element>) {
+) -> ElementGraph {
     let mut dag_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut compound_edges: Vec<(usize, usize, u64, Status)> = Vec::new();
     let mut used: HashSet<(usize, usize)> = HashSet::new();
-    let mut rng = RNG::init(seed);
+    let mut rng = Rng::init(seed);
 
     let mut inputs_to_place: Vec<u64> = (1..=inputs).collect();
     let mut intermediates_to_place: Vec<u64> = (1..=intermediates).collect();
     let mut outputs_to_place: Vec<u64> = (1..=outputs).collect();
 
     for i in 1..=start_items {
-        dag_edges.push((0, 0, i, Status::INPUT));
+        dag_edges.push((0, 0, i, Status::Input));
         inputs_to_place.retain(|&x| x != i);
     }
 
@@ -79,12 +136,12 @@ pub fn create_graph(
             while to_place_type.is_none() {
                 let typ = rng.get_random() % 3;
                 if typ == 0 && outputs_placed > inputs_placed && !inputs_to_place.is_empty() {
-                    to_place_type = Some(Status::INPUT);
+                    to_place_type = Some(Status::Input);
                     inputs_placed += 1;
                 } else if typ == 1 && !intermediates_to_place.is_empty() {
-                    to_place_type = Some(Status::INTERMEDIATE);
+                    to_place_type = Some(Status::Intermediate);
                 } else if typ == 2 && !outputs_to_place.is_empty() {
-                    to_place_type = Some(Status::OUTPUT);
+                    to_place_type = Some(Status::Output);
                     outputs_placed += 1;
                 }
             }
@@ -104,15 +161,15 @@ pub fn create_graph(
 
             let output_idx = (rng.get_random()
                 % match to_place_type {
-                    Status::INPUT => inputs_to_place.len(),
-                    Status::INTERMEDIATE => intermediates_to_place.len(),
-                    Status::OUTPUT => outputs_to_place.len(),
+                    Status::Input => inputs_to_place.len(),
+                    Status::Intermediate => intermediates_to_place.len(),
+                    Status::Output => outputs_to_place.len(),
                 } as u64) as usize;
 
             let output = match to_place_type {
-                Status::INPUT => inputs_to_place.remove(output_idx),
-                Status::INTERMEDIATE => intermediates_to_place.remove(output_idx),
-                Status::OUTPUT => outputs_to_place.remove(output_idx),
+                Status::Input => inputs_to_place.remove(output_idx),
+                Status::Intermediate => intermediates_to_place.remove(output_idx),
+                Status::Output => outputs_to_place.remove(output_idx),
             };
 
             if compounds_are_ingredients || to_place_type != Status::OUTPUT {
@@ -142,11 +199,17 @@ pub fn create_graph(
             input2 = *in1;
         }
         let to_insert = match *typ {
-            Status::INPUT => (((0, Status::INPUT), (0, Status::INPUT)), (*output, *typ)),
-            Status::INTERMEDIATE | Status::OUTPUT => {
+            Status::Input => (
+                ((0, Status::Input).into(), (0, Status::Input).into()),
+                (*output, *typ).into(),
+            ),
+            Status::Intermediate | Status::Output => {
                 let i1 = dag_edges[input1];
                 let i2 = dag_edges[input2];
-                (((i1.2, i1.3), (i2.2, i2.3)), (*output, *typ))
+                (
+                    ((i1.2, i1.3).into(), (i2.2, i2.3).into()),
+                    (*output, *typ).into(),
+                )
             }
         };
 
@@ -161,17 +224,20 @@ pub fn create_graph(
     }
 
     let base_items = (1..=inputs)
-        .map(|x| (x, Status::INPUT))
-        .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE)));
+        .map(|x| (x, Status::INPUT).into())
+        .chain((1..=intermediates).map(|x| (x, Status::INTERMEDIATE).into()));
 
     let all_items = if compounds_are_ingredients {
         base_items
-            .chain((1..=outputs).map(|x| (x, Status::OUTPUT)))
+            .chain((1..=outputs).map(|x| (x, Status::OUTPUT).into()))
             .collect()
     } else {
         base_items.collect()
     };
-    (recipes_with_outputs, all_items)
+    ElementGraph {
+      recipe_map: recipes_with_outputs, 
+      element_list: all_items
+  }
 }
 
 #[cfg(test)]
@@ -182,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_rng_values() {
-        let mut rng = RNG::init(29992);
+        let mut rng = Rng::init(29992);
         for i in 0..100 {
             println!("value {} -> {}", i, rng.get_random());
         }

@@ -5,13 +5,12 @@ use bevy::render::Render;
 use bevy::window::PrimaryWindow;
 use bevy::{platform::collections::HashMap, prelude::*};
 use float_ord::FloatOrd;
-use rand::{Rng, SeedableRng, rngs::SmallRng};
 use std::hash::BuildHasher;
 
 use crate::archipelago::{ConnectedMessage, ReceivedItemMessage, SendItemMessage};
 use crate::assets::{ElementAtlas, UiAtlas};
 use crate::game::cmd::{AddElementBackground, SpawnElement};
-use crate::graph::{Element as GElement, Status};
+use crate::graph::{Element, Status};
 use crate::util::*;
 
 pub struct PlayfieldPlugin;
@@ -54,9 +53,6 @@ const Z_INDEX_DRAG: f32 = 5.0;
 // Components
 // ================================================================================================
 
-/// Element with a numerical ID
-#[derive(Component)]
-struct Element(GElement);
 /// Source element that creates new copies rather than being moved
 #[derive(Component)]
 struct ElementSource;
@@ -72,36 +68,23 @@ struct ElementBundle {
     sprite: Sprite,
 }
 
-fn get_element_icon_idx(id: GElement, name_to_idx: &HashMap<String, usize>) -> usize {
+fn get_element_icon_idx(id: &Element, name_to_idx: &HashMap<String, usize>) -> usize {
     let key = FixedState::with_seed(42069).hash_one(id);
-    (key as usize % name_to_idx.len())
-}
-
-fn get_element_display_name(id: GElement) -> String {
-    format!(
-        "{} #{}",
-        match id.1 {
-            Status::INPUT => "Element",
-            Status::INTERMEDIATE => "Intermediate",
-            Status::OUTPUT => "Compound",
-        },
-        id.0
-    )
+    key as usize % name_to_idx.len()
 }
 
 impl ElementBundle {
-    fn build(id: GElement, pos: Vec2, atlas: &ElementAtlas) -> ElementBundle {
-        let element = Element(id);
+    fn build(element: &Element, pos: Vec2, atlas: &ElementAtlas) -> ElementBundle {
         let sprite = Sprite::from_atlas_image(
             atlas.1.clone(),
             TextureAtlas {
                 layout: atlas.0.clone(),
-                index: get_element_icon_idx(id, &atlas.2),
+                index: get_element_icon_idx(element, &atlas.2),
             },
         );
         ElementBundle {
             pickable: Pickable::default(),
-            element,
+            element: element.clone(),
             transform: Transform {
                 translation: Vec3::new(pos.x, pos.y, Z_INDEX_DRAG),
                 ..default()
@@ -117,17 +100,13 @@ impl ElementBundle {
 
 /// Mapping of valid recipe ingredients to products
 #[derive(Resource)]
-pub struct RecipeGraph(pub Option<(HashMap<(GElement, GElement), Vec<GElement>>, Vec<GElement>)>);
+pub struct RecipeGraph(pub Option<ElementGraph>);
 
 impl RecipeGraph {
     /// Get the product resulting from the given ingredients, if it exists.
     /// Lookup is done for every order of ingredients.
-    fn get_recipe(&self, el1: GElement, el2: GElement) -> Option<Vec<GElement>> {
-        self.0.as_ref().and_then(|(map, _)| {
-            map.get(&(el1, el2))
-                .or_else(|| map.get(&(el2, el1)))
-                .cloned()
-        })
+    fn get_recipe(&self, el1: &Element, el2: &Element) -> Option<Vec<Element>> {
+        self.0.as_ref().and_then(|eg| eg.get(el1, el2))
     }
 }
 
@@ -164,7 +143,7 @@ mod cmd {
     }
 
     pub struct SpawnElement {
-        pub id: GElement,
+        pub id: Element,
         pub pos: Vec2,
         pub emit_dropped: bool,
     }
@@ -174,7 +153,7 @@ mod cmd {
             let atlas = world.get_resource::<ElementAtlas>().unwrap();
             let asset_server = world.get_resource::<AssetServer>().unwrap();
             let font = asset_server.load("fuzzybubbles-bold.ttf");
-            let bundle = ElementBundle::build(self.id, self.pos, atlas);
+            let bundle = ElementBundle::build(&self.id, self.pos, atlas);
 
             let mut commands = world.commands();
             let entity = commands
@@ -185,7 +164,7 @@ mod cmd {
                             translation: Vec3::new(0.0, -48.0, 0.0),
                             ..default()
                         },
-                        Text2d::new(get_element_display_name(self.id)),
+                        Text2d::new(self.id.to_string()),
                         TextFont {
                             font,
                             font_size: 12.0,
@@ -329,6 +308,7 @@ fn recalculate_element_z_order(
         });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn remove_elements_dropped_in_drawer(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
@@ -366,6 +346,7 @@ fn remove_elements_dropped_in_drawer(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn merge_elements(
     mut commands: Commands,
     mut dropped_msg: MessageReader<ElementDropped>,
@@ -397,7 +378,7 @@ fn merge_elements(
             // Only elements that can merge with this one
             .filter_map(|(r, el, tf, _)| {
                 recipes
-                    .get_recipe(dropped_el.0, el.0)
+                    .get_recipe(dropped_el, el)
                     .map(|result| (r, tf, result))
             })
             // Element with highest z-order (top-most)
@@ -416,11 +397,13 @@ fn merge_elements(
         // spawn product element
         for r_el in result_el {
             commands.queue(cmd::SpawnElement {
-                id: r_el,
+                id: r_el.clone(),
                 pos: new_pos,
                 emit_dropped: false,
             });
-            write_send_item.write(SendItemMessage { element: r_el });
+            write_send_item.write(SendItemMessage {
+                element: r_el.clone(),
+            });
             write_received_item.write(ReceivedItemMessage { element: r_el });
         }
 
@@ -525,10 +508,10 @@ fn populate_drawer(
     asset_server: Res<AssetServer>,
     drawer: Single<Entity, With<ElementDrawer>>,
 ) {
-    let (_, elements) = recipe_graph.0.as_ref().unwrap();
+    let eg = recipe_graph.0.as_ref().unwrap();
     let bold_font = asset_server.load("fuzzybubbles-bold.ttf");
 
-    for el in elements {
+    for el in &eg.element_list {
         commands.entity(*drawer).with_children(|parent| {
             parent
                 .spawn((
@@ -545,7 +528,7 @@ fn populate_drawer(
                             flex_grow: 1.0,
                             ..default()
                         },
-                        Text::new(get_element_display_name(*el)),
+                        Text::new(el.to_string()),
                         TextFont {
                             font: bold_font.clone(),
                             font_size: 12.0,
@@ -560,14 +543,14 @@ fn populate_drawer(
                                 height: px(48),
                                 ..default()
                             },
-                            Element(*el),
+                            el.to_owned(),
                             ElementSource,
                             Pickable::default(),
                             ImageNode::from_atlas_image(
                                 el_atlas.1.clone(),
                                 TextureAtlas {
                                     layout: el_atlas.0.clone(),
-                                    index: get_element_icon_idx(*el, &el_atlas.2),
+                                    index: get_element_icon_idx(el, &el_atlas.2),
                                 },
                             ),
                         ))
@@ -584,7 +567,7 @@ fn on_item_received(
     mut node_query: Query<&mut Node>,
 ) {
     read_item_received.read().for_each(|msg| {
-        if let Some((_, parent)) = src_query.iter().find(|(el, _)| el.0 == msg.element) {
+        if let Some((_, parent)) = src_query.into_iter().find(|&(el, _)| *el == msg.element) {
             *vis_query.get_mut(parent.0).unwrap() = Visibility::Inherited;
             node_query.get_mut(parent.0).unwrap().height = auto();
         }

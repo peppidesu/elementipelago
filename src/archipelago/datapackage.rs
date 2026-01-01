@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::archipelago::MyDataPackage;
 
-use super::server_messages::DataPackageObject;
-
 #[derive(Deserialize, Serialize)]
 pub(super) struct DataPackageSave {
     pub(super) game: String,

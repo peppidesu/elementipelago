@@ -1,6 +1,6 @@
 use crate::{
     archipelago::consts::START_ITEMS,
-    graph::{self, Element as GElement},
+    graph::{self, ElementGraph},
 };
 
 use super::shared_types::*;
@@ -28,6 +28,7 @@ pub(super) enum APConnectionError {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub(super) struct Permissions {
     release: Permission,
     collect: Permission,
@@ -35,6 +36,7 @@ pub(super) struct Permissions {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub(super) struct NetworkPlayer {
     team: TeamID,
     slot: PlayerID,
@@ -43,6 +45,7 @@ pub(super) struct NetworkPlayer {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub(super) struct NetworkItem {
     pub(super) item: ItemID,
     pub(super) location: LocationID,
@@ -77,7 +80,7 @@ pub(super) struct SlotData {
 }
 
 impl SlotData {
-    pub fn generate_graph(&self) -> (HashMap<(GElement, GElement), Vec<GElement>>, Vec<GElement>) {
+    pub fn generate_graph(&self) -> ElementGraph {
         graph::create_graph(
             self.element_amount,
             self.element_amount + self.filler_amount,
@@ -125,6 +128,7 @@ pub(super) struct DataPackageGames {
     pub(super) games: HashMap<String, DataPackageObject>,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[serde(tag = "type")]
@@ -148,6 +152,7 @@ pub(super) enum JsonData {
     },
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[serde(tag = "type")]
@@ -172,6 +177,7 @@ pub(super) enum PrintJSONMessage {
     },
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[serde(tag = "cmd")]

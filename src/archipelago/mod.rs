@@ -37,6 +37,7 @@ mod shared_types;
 pub struct StartConnect;
 
 /// Commands sent from Bevy -> WS thread.
+#[allow(dead_code)]
 #[derive(Debug)]
 enum WsCommand {
     /// Connect to the given URL (or host:port). The WS thread will try `wss://` first, then `ws://`.
@@ -48,6 +49,7 @@ enum WsCommand {
 }
 
 /// Events sent from WS thread -> Bevy.
+#[allow(dead_code)]
 #[derive(Debug)]
 enum WsEvent {
     Connected { url: String },
@@ -116,7 +118,7 @@ fn init_datapackages() -> HashMap<String, MyDataPackage> {
         data_packages.insert(game, datapackage);
     }
 
-    return data_packages;
+    data_packages
 }
 
 impl Default for ArchipelagoState {
@@ -145,6 +147,7 @@ pub struct SendItemMessage {
 }
 
 #[derive(Message, Debug)]
+#[allow(dead_code)]
 pub enum ConnectionErrorMessage {
     UriParseError,
     ConnectionFailed(String),
@@ -203,7 +206,6 @@ fn spawn_ws_thread() -> (Sender<WsCommand>, Receiver<WsEvent>) {
 
 async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
     let mut ws: Option<WebSocket> = None;
-    let mut connected_url: Option<String> = None;
 
     // Compression options: enable permessage-deflate negotiation with a reasonable level.
     // (Negotiation happens during handshake when compression is set.)
@@ -219,7 +221,6 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
                 WsCommand::Connect { address } => {
                     // Drop any existing socket.
                     ws = None;
-                    connected_url = None;
 
                     let candidates = normalize_urls(&address);
 
@@ -240,7 +241,6 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
 
                         match attempt {
                             Ok(sock) => {
-                                connected_url = Some(url_s.clone());
                                 ws = Some(sock);
                                 let _ = evt_tx.send(WsEvent::Connected { url: url_s });
                                 last_err = None;
@@ -262,19 +262,18 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
                 WsCommand::SendText(text) => {
                     if let Some(sock) = ws.as_mut() {
                         // yawc expects frames; for application messages we send Text.
-                        if let Err(e) = sock.send(FrameView::text(text).into()).await {
+                        if let Err(e) = sock.send(FrameView::text(text)).await {
                             let _ = evt_tx.send(WsEvent::Disconnected {
                                 reason: format!("send error: {e:?}"),
                             });
                             ws = None;
-                            connected_url = None;
                         }
                     }
                 }
                 WsCommand::Shutdown => {
                     if let Some(sock) = ws.as_mut() {
                         let _ = sock
-                            .send(FrameView::close(yawc::close::CloseCode::Normal, b"bye").into())
+                            .send(FrameView::close(yawc::close::CloseCode::Normal, b"bye"))
                             .await;
                     }
                     return;
@@ -288,7 +287,7 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
             match tokio::time::timeout(Duration::from_millis(10), sock.next()).await {
                 Ok(Some(frame)) => {
                     // `frame` is a full Frame; convert to a view and handle opcodes.
-                    let view: yawc::frame::FrameView = frame.into();
+                    let view: yawc::frame::FrameView = frame;
                     match view.opcode {
                         OpCode::Text => {
                             // Options::with_utf8 ensures text is valid utf8, but payload is bytes.
@@ -301,7 +300,6 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
                                         reason: format!("invalid utf8 from server: {e:?}"),
                                     });
                                     ws = None;
-                                    connected_url = None;
                                 }
                             }
                         }
@@ -310,7 +308,6 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
                                 reason: "server closed connection".to_string(),
                             });
                             ws = None;
-                            connected_url = None;
                         }
                         // yawc auto-responds to Ping with Pong (client behavior),
                         // but still yields the frame; we can ignore.
@@ -323,7 +320,6 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
                         reason: "connection ended".to_string(),
                     });
                     ws = None;
-                    connected_url = None;
                 }
                 Err(_) => {
                     // timeout: just loop again
@@ -343,8 +339,8 @@ async fn ws_thread_main(cmd_rx: Receiver<WsCommand>, evt_tx: Sender<WsEvent>) {
 fn init_connecting(
     _start: On<StartConnect>,
     mut apclient: ResMut<ArchipelagoClient>,
-    mut state: ResMut<ArchipelagoState>,
     mut error_writer: MessageWriter<ConnectionErrorMessage>,
+    state: Res<ArchipelagoState>,
 ) {
     // Ensure worker exists.
     if apclient.cmd_tx.is_none() || apclient.evt_rx.is_none() {
@@ -373,7 +369,6 @@ fn init_connecting(
 }
 
 fn poll_websocket(
-    mut commands: Commands,
     apclient: Res<ArchipelagoClient>,
     mut state: ResMut<ArchipelagoState>,
     mut connected_writer: MessageWriter<ConnectedMessage>,
@@ -400,7 +395,6 @@ fn poll_websocket(
                 Ok(des) => {
                     for msg in des {
                         handle_ap_message(
-                            &mut commands,
                             &mut state,
                             msg,
                             &mut receive_writer,
@@ -421,7 +415,6 @@ fn poll_websocket(
 /// Put your existing APServerMessage handling here.
 /// This stub keeps the file self-contained; replace body with your original match tree.
 fn handle_ap_message(
-    commands: &mut Commands,
     state: &mut ResMut<ArchipelagoState>,
     des: APServerMessage,
     receive_writer: &mut MessageWriter<ReceivedItemMessage>,
@@ -429,6 +422,7 @@ fn handle_ap_message(
     apclient: &ArchipelagoClient,
     graph: &mut ResMut<RecipeGraph>,
 ) {
+    #[allow(unused_variables)]
     match des {
         APServerMessage::RoomInfo {
             version,
@@ -518,7 +512,7 @@ fn handle_ap_message(
             receive_writer.write_batch(state.checked_locations.iter().filter_map(|&location| {
                 if location < LOCATION_AMOUNT as isize {
                     Some(ReceivedItemMessage {
-                        element: (location as u64, Status::OUTPUT),
+                        element: (location as u64, Status::Output).into(),
                     })
                 } else {
                     None
@@ -566,16 +560,18 @@ fn handle_ap_message(
                 } else if item.item < element_start {
                     println!("one of the useful/filler items");
                     None
-                } else if item.item < intermediate_start as isize {
+                } else if item.item < intermediate_start {
                     Some(ReceivedItemMessage {
-                        element: (item.item as u64 + 1 - element_start as u64, Status::INPUT),
+                        element: (item.item as u64 + 1 - element_start as u64, Status::Input)
+                            .into(),
                     })
                 } else if item.item < intermediate_end {
                     Some(ReceivedItemMessage {
                         element: (
                             item.item as u64 + 1 - intermediate_start as u64,
-                            Status::INTERMEDIATE,
-                        ),
+                            Status::Intermediate,
+                        )
+                            .into(),
                     })
                 } else {
                     println!("Skipping item: {item:#?} since it's not handled yet");
@@ -671,13 +667,13 @@ fn handle_ap_message(
                 receive_writer.write_batch(checked.iter().filter_map(|&location| {
                     if location < LOCATION_AMOUNT as isize {
                         Some(ReceivedItemMessage {
-                            element: (location as u64, Status::OUTPUT),
+                            element: (location as u64, Status::Output).into(),
                         })
                     } else {
                         None
                     }
                 }));
-                state.checked_locations.extend(checked.into_iter());
+                state.checked_locations.extend(checked);
             }
             if let Some(slot_data) = slot_data {
                 eprintln!("Unhandled room update: slot_data, {slot_data:?}")
@@ -712,38 +708,36 @@ fn send_websocket_msg(
 
     let locations: Vec<isize> = read_send_item
         .read()
-        .filter_map(|msg| match msg.element.1 {
-            Status::INPUT => None,
-            Status::INTERMEDIATE => {
+        .filter_map(|msg| match msg.element.typ {
+            Status::Input => None,
+            Status::Intermediate => {
                 if state
                     .checked_locations
-                    .contains(&(msg.element.0 as isize + LOCATION_AMOUNT as isize))
+                    .contains(&(msg.element.id as isize + LOCATION_AMOUNT as isize))
                 {
                     None
                 } else {
-                    Some((msg.element.0 + LOCATION_AMOUNT) as isize)
+                    Some((msg.element.id + LOCATION_AMOUNT) as isize)
                 }
             }
-            Status::OUTPUT => {
-                if state.checked_locations.contains(&(msg.element.0 as isize)) {
+            Status::Output => {
+                if state.checked_locations.contains(&(msg.element.id as isize)) {
                     None
                 } else {
-                    Some((msg.element.0) as isize)
+                    Some((msg.element.id) as isize)
                 }
             }
         })
         .collect();
 
-    if locations.len() == 0 {
+    if locations.is_empty() {
         return;
     }
 
     cmd_tx
         .send(WsCommand::SendText(
-            serde_json::to_string(&vec![APClientMessage::LocationChecks {
-                locations: locations,
-            }])
-            .expect("can't make json from client message"),
+            serde_json::to_string(&vec![APClientMessage::LocationChecks { locations }])
+                .expect("can't make json from client message"),
         ))
         .expect("can't send message to websocket queue");
 }
