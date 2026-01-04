@@ -22,6 +22,7 @@
           nativeBuildInputs = with pkgs; [ pkg-config ];
           buildInputs = with pkgs; [
           http-server
+          bun
           ];
         };
       }
