@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Alchemy Drag & Drop (Desktop + Mobile)</title>
+    <style>
+        :root {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #e9e9e9;
+        }
+
+        .app {
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 16px;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Left menu */
+        .menu {
+            background: #f3f3f3;
+            border: 3px solid #111;
+            border-radius: 10px;
+            padding: 12px;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .menu h3 {
+            margin: 0 0 10px;
+        }
+
+        .menu-item {
+            display: grid;
+            grid-template-columns: 1fr 48px;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fff;
+            border: 2px solid #111;
+            border-radius: 10px;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .menu-item:active {
+            cursor: grabbing;
+        }
+
+        .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid #111;
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+            background: #fff;
+        }
+
+        /* Canvas */
+        .canvas {
+            position: relative;
+            background: #dcdcdc;
+            border: 3px solid #111;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .hint {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            opacity: 0.6;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        /* Placed element */
+        .placed {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border: 3px solid #111;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            user-select: none;
+            /* keep touch settings default on desktop; we'll override on mobile */
+        }
+
+        .placed .label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            white-space: nowrap;
+            color: #111;
+            pointer-events: none;
+        }
+
+        .overlapping {
+            outline: 4px solid #ff3b30;
+            outline-offset: 0px;
+        }
+
+        /* Floating preview tile for mobile pointer-drag from menu */
+        .drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            width: 80px;
+            height: 80px;
+        }
+
+        /* --- Mobile / coarse pointer fixes --- */
+        @media (pointer: coarse) {
+
+            html,
+            body {
+                height: 100%;
+                overscroll-behavior: none;
+                /* reduce pull-to-refresh / scroll chaining */
+            }
+
+            body {
+                overflow: hidden;
+                /* keep the page itself from overscrolling */
+            }
+
+            .menu-item,
+            .placed {
+                touch-action: none;
+                /* we handle dragging ourselves */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="menu" id="menu">
+            <h3>Elements</h3>
+
+            <div class="menu-item" draggable="true" data-type="4" data-label="Apple" data-emoji="🍎">
+                <div>Apple</div>
+                <div class="icon">🍎</div>
+            </div>
+
+            <div class="menu-item" draggable="true" data-type="42" data-label="Water" data-emoji="💧">
+                <div>Water</div>
+                <div class="icon">💧</div>
+            </div>
+
+            <div class="menu-item" draggable="true" data-type="392" data-label="Potion" data-emoji="🧪">
+                <div>Potion</div>
+                <div class="icon">🧪</div>
+            </div>
+
+            <div class="menu-item" draggable="true" data-type="2" data-label="Marker" data-emoji="📍">
+                <div>Marker</div>
+                <div class="icon">📍</div>
+            </div>
+        </aside>
+
+        <main class="canvas" id="canvas">
+            <div class="hint">Desktop: drag from menu. Mobile: press + drag from menu. Drop one onto another to combine.
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const menu = document.getElementById("menu");
+        const IS_TOUCH = window.matchMedia?.("(pointer: coarse)").matches;
+
+        // ---------------- RECIPES ----------------
+        // Key is "a+b" with a<=b
+        const RECIPES = new Map([
+            ["4+42", {type: "500", label: "Juice", emoji: "🧃"}],
+            ["42+392", {type: "501", label: "Diluted", emoji: "🥤"}],
+            ["4+392", {type: "502", label: "Poison", emoji: "☠️🍎"}],
+        ]);
+
+        function recipeKey(typeA, typeB) {
+            const a = String(typeA), b = String(typeB);
+            return (a <= b) ? `${a}+${b}` : `${b}+${a}`;
+        }
+
+        // ---------------- INIT ----------------
+        setupPlacedDragging(); // always, for moving tiles inside canvas
+
+        if (IS_TOUCH) setupMobileMenuPointerDrag();
+        else setupDesktopMenuDnD();
+
+        // ---------------- DESKTOP: HTML5 DnD from menu ----------------
+        function setupDesktopMenuDnD() {
+            document.querySelectorAll(".menu-item").forEach(item => {
+                item.setAttribute("draggable", "true");
+
+                item.addEventListener("dragstart", (e) => {
+                    const payload = payloadFromMenuItem(item);
+                    e.dataTransfer.setData("application/json", JSON.stringify(payload));
+                    e.dataTransfer.effectAllowed = "copy";
+
+                    // custom drag preview that looks like the placed tile
+                    const preview = buildTilePreview(payload);
+                    document.body.appendChild(preview);
+                    e.dataTransfer.setDragImage(preview, 40, 40);
+                    requestAnimationFrame(() => preview.remove());
+                });
+            });
+
+            canvas.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+            });
+
+            canvas.addEventListener("drop", (e) => {
+                e.preventDefault();
+                const json = e.dataTransfer.getData("application/json");
+                if (!json) return;
+
+                const payload = JSON.parse(json);
+                const pt = getPointInCanvas(e.clientX, e.clientY);
+
+                const el = createPlacedElement(payload);
+                canvas.appendChild(el);
+                setElPos(el, pt.x - el.offsetWidth / 2, pt.y - el.offsetHeight / 2);
+
+                tryCombine(el);
+            });
+        }
+
+        function buildTilePreview(payload) {
+            const preview = document.createElement("div");
+            preview.className = "placed";
+            preview.style.position = "absolute";
+            preview.style.left = "-1000px";
+            preview.style.top = "-1000px";
+            preview.style.margin = "0";
+            preview.style.transform = "none";
+            preview.innerHTML = `
+        <div style="font-size:34px;line-height:1">${payload.emoji}</div>
+        <div class="label">${payload.label}</div>
+      `;
+            return preview;
+        }
+
+        // ---------------- MOBILE: pointer ghost drag from menu ----------------
+        function setupMobileMenuPointerDrag() {
+            // turn off HTML5 DnD to avoid conflicts on mobile browsers
+            document.querySelectorAll(".menu-item").forEach(item => item.setAttribute("draggable", "false"));
+
+            const menuItems = document.querySelectorAll(".menu-item");
+            let ghost = null;
+            let ghostPayload = null;
+
+            const ghostOffset = {x: 40, y: 40};
+
+            function cleanup() {
+                if (ghost) ghost.remove();
+                ghost = null;
+                ghostPayload = null;
+            }
+
+            function moveGhost(e) {
+                ghost.style.left = (e.clientX - ghostOffset.x) + "px";
+                ghost.style.top = (e.clientY - ghostOffset.y) + "px";
+            }
+
+            menuItems.forEach(item => {
+                item.addEventListener("pointerdown", (e) => {
+                    // allow scroll in menu when NOT dragging:
+                    // we start dragging immediately; if you prefer long-press, ask me and I'll add it.
+                    item.setPointerCapture(e.pointerId);
+
+                    ghostPayload = payloadFromMenuItem(item);
+
+                    ghost = createPlacedElement(ghostPayload);
+                    ghost.classList.add("drag-ghost");
+                    ghost.style.opacity = "0.95";
+                    document.body.appendChild(ghost);
+
+                    moveGhost(e);
+                }, {passive: false});
+
+                item.addEventListener("pointermove", (e) => {
+                    if (!ghost) return;
+                    e.preventDefault(); // stop scroll / pull-to-refresh while dragging
+                    moveGhost(e);
+                }, {passive: false});
+
+                item.addEventListener("pointerup", (e) => {
+                    if (!ghost) return;
+                    e.preventDefault();
+
+                    const payload = ghostPayload;
+                    const dropped = dropIfOverCanvas(e.clientX, e.clientY, payload);
+
+                    cleanup();
+
+                    if (dropped) tryCombine(dropped);
+                }, {passive: false});
+
+                item.addEventListener("pointercancel", cleanup, {passive: false});
+            });
+        }
+
+        function dropIfOverCanvas(clientX, clientY, payload) {
+            const r = canvas.getBoundingClientRect();
+            const overCanvas = clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+            if (!overCanvas) return null;
+
+            const pt = getPointInCanvas(clientX, clientY);
+            const el = createPlacedElement(payload);
+            canvas.appendChild(el);
+            setElPos(el, pt.x - el.offsetWidth / 2, pt.y - el.offsetHeight / 2);
+            return el;
+        }
+
+        // ---------------- Create tiles ----------------
+        function payloadFromMenuItem(item) {
+            return {
+                type: String(item.dataset.type),
+                label: item.dataset.label,
+                emoji: item.dataset.emoji
+            };
+        }
+
+        function createPlacedElement({type, label, emoji}) {
+            const el = document.createElement("div");
+            el.className = "placed";
+            el.dataset.type = String(type);
+            el.dataset.label = label;
+            el.dataset.emoji = emoji;
+
+            el.innerHTML = `
+        <div style="font-size:34px;line-height:1">${emoji}</div>
+        <div class="label">${label}</div>
+      `;
+
+            enablePointerDragInsideCanvas(el);
+            return el;
+        }
+
+        // ---------------- Drag tiles inside the canvas (pointer) ----------------
+        function setupPlacedDragging() {
+            // nothing needed; each tile calls enablePointerDragInsideCanvas(el)
+        }
+
+        function enablePointerDragInsideCanvas(el) {
+            let dragging = false;
+            let offsetX = 0, offsetY = 0;
+
+            // Use passive: false only on touch to allow preventDefault
+            const opts = {passive: !IS_TOUCH};
+
+            el.addEventListener("pointerdown", (e) => {
+                dragging = true;
+                el.setPointerCapture(e.pointerId);
+
+                el.dataset.startLeft = el.style.left;
+                el.dataset.startTop = el.style.top;
+
+                const rect = el.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+            }, opts);
+
+            el.addEventListener("pointermove", (e) => {
+                if (!dragging) return;
+                if (IS_TOUCH) e.preventDefault();
+
+                const pt = getPointInCanvas(e.clientX, e.clientY);
+                setElPos(el, pt.x - offsetX, pt.y - offsetY);
+
+                // highlight only (no combining) while moving
+                highlightOverlaps(el);
+            }, opts);
+
+            el.addEventListener("pointerup", (e) => {
+                if (!dragging) return;
+                dragging = false;
+                if (IS_TOUCH) e.preventDefault();
+
+                clearHighlights();
+                tryCombine(el);
+            }, opts);
+
+            el.addEventListener("pointercancel", () => {
+                dragging = false;
+                clearHighlights();
+            }, opts);
+        }
+
+        // ---------------- Alchemy combine ----------------
+        function tryCombine(movedEl) {
+            const target = bestOverlapTarget(movedEl);
+            if (!target) return;
+
+            const key = recipeKey(movedEl.dataset.type, target.dataset.type);
+            const result = RECIPES.get(key);
+
+            if (!result) {
+                // No recipe -> optional snap back
+                // revertToStart(movedEl);
+                return;
+            }
+
+            const spawn = overlapCenterInCanvas(movedEl, target);
+
+            movedEl.remove();
+            target.remove();
+
+            const newEl = createPlacedElement(result);
+            canvas.appendChild(newEl);
+            setElPos(newEl, spawn.x - newEl.offsetWidth / 2, spawn.y - newEl.offsetHeight / 2);
+
+            // Optional chain reactions:
+            // tryCombine(newEl);
+        }
+
+        function bestOverlapTarget(movedEl) {
+            const movedRect = movedEl.getBoundingClientRect();
+            const others = [...canvas.querySelectorAll(".placed")].filter(p => p !== movedEl);
+
+            let best = null;
+            let bestArea = 0;
+
+            for (const other of others) {
+                const area = intersectionArea(movedRect, other.getBoundingClientRect());
+                if (area > bestArea) {
+                    bestArea = area;
+                    best = other;
+                }
+            }
+
+            // avoid accidental combines on tiny touches
+            return bestArea > 12 ? best : null;
+        }
+
+        function intersectionArea(a, b) {
+            const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+            const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+            return x * y;
+        }
+
+        function overlapCenterInCanvas(elA, elB) {
+            const a = elA.getBoundingClientRect();
+            const b = elB.getBoundingClientRect();
+            const c = canvas.getBoundingClientRect();
+
+            const left = Math.max(a.left, b.left);
+            const right = Math.min(a.right, b.right);
+            const top = Math.max(a.top, b.top);
+            const bottom = Math.min(a.bottom, b.bottom);
+
+            const cx = (left < right) ? (left + right) / 2 : (a.left + a.right) / 2;
+            const cy = (top < bottom) ? (top + bottom) / 2 : (a.top + a.bottom) / 2;
+
+            return {x: cx - c.left, y: cy - c.top};
+        }
+
+        function revertToStart(el) {
+            el.style.left = el.dataset.startLeft || el.style.left;
+            el.style.top = el.dataset.startTop || el.style.top;
+        }
+
+        // ---------------- Overlap highlight (visual only) ----------------
+        function highlightOverlaps(movedEl) {
+            clearHighlights();
+            const movedRect = movedEl.getBoundingClientRect();
+            const others = [...canvas.querySelectorAll(".placed")].filter(p => p !== movedEl);
+
+            for (const other of others) {
+                if (intersectionArea(movedRect, other.getBoundingClientRect()) > 0) {
+                    movedEl.classList.add("overlapping");
+                    other.classList.add("overlapping");
+                }
+            }
+        }
+
+        function clearHighlights() {
+            canvas.querySelectorAll(".placed").forEach(p => p.classList.remove("overlapping"));
+        }
+
+        // ---------------- Position helpers ----------------
+        function getPointInCanvas(clientX, clientY) {
+            const r = canvas.getBoundingClientRect();
+            return {x: clientX - r.left, y: clientY - r.top};
+        }
+
+        function setElPos(el, x, y) {
+            const w = el.offsetWidth || 80;
+            const h = el.offsetHeight || 80;
+
+            const maxX = canvas.clientWidth - w;
+            const maxY = canvas.clientHeight - h;
+
+            el.style.left = Math.max(0, Math.min(maxX, x)) + "px";
+            el.style.top = Math.max(0, Math.min(maxY, y)) + "px";
+        }
+    </script>
+</body>
+
+</html>
