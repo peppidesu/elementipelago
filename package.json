@@ -15,5 +15,9 @@
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"
+  },
+  "dependencies": {
+    "archipelago.js": "^2.0.4",
+    "deep-equality-data-structures": "^2.0.0"
   }
 }
