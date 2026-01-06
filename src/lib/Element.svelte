@@ -1,13 +1,18 @@
 <script lang="js">
     import { mount } from "svelte";
     import RealElement from "./RealElement.svelte";
+    import { pointerLoc } from "./stores/pointer";
+    import { get } from "svelte/store";
 
     const { elem } = $props();
 
     function onPointerDown(e) {
+        let { x, y } = get(pointerLoc);
+
+        console.log({ x, y });
         mount(RealElement, {
             target: document.querySelector("#app"),
-            props: {},
+            props: { x, y, elem },
         });
     }
 </script>
