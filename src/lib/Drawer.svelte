@@ -16,9 +16,9 @@
     console.log(el);
 
     let elements = [
-        { name: "waaa", src: el.apple },
-        { name: "baba", src: el.book },
-        { name: "Noa", src: el.coin },
+        { name: "apple", src: el.apple },
+        { name: "book", src: el.book },
+        { name: "coin", src: el.coin },
     ];
 </script>
 
@@ -27,3 +27,13 @@
         <Element {elem} />
     {/each}
 </ul>
+
+<style>
+    ul {
+        display: flex;
+        width: 200px;
+        gap: 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+</style>
