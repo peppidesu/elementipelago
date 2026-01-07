@@ -9,9 +9,11 @@
     function onPointerDown(e) {
         let { x, y } = get(pointerLoc);
 
+        console.log(e);
+
         mount(RealElement, {
             target: document.querySelector("#app"),
-            props: { x, y, elem },
+            props: { x, y, elem, offsetx: e.layerX, offsety: e.layerY },
         });
     }
 </script>
