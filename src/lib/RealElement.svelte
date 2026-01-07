@@ -1,5 +1,5 @@
 <script lang="js">
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
     import { get } from "svelte/store";
 
@@ -9,14 +9,14 @@
     let sy = $state(y);
 
     onMount(() => {
-        dragging_elem.set((x, y) => {
-            (sx = x), (sy = y);
+        dragging_elem.set((lx, ly) => {
+            sx = lx;
+            sy = ly;
         });
-        console.log(get(dragging_elem));
     });
 </script>
 
-<div style="left: {x}px; top: {y}px;">TEST</div>
+<div style="left: {sx}px; top: {sy}px;">TEST</div>
 
 <style>
     div {

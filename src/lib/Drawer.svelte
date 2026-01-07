@@ -13,8 +13,6 @@
         }),
     );
 
-    console.log(el);
-
     let elements = [
         { name: "apple", src: el.apple },
         { name: "book", src: el.book },

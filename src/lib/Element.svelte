@@ -9,7 +9,6 @@
     function onPointerDown(e) {
         let { x, y } = get(pointerLoc);
 
-        console.log({ x, y });
         mount(RealElement, {
             target: document.querySelector("#app"),
             props: { x, y, elem },

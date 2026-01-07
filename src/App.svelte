@@ -9,7 +9,6 @@
 
         let dmf = get(dragging_move_function);
         if (dmf != null) {
-            console.log("dmf, ", dmf);
             dmf(event.clientX, event.clientY);
         }
     }
@@ -19,6 +18,8 @@
     }
 </script>
 
-<main {onpointermove}>
+<svelte:window {onpointermove} {onpointerup} />
+
+<main style="width: 100vw; height: 100vh;">
     <Drawer />
 </main>
