@@ -1,12 +1,12 @@
-import { DeepSet, DeepMap } from "deep-equality-data-structures";
+import { DeepMap, DeepSet } from "deep-equality-data-structures";
 
 /**
  * @enum {number}
  */
 var ElementKind = {
-  INPUT: 1,
-  INTERMEDIATE: 2,
-  OUTPUT: 3,
+    INPUT: 1,
+    INTERMEDIATE: 2,
+    OUTPUT: 3,
 };
 
 /**
@@ -16,38 +16,36 @@ var ElementKind = {
 const mask64 = 0xffffffffffffffffn;
 
 export class Rng {
-  /**
-   * @param {BigInt} seed
-   */
-  constructor(seed) {
-    this.seed_x = seed & mask64;
-    this.seed_y = (seed << 1n) & mask64;
-  }
+    /**
+     * @param {BigInt} seed
+     */
+    constructor(seed) {
+        this.seed_x = seed & mask64;
+        this.seed_y = (seed << 1n) & mask64;
+    }
 
-  /**
-   *
-   * @returns {BigInt} random number
-   */
-  get_random() {
-    let x = this.seed_x;
-    const y = this.seed_y;
-    this.seed_x = this.seed_y;
-    x ^= (x << 23n) & mask64;
-    x ^= x >> 17n;
-    x ^= y;
-    this.seed_y = (x + y) & mask64;
-    return x;
-  }
+    /**
+     * @returns {BigInt} random number
+     */
+    get_random() {
+        let x = this.seed_x;
+        const y = this.seed_y;
+        this.seed_x = this.seed_y;
+        x ^= (x << 23n) & mask64;
+        x ^= x >> 17n;
+        x ^= y;
+        this.seed_y = (x + y) & mask64;
+        return x;
+    }
 }
 
 /**
- *
  * @param {number} start
  * @param {number} end
  * @returns {number[]}
  */
 function range(start, end) {
-  return [...Array(end - start + 1)].map((_, i) => start + i);
+    return [...Array(end - start + 1)].map((_, i) => start + i);
 }
 
 /**
@@ -61,154 +59,182 @@ function range(start, end) {
  * @returns {{ recipes: DeepMap<[Element, Element], Element>, items: Element[] }}
  */
 export function create_graph(
-  seed,
-  inputs,
-  outputs,
-  intermediates,
-  start_items,
-  compounds_are_ingredients,
+    seed,
+    inputs,
+    outputs,
+    intermediates,
+    start_items,
+    compounds_are_ingredients,
 ) {
-  let dag_edges = [];
-  let compound_edges = [];
-  let already_used = new DeepSet();
-  let rng = new Rng(seed);
+    let dag_edges = [];
+    let compound_edges = [];
+    let already_used = new DeepSet();
+    let rng = new Rng(seed);
 
-  let inputs_to_place = range(1, inputs + 1);
-  let intermediates_to_place = range(1, intermediates + 1);
-  let outputs_to_place = range(1, outputs + 1);
+    let inputs_to_place = range(1, inputs + 1);
+    let intermediates_to_place = range(1, intermediates + 1);
+    let outputs_to_place = range(1, outputs + 1);
 
-  for (let i = 1; i <= start_items; i++) {
-    dag_edges.push([-1, -1, i, 0]);
-    delete inputs_to_place[0];
-  }
-
-  let inputs_placed = 0;
-  let outputs_placed = 0;
-  let to_place_length =
-    inputs_to_place.length +
-    intermediates_to_place.length +
-    outputs_to_place.length;
-
-  while (to_place_length > 0) {
-    let previous_items = dag_edges.length;
-    let new_layer = [];
-    let max_layer_size = Math.min(
-      Math.floor((previous_items * previous_items) / 2) -
-        Math.floor(already_used.size / 2) -
-        1,
-      to_place_length - 1,
-    );
-
-    let new_layer_size = 1;
-    if (max_layer_size > 0) {
-      new_layer_size = Number(rng.get_random() % BigInt(max_layer_size)) + 1;
+    for (let i = 1; i <= start_items; i++) {
+        dag_edges.push([-1, -1, i, 0]);
+        inputs_to_place.splice(0, 1);
     }
 
-    for (let i = 0; i < new_layer_size; i++) {
-      let to_place_type = -1;
-      while (to_place_type == -1) {
-        let kind = Number(rng.get_random() % 3n);
-        if (
-          kind == ElementKind.INPUT &&
-          outputs_placed > inputs_placed &&
-          inputs_to_place.length > 0
-        ) {
-          to_place_type = 0;
-          inputs_placed += 1;
-        } else if (
-          kind == ElementKind.INTERMEDIATE &&
-          intermediates_to_place.length > 0
-        ) {
-          to_place_type = 1;
-        } else if (kind == ElementKind.OUTPUT && outputs_to_place.length > 0) {
-          to_place_type = 2;
-          outputs_placed += 1;
+    let inputs_placed = 0;
+    let outputs_placed = 0;
+    let to_place_length = inputs_to_place.length +
+        intermediates_to_place.length +
+        outputs_to_place.length;
+
+    let countdown = 1000;
+    while (to_place_length > 0 && countdown > 0) {
+        let previous_items = dag_edges.length;
+        let new_layer = [];
+        let max_layer_size = Math.min(
+            Math.floor((previous_items * previous_items) / 2) -
+            Math.floor(already_used.size / 2) -
+            1,
+            to_place_length - 1,
+        );
+
+        let new_layer_size = 1;
+        if (max_layer_size > 0) {
+            new_layer_size = Number(rng.get_random() % BigInt(max_layer_size)) +
+                1;
         }
-      }
-      let inputs1_idx = 0;
-      let inputs2_idx = 0;
-      do {
-        inputs1_idx = Number(rng.get_random() % BigInt(previous_items));
-        inputs2_idx = Number(rng.get_random() % BigInt(previous_items));
-        if (inputs1_idx > inputs2_idx) {
-          [inputs1_idx, inputs2_idx] = [inputs2_idx, inputs1_idx];
+
+        for (let i = 0; i < new_layer_size; i++) {
+            let to_place_type = -1;
+            let attempts = 0;
+            while (to_place_type == -1) {
+                attempts = attempts + 1;
+                let kind = Number(rng.get_random() % 3n) + 1;
+                if (
+                    kind == ElementKind.INPUT &&
+                    outputs_placed > inputs_placed &&
+                    inputs_to_place.length > 0
+                ) {
+                    to_place_type = 0;
+                    inputs_placed = inputs_placed + 1;
+                } else if (
+                    kind == ElementKind.INTERMEDIATE &&
+                    intermediates_to_place.length > 0
+                ) {
+                    to_place_type = 1;
+                } else if (
+                    kind == ElementKind.OUTPUT && outputs_to_place.length > 0
+                ) {
+                    to_place_type = 2;
+                    outputs_placed = outputs_placed + 1;
+                }
+                if (attempts > 100) {
+                    throw "Fuck you";
+                }
+            }
+            let inputs1_idx = 0;
+            let inputs2_idx = 0;
+            do {
+                inputs1_idx = Number(rng.get_random() % BigInt(previous_items));
+                inputs2_idx = Number(rng.get_random() % BigInt(previous_items));
+                if (inputs1_idx > inputs2_idx) {
+                    [inputs1_idx, inputs2_idx] = [inputs2_idx, inputs1_idx];
+                }
+            } while (already_used.has([inputs1_idx, inputs2_idx]));
+
+            already_used.add([inputs1_idx, inputs2_idx]);
+            already_used.add([inputs2_idx, inputs1_idx]);
+
+            let output;
+            if (to_place_type == 0) {
+                let output_idx = Number(
+                    rng.get_random() % BigInt(inputs_to_place.length),
+                );
+                output = inputs_to_place.splice(output_idx, 1)[0];
+            } else if (to_place_type == 1) {
+                let output_idx = Number(
+                    rng.get_random() % BigInt(intermediates_to_place.length),
+                );
+                output = intermediates_to_place.splice(output_idx, 1)[0];
+            } else if (to_place_type == 2) {
+                let output_idx = Number(
+                    rng.get_random() % BigInt(outputs_to_place.length),
+                );
+                output = outputs_to_place.splice(output_idx, 1)[0];
+            }
+
+            if (compounds_are_ingredients || to_place_type != 2) {
+                new_layer.push([
+                    inputs1_idx,
+                    inputs2_idx,
+                    output,
+                    to_place_type,
+                ]);
+            } else {
+                compound_edges.push([
+                    inputs1_idx,
+                    inputs2_idx,
+                    output,
+                    to_place_type,
+                ]);
+            }
         }
-      } while (already_used.has([inputs1_idx, inputs2_idx]));
+        to_place_length = inputs_to_place.length +
+            intermediates_to_place.length +
+            outputs_to_place.length;
 
-      already_used.add([inputs1_idx, inputs2_idx]);
-
-      let output_list = [
-        inputs_to_place,
-        intermediates_to_place,
-        outputs_to_place,
-      ][to_place_type];
-      let output_idx = Number(rng.get_random() % BigInt(output_list.length));
-
-      let output = output_list[output_idx];
-      delete output_list[output_idx];
-
-      if (compounds_are_ingredients || to_place_type != 2) {
-        new_layer.push([inputs1_idx, inputs2_idx, output, to_place_type]);
-      } else {
-        compound_edges.push([inputs1_idx, inputs2_idx, output, to_place_type]);
-      }
+        dag_edges.push(...new_layer);
     }
-    to_place_length =
-      inputs_to_place.length +
-      intermediates_to_place.length +
-      outputs_to_place.length;
+    dag_edges.push(...compound_edges);
 
-    dag_edges.push(...new_layer);
-  }
-  dag_edges.push(...compound_edges);
+    let recipes_with_outputs = new DeepMap();
+    for (const edge of dag_edges) {
+        let [i1, i2, out, kind] = edge;
+        if (kind == ElementKind.INPUT) continue;
 
-  let recipes_with_outputs = new DeepMap();
-  for (const edge of dag_edges) {
-    let [i1, i2, out, kind] = edge;
-    if (kind == ElementKind.INPUT) continue;
+        if (i1 < 0 && i2 < 0) continue;
 
-    let to_insert_in = [
-      { id: dag_edges[i1][2], kind: dag_edges[i1][3] },
-      { id: dag_edges[i2][2], kind: dag_edges[i2][3] },
-    ];
-    let to_insert_out = { id: out, kind: kind };
+        let to_insert_in = [
+            { id: dag_edges[i1][2], kind: dag_edges[i1][3] },
+            { id: dag_edges[i2][2], kind: dag_edges[i2][3] },
+        ];
+        let to_insert_out = { id: out, kind: kind };
 
-    if (recipes_with_outputs.has(to_insert_in)) {
-      recipes_with_outputs.get(to_insert_in).push(to_insert_out);
-    } else {
-      recipes_with_outputs.set(to_insert_in, [to_insert_out]);
+        if (recipes_with_outputs.has(to_insert_in)) {
+            recipes_with_outputs.get(to_insert_in).push(to_insert_out);
+        } else {
+            recipes_with_outputs.set(to_insert_in, [to_insert_out]);
+        }
     }
-  }
 
-  let all_items = range(1, inputs + 1)
-    .map((x) =>
-      Object({
-        id: x,
-        kind: ElementKind.INPUT,
-      }),
-    )
-    .concat(
-      range(1, intermediates + 1).map((x) =>
-        Object({
-          id: x,
-          kind: ElementKind.INTERMEDIATE,
-        }),
-      ),
-    );
+    let all_items = range(1, inputs + 1)
+        .map((x) =>
+            Object({
+                id: x,
+                kind: ElementKind.INPUT,
+            })
+        )
+        .concat(
+            range(1, intermediates + 1).map((x) =>
+                Object({
+                    id: x,
+                    kind: ElementKind.INTERMEDIATE,
+                })
+            ),
+        );
 
-  if (compounds_are_ingredients) {
-    all_items.concat(
-      range(1, outputs + 1).map((x) =>
-        Object({
-          id: x,
-          kind: ElementKind.OUTPUT,
-        }),
-      ),
-    );
-  }
+    if (compounds_are_ingredients) {
+        all_items.concat(
+            range(1, outputs + 1).map((x) =>
+                Object({
+                    id: x,
+                    kind: ElementKind.OUTPUT,
+                })
+            ),
+        );
+    }
 
-  return {
-    recipes: recipes_with_outputs,
-    items: all_items,
-  };
+    return {
+        recipes: recipes_with_outputs,
+        items: all_items,
+    };
 }
