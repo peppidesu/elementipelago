@@ -19,7 +19,6 @@
     });
 
     function onpointerdown(e) {
-        console.log("I was clicked, setting dragging_elem", e);
         ox = e.layerX;
         oy = e.layerY;
         dragging_elem.set((lx, ly) => {

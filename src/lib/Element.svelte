@@ -5,20 +5,27 @@
     import { get } from "svelte/store";
 
     const { elem } = $props();
+    let el;
 
     function onPointerDown(e) {
         let { x, y } = get(pointerLoc);
 
-        console.log(e);
+        const rect = el.getBoundingClientRect();
 
         mount(RealElement, {
             target: document.querySelector("#app"),
-            props: { x, y, elem, offsetx: e.layerX, offsety: e.layerY },
+            props: {
+                x,
+                y,
+                elem,
+                offsetx: x - rect.left,
+                offsety: y - rect.top,
+            },
         });
     }
 </script>
 
-<li class="element" onpointerdown={onPointerDown}>
+<li class="element" onpointerdown={onPointerDown} bind:this={el}>
     <img src={elem.src} alt="" draggable="false" />
     <p>{elem.name}</p>
 </li>
