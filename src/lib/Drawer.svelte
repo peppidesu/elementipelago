@@ -18,7 +18,6 @@
     );
 
     let graph;
-    let is_setup = false;
     let received_elements = $state([]);
     let elements = $derived(
         received_elements
@@ -28,13 +27,13 @@
             .filter((val, idx, arr) => {
                 return idx == 0 || val.name != arr[idx - 1].name;
             })
-            .map((value, idx, _) => {
+            .map((value) => {
                 return { name: value.name, src: el.apple };
             }),
     );
 
     slotdata.subscribe((sd) => {
-        if (sd == null || is_setup) {
+        if (sd == null) {
             return;
         }
 
@@ -47,7 +46,8 @@
             sd.compounds_are_ingredients,
         );
         let client = get(apclient);
-        if (!client.authenticated || is_setup) {
+        if (!client.authenticated) {
+            throw "Slotdata was received without a connected client.";
             return;
         }
 
