@@ -6,29 +6,36 @@
 
     const { x, y, elem, offsetx: localx, offsety: localy } = $props();
 
+    let self;
     let ox = localx;
     let oy = localy;
     let sx = $state(x - ox);
     let sy = $state(y - oy);
 
     onMount(() => {
-        dragging_elem.set((lx, ly) => {
-            sx = lx - ox;
-            sy = ly - oy;
+        dragging_elem.set({
+            self: this,
+            mfunc: (lx, ly) => {
+                sx = lx - ox;
+                sy = ly - oy;
+            },
         });
     });
 
     function onpointerdown(e) {
         ox = e.layerX;
         oy = e.layerY;
-        dragging_elem.set((lx, ly) => {
-            sx = lx - ox;
-            sy = ly - oy;
+        dragging_elem.set({
+            self: this,
+            mfunc: (lx, ly) => {
+                sx = lx - ox;
+                sy = ly - oy;
+            },
         });
     }
 </script>
 
-<div {onpointerdown} style="left: {sx}px; top: {sy}px;">
+<div {onpointerdown} style="left: {sx}px; top: {sy}px;" bind:this={self}>
     <img src={elem.src} alt="" draggable="false" />
     <p>{elem.name}</p>
 </div>

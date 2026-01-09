@@ -66,14 +66,14 @@ export function create_graph(
     start_items,
     compounds_are_ingredients,
 ) {
-    let dag_edges = [];
-    let compound_edges = [];
-    let already_used = new DeepSet();
-    let rng = new Rng(seed);
+    const dag_edges = [];
+    const compound_edges = [];
+    const already_used = new DeepSet();
+    const rng = new Rng(seed);
 
-    let inputs_to_place = range(1, inputs + 1);
-    let intermediates_to_place = range(1, intermediates + 1);
-    let outputs_to_place = range(1, outputs + 1);
+    const inputs_to_place = range(1, inputs + 1);
+    const intermediates_to_place = range(1, intermediates + 1);
+    const outputs_to_place = range(1, outputs + 1);
 
     for (let i = 1; i <= start_items; i++) {
         dag_edges.push([-1, -1, i, 0]);
@@ -86,11 +86,10 @@ export function create_graph(
         intermediates_to_place.length +
         outputs_to_place.length;
 
-    let countdown = 1000;
-    while (to_place_length > 0 && countdown > 0) {
-        let previous_items = dag_edges.length;
-        let new_layer = [];
-        let max_layer_size = Math.min(
+    while (to_place_length > 0) {
+        const previous_items = dag_edges.length;
+        const new_layer = [];
+        const max_layer_size = Math.min(
             Math.floor((previous_items * previous_items) / 2) -
             Math.floor(already_used.size / 2) -
             1,
@@ -108,7 +107,7 @@ export function create_graph(
             let attempts = 0;
             while (to_place_type == -1) {
                 attempts = attempts + 1;
-                let kind = Number(rng.get_random() % 3n) + 1;
+                const kind = Number(rng.get_random() % 3n) + 1;
                 if (
                     kind == ElementKind.INPUT &&
                     outputs_placed > inputs_placed &&
@@ -146,17 +145,17 @@ export function create_graph(
 
             let output;
             if (to_place_type == 0) {
-                let output_idx = Number(
+                const output_idx = Number(
                     rng.get_random() % BigInt(inputs_to_place.length),
                 );
                 output = inputs_to_place.splice(output_idx, 1)[0];
             } else if (to_place_type == 1) {
-                let output_idx = Number(
+                const output_idx = Number(
                     rng.get_random() % BigInt(intermediates_to_place.length),
                 );
                 output = intermediates_to_place.splice(output_idx, 1)[0];
             } else if (to_place_type == 2) {
-                let output_idx = Number(
+                const output_idx = Number(
                     rng.get_random() % BigInt(outputs_to_place.length),
                 );
                 output = outputs_to_place.splice(output_idx, 1)[0];
@@ -186,18 +185,18 @@ export function create_graph(
     }
     dag_edges.push(...compound_edges);
 
-    let recipes_with_outputs = new DeepMap();
+    const recipes_with_outputs = new DeepMap();
     for (const edge of dag_edges) {
-        let [i1, i2, out, kind] = edge;
+        const [i1, i2, out, kind] = edge;
         if (kind == ElementKind.INPUT) continue;
 
         if (i1 < 0 && i2 < 0) continue;
 
-        let to_insert_in = [
+        const to_insert_in = [
             { id: dag_edges[i1][2], kind: dag_edges[i1][3] },
             { id: dag_edges[i2][2], kind: dag_edges[i2][3] },
         ];
-        let to_insert_out = { id: out, kind: kind };
+        const to_insert_out = { id: out, kind: kind };
 
         if (recipes_with_outputs.has(to_insert_in)) {
             recipes_with_outputs.get(to_insert_in).push(to_insert_out);
@@ -206,7 +205,7 @@ export function create_graph(
         }
     }
 
-    let all_items = range(1, inputs + 1)
+    const all_items = range(1, inputs + 1)
         .map((x) =>
             Object({
                 id: x,

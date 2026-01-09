@@ -9,11 +9,17 @@
 
         let dmf = get(dragging_move_function);
         if (dmf != null) {
-            dmf(event.clientX, event.clientY);
+            dmf.mfunc(event.clientX, event.clientY);
         }
     }
 
     function onpointerup(event) {
+        let dmf = get(dragging_move_function);
+        if (dmf == null) {
+            return;
+        }
+        let dropped_el = dmf.self;
+
         dragging_move_function.set(null);
     }
 </script>
