@@ -4,8 +4,9 @@
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
-    import { graph, slotdata } from "./lib/stores/apclient";
+    import { apclient, graph, slotdata } from "./lib/stores/apclient";
     import RealElement from "./lib/RealElement.svelte";
+    import { elem_to_location_id, elem_to_name, name_to_kind } from "./utils";
 
     function intersect(rect1, rect2) {
         return (
@@ -47,7 +48,6 @@
 
         let placed_elements = document.getElementById("playfield").children;
         let gr = get(graph);
-        console.log(gr);
 
         for (const element of placed_elements) {
             // don't check collision with itself
@@ -60,7 +60,6 @@
                 let dropped_relem = dropped_el.recipe_elem;
                 let other_relem = element.recipe_elem;
                 // Find the combination in the graph
-                console.log(dropped_relem, other_relem);
                 let products =
                     gr.recipes.get([dropped_relem, other_relem]) ||
                     gr.recipes.get([other_relem, dropped_relem]);
@@ -70,23 +69,28 @@
                     continue;
                 }
 
-                // spawn element with type product
-                const elem = {
-                    name: "merged",
-                    src: "",
-                };
+                let locations = products.map((val) => elem_to_location_id(val));
+                console.log(locations);
+                get(apclient).check(...locations);
 
-                mount(RealElement, {
-                    target: document.getElementById("playfield"),
-                    props: {
-                        x: (dropped_el_rect.x + el_rect.x) / 2,
-                        y: (dropped_el_rect.y + el_rect.y) / 2,
-                        elem,
-                        offsetx: 0,
-                        offsety: 0,
-                        attach: false,
-                    },
-                });
+                for (const prod of products) {
+                    // spawn element with type product
+                    const elem = {
+                        name: elem_to_name(prod),
+                        src: "",
+                    };
+                    mount(RealElement, {
+                        target: document.getElementById("playfield"),
+                        props: {
+                            x: (dropped_el_rect.x + el_rect.x) / 2,
+                            y: (dropped_el_rect.y + el_rect.y) / 2,
+                            elem,
+                            offsetx: 0,
+                            offsety: 0,
+                            attach: false,
+                        },
+                    });
+                }
 
                 // remove dropped, and other
                 dropped_el.remove();

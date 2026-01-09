@@ -1,17 +1,5 @@
 import { DeepMap, DeepSet } from "deep-equality-data-structures";
-
-/**
- * @enum {number}
- */
-var ElementKind = {
-    INPUT: 1,
-    INTERMEDIATE: 2,
-    OUTPUT: 3,
-};
-
-/**
- * @typedef {{ id: number, kind: ElementKind } } Element
- */
+import { ElementKind } from "./utils";
 
 const mask64 = 0xffffffffffffffffn;
 
@@ -45,7 +33,7 @@ export class Rng {
  * @returns {number[]}
  */
 function range(start, end) {
-    return [...Array(end - start + 1)].map((_, i) => start + i);
+    return [...Array(end - start)].map((_, i) => start + i);
 }
 
 /**
@@ -76,12 +64,13 @@ export function create_graph(
     const outputs_to_place = range(1, outputs + 1);
 
     for (let i = 1; i <= start_items; i++) {
-        dag_edges.push([-1, -1, i, 0]);
+        dag_edges.push([-1, -1, i, ElementKind.INPUT]);
         inputs_to_place.splice(0, 1);
     }
 
     let inputs_placed = 0;
     let outputs_placed = 0;
+
     let to_place_length = inputs_to_place.length +
         intermediates_to_place.length +
         outputs_to_place.length;
@@ -91,7 +80,7 @@ export function create_graph(
         const new_layer = [];
         const max_layer_size = Math.min(
             Math.floor((previous_items * previous_items) / 2) -
-            Math.floor(already_used.size / 2) -
+            already_used.size -
             1,
             to_place_length - 1,
         );
@@ -104,32 +93,28 @@ export function create_graph(
 
         for (let i = 0; i < new_layer_size; i++) {
             let to_place_type = -1;
-            let attempts = 0;
             while (to_place_type == -1) {
-                attempts = attempts + 1;
                 const kind = Number(rng.get_random() % 3n) + 1;
                 if (
                     kind == ElementKind.INPUT &&
                     outputs_placed > inputs_placed &&
                     inputs_to_place.length > 0
                 ) {
-                    to_place_type = 0;
+                    to_place_type = ElementKind.INPUT;
                     inputs_placed = inputs_placed + 1;
                 } else if (
                     kind == ElementKind.INTERMEDIATE &&
                     intermediates_to_place.length > 0
                 ) {
-                    to_place_type = 1;
+                    to_place_type = ElementKind.INTERMEDIATE;
                 } else if (
                     kind == ElementKind.OUTPUT && outputs_to_place.length > 0
                 ) {
-                    to_place_type = 2;
+                    to_place_type = ElementKind.OUTPUT;
                     outputs_placed = outputs_placed + 1;
                 }
-                if (attempts > 100) {
-                    throw "Fuck you";
-                }
             }
+
             let inputs1_idx = 0;
             let inputs2_idx = 0;
             do {
@@ -141,27 +126,28 @@ export function create_graph(
             } while (already_used.has([inputs1_idx, inputs2_idx]));
 
             already_used.add([inputs1_idx, inputs2_idx]);
-            already_used.add([inputs2_idx, inputs1_idx]);
 
             let output;
-            if (to_place_type == 0) {
+            if (to_place_type == ElementKind.INPUT) {
                 const output_idx = Number(
                     rng.get_random() % BigInt(inputs_to_place.length),
                 );
                 output = inputs_to_place.splice(output_idx, 1)[0];
-            } else if (to_place_type == 1) {
+            } else if (to_place_type == ElementKind.INTERMEDIATE) {
                 const output_idx = Number(
                     rng.get_random() % BigInt(intermediates_to_place.length),
                 );
                 output = intermediates_to_place.splice(output_idx, 1)[0];
-            } else if (to_place_type == 2) {
+            } else if (to_place_type == ElementKind.OUTPUT) {
                 const output_idx = Number(
                     rng.get_random() % BigInt(outputs_to_place.length),
                 );
                 output = outputs_to_place.splice(output_idx, 1)[0];
             }
 
-            if (compounds_are_ingredients || to_place_type != 2) {
+            if (
+                compounds_are_ingredients || to_place_type != ElementKind.OUTPUT
+            ) {
                 new_layer.push([
                     inputs1_idx,
                     inputs2_idx,
