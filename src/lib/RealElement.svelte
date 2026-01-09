@@ -14,7 +14,7 @@
 
     onMount(() => {
         dragging_elem.set({
-            self: this,
+            self: self,
             mfunc: (lx, ly) => {
                 sx = lx - ox;
                 sy = ly - oy;
@@ -26,7 +26,7 @@
         ox = e.layerX;
         oy = e.layerY;
         dragging_elem.set({
-            self: this,
+            self: self,
             mfunc: (lx, ly) => {
                 sx = lx - ox;
                 sy = ly - oy;

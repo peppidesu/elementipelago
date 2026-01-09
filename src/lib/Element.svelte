@@ -6,6 +6,7 @@
 
     const { elem } = $props();
     let el;
+    export const recipe_elem = elem.recipe_elem;
 
     function onPointerDown(e) {
         let { x, y } = get(pointerLoc);
@@ -13,7 +14,7 @@
         const rect = el.getBoundingClientRect();
 
         mount(RealElement, {
-            target: document.querySelector("#app"),
+            target: document.getElementById("playfield"),
             props: {
                 x,
                 y,

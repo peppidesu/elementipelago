@@ -21,18 +21,27 @@
     let received_elements = $state([]);
     let elements = $derived(
         received_elements
-            // sort on names, might want to add something about the slot once we use location names
-            .toSorted((a, b) => {
-                return a.name.localeCompare(b.name);
-            })
-            // remove duplicates, they shouldn't show up multiple times
-            .filter((val, idx, arr) => {
-                return idx == 0 || val.name != arr[idx - 1].name;
-            })
-            // map from the Item to the format we need in game
-            .map((value) => {
-                return { name: value.name, src: el.apple };
-            }),
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+            .reduce((acc, value) => {
+                // de-dupe (array is already sorted)
+                if (acc.length && acc[acc.length - 1].name === value.name) {
+                    return acc;
+                }
+
+                // parse "Element 129" | "Intermediate 29"
+                const m = value.name.match(/^(Element|Intermediate)\s+(\d+)$/);
+                if (!m) return acc; // skip non-matches
+
+                const [, type, numStr] = m;
+
+                acc.push({
+                    name: value.name,
+                    src: el.apple,
+                    recipe_elem: [Number(numStr), type === "Element" ? 0 : 1],
+                });
+
+                return acc;
+            }, []),
     );
 
     slotdata.subscribe((sd) => {
@@ -61,7 +70,7 @@
     });
 </script>
 
-<ul>
+<ul id="drawer">
     {#each elements as elem}
         <Element {elem} />
     {/each}

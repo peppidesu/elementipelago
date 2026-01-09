@@ -56,7 +56,7 @@ function range(start, end) {
  * @param {number} start_items
  * @param {any} compounds_are_ingredients
  *
- * @returns {{ recipes: DeepMap<[Element, Element], Element>, items: Element[] }}
+ * @returns {{ recipes: DeepMap<[Element, Element], Element>, ingredients: Element[] }}
  */
 export function create_graph(
     seed,
@@ -205,7 +205,7 @@ export function create_graph(
         }
     }
 
-    const all_items = range(1, inputs + 1)
+    const all_ingredients = range(1, inputs + 1)
         .map((x) =>
             Object({
                 id: x,
@@ -222,7 +222,7 @@ export function create_graph(
         );
 
     if (compounds_are_ingredients) {
-        all_items.concat(
+        all_ingredients.concat(
             range(1, outputs + 1).map((x) =>
                 Object({
                     id: x,
@@ -234,6 +234,6 @@ export function create_graph(
 
     return {
         recipes: recipes_with_outputs,
-        items: all_items,
+        ingredients: all_ingredients,
     };
 }
