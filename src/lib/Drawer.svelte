@@ -23,13 +23,12 @@
     let elements = $derived(
         received_elements
             .toSorted((a, b) => {
-                return ("" + a.name).localeCompare(b.name);
+                return a.name.localeCompare(b.name);
             })
             .filter((val, idx, arr) => {
                 return idx == 0 || val.name != arr[idx - 1].name;
             })
             .map((value, idx, _) => {
-                console.log(value);
                 return { name: value.name, src: el.apple };
             }),
     );
