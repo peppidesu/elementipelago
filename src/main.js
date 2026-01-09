@@ -9,7 +9,11 @@ const app = mount(App, {
     target: document.getElementById("app"),
 });
 
-let conn_res = await get(apclient).login("localhost", "noa", "Elementipelago");
+let conn_res = await get(apclient).login(
+    "localhost",
+    "Player1",
+    "Elementipelago",
+);
 
 slotdata.set(conn_res);
 console.log(conn_res);

@@ -1,6 +1,19 @@
 import { LOCATION_AMOUNT } from "./consts";
 
 /**
+ * @enum {number}
+ */
+export const ElementKind = {
+    INPUT: 1,
+    INTERMEDIATE: 2,
+    OUTPUT: 3,
+};
+
+/**
+ * @typedef {{ id: number, kind: ElementKind } } Element
+ */
+
+/**
  * @param {string} name
  */
 export function name_to_kind(name) {
@@ -13,39 +26,39 @@ export function name_to_kind(name) {
     const [, type, numStr] = m;
     switch (type) {
         case "Element":
-            return { id: Number(numStr), kind: 0 };
+            return { id: Number(numStr), kind: ElementKind.INPUT };
         case "Intermediate":
-            return { id: Number(numStr), kind: 1 };
+            return { id: Number(numStr), kind: ElementKind.INTERMEDIATE };
         case "Compound":
-            return { id: Number(numStr), kind: 2 };
+            return { id: Number(numStr), kind: ElementKind.OUTPUT };
     }
     return null;
 }
 
 /**
- * @param {{ kind: any; id: string; }} elem
+ * @param {Element} elem
  */
 export function elem_to_name(elem) {
     switch (elem.kind) {
-        case 0:
+        case ElementKind.INPUT:
             return "Element " + elem.id;
-        case 1:
+        case ElementKind.INTERMEDIATE:
             return "Intermediate " + elem.id;
-        case 2:
+        case ElementKind.OUTPUT:
             return "Compound " + elem.id;
     }
 }
 
 /**
- * @param {{ kind: any; id: number; }} elem
+ * @param {Element} elem
  */
 export function elem_to_location_id(elem) {
     switch (elem.kind) {
-        case 0:
+        case ElementKind.INPUT:
             throw "Not a valid location";
-        case 1:
+        case ElementKind.INTERMEDIATE:
             return LOCATION_AMOUNT + elem.id;
-        case 2:
+        case ElementKind.OUTPUT:
             return elem.id;
     }
 }
