@@ -48,22 +48,26 @@
 
         let placed_elements = document.getElementById("playfield").children;
         let gr = get(graph);
+        let dropped_relem = { ...dropped_el.recipe_elem };
 
         for (const element of placed_elements) {
             // don't check collision with itself
             if (element == dropped_el) {
+                console.log("element was dropped_el", element, dropped_el);
                 continue;
             }
             let el_rect = element.getBoundingClientRect();
             if (intersect(dropped_el_rect, el_rect)) {
                 // Get recipe_elem for both dropped_el and element
-                let dropped_relem = dropped_el.recipe_elem;
                 let other_relem = element.recipe_elem;
                 // Find the combination in the graph
-                let products =
-                    gr.recipes.get([dropped_relem, other_relem]) ||
-                    gr.recipes.get([other_relem, dropped_relem]);
-                console.log(products);
+                let products = gr.recipes.get([dropped_relem, other_relem]);
+
+                console.log(dropped_relem, other_relem, products);
+                if (products == undefined) {
+                    products = gr.recipes.get([other_relem, dropped_relem]);
+                }
+                console.log(other_relem, dropped_relem, products);
 
                 if (products == undefined) {
                     continue;
@@ -78,6 +82,7 @@
                     const elem = {
                         name: elem_to_name(prod),
                         src: "",
+                        recipe_elem: prod,
                     };
                     mount(RealElement, {
                         target: document.getElementById("playfield"),
