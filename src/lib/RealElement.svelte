@@ -4,7 +4,7 @@
     import { get } from "svelte/store";
     import { pointerLoc } from "./stores/pointer";
 
-    const { x, y, elem, offsetx: localx, offsety: localy } = $props();
+    const { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
 
     let self;
     let ox = localx;
@@ -13,13 +13,16 @@
     let sy = $state(y - oy);
 
     onMount(() => {
-        dragging_elem.set({
-            self: self,
-            mfunc: (lx, ly) => {
-                sx = lx - ox;
-                sy = ly - oy;
-            },
-        });
+        self.recipe_elem = elem.recipe_elem;
+        if (attach) {
+            dragging_elem.set({
+                self: self,
+                mfunc: (lx, ly) => {
+                    sx = lx - ox;
+                    sy = ly - oy;
+                },
+            });
+        }
     });
 
     function onpointerdown(e) {

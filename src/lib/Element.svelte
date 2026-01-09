@@ -21,6 +21,7 @@
                 elem,
                 offsetx: x - rect.left,
                 offsety: y - rect.top,
+                attach: true,
             },
         });
     }

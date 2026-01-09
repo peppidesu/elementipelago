@@ -3,7 +3,9 @@
     import Drawer from "./lib/Drawer.svelte";
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
-    import { unmount } from "svelte";
+    import { mount, unmount } from "svelte";
+    import { graph, slotdata } from "./lib/stores/apclient";
+    import RealElement from "./lib/RealElement.svelte";
 
     function intersect(rect1, rect2) {
         return (
@@ -44,15 +46,54 @@
         }
 
         let placed_elements = document.getElementById("playfield").children;
+        let gr = get(graph);
+        console.log(gr);
 
         for (const element of placed_elements) {
             // don't check collision with itself
             if (element == dropped_el) {
                 continue;
             }
-            if (intersect(dropped_el_rect, element.getBoundingClientRect())) {
-                console.log("dropped element intersected with", element);
-                console.log(dropped_el);
+            let el_rect = element.getBoundingClientRect();
+            if (intersect(dropped_el_rect, el_rect)) {
+                // Get recipe_elem for both dropped_el and element
+                let dropped_relem = dropped_el.recipe_elem;
+                let other_relem = element.recipe_elem;
+                // Find the combination in the graph
+                console.log(dropped_relem, other_relem);
+                let products =
+                    gr.recipes.get([dropped_relem, other_relem]) ||
+                    gr.recipes.get([other_relem, dropped_relem]);
+                console.log(products);
+
+                if (products == undefined) {
+                    continue;
+                }
+
+                // spawn element with type product
+                const elem = {
+                    name: "merged",
+                    src: "",
+                };
+
+                mount(RealElement, {
+                    target: document.getElementById("playfield"),
+                    props: {
+                        x: (dropped_el_rect.x + el_rect.x) / 2,
+                        y: (dropped_el_rect.y + el_rect.y) / 2,
+                        elem,
+                        offsetx: 0,
+                        offsety: 0,
+                        attach: false,
+                    },
+                });
+
+                // remove dropped, and other
+                dropped_el.remove();
+                element.remove();
+
+                // no need to continue checking
+                break;
             }
         }
     }

@@ -1,8 +1,9 @@
 <script>
     import { get } from "svelte/store";
     import { create_graph } from "../graph";
+    import { name_to_kind } from "../utils";
     import Element from "./Element.svelte";
-    import { apclient, slotdata } from "./stores/apclient";
+    import { apclient, graph, slotdata } from "./stores/apclient";
     import { DeepSet } from "deep-equality-data-structures";
 
     const modules = import.meta.glob("../assets/Elements/*.png", {
@@ -17,7 +18,6 @@
         }),
     );
 
-    let graph;
     let received_elements = $state([]);
     let elements = $derived(
         received_elements
@@ -29,15 +29,14 @@
                 }
 
                 // parse "Element 129" | "Intermediate 29"
-                const m = value.name.match(/^(Element|Intermediate)\s+(\d+)$/);
-                if (!m) return acc; // skip non-matches
 
-                const [, type, numStr] = m;
+                let kind = name_to_kind(value.name);
+                if (kind == null) return acc;
 
                 acc.push({
                     name: value.name,
                     src: el.apple,
-                    recipe_elem: [Number(numStr), type === "Element" ? 0 : 1],
+                    recipe_elem: kind,
                 });
 
                 return acc;
@@ -49,13 +48,15 @@
             return;
         }
 
-        graph = create_graph(
-            BigInt(sd.graph_seed),
-            sd.element_amount,
-            sd.compound_amount,
-            sd.intermediate_amount,
-            4,
-            sd.compounds_are_ingredients,
+        graph.set(
+            create_graph(
+                BigInt(sd.graph_seed),
+                sd.element_amount,
+                sd.compound_amount,
+                sd.intermediate_amount,
+                4,
+                sd.compounds_are_ingredients,
+            ),
         );
         let client = get(apclient);
         if (!client.authenticated) {
