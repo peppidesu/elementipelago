@@ -105,7 +105,7 @@
 
     let connected = false;
 
-    async function handleLogin() {
+    async function handleLogin({ host, slot, password }) {
         connected = true;
     }
 </script>

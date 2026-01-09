@@ -25,9 +25,11 @@
                 "Elementipelago",
                 password != "" ? { password: password } : {},
             );
-            onSubmit();
+            onSubmit({ host, slot, password });
         } catch (e) {
-            error = e?.message ?? String(e);
+            for (const err of e.errors) {
+                error = error + "\n" + (err?.message ?? String(err));
+            }
         } finally {
             loading = false;
         }
