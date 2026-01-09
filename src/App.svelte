@@ -61,20 +61,15 @@
                 // Get recipe_elem for both dropped_el and element
                 let other_relem = element.recipe_elem;
                 // Find the combination in the graph
-                let products = gr.recipes.get([dropped_relem, other_relem]);
-
-                console.log(dropped_relem, other_relem, products);
-                if (products == undefined) {
-                    products = gr.recipes.get([other_relem, dropped_relem]);
-                }
-                console.log(other_relem, dropped_relem, products);
+                let products =
+                    gr.recipes.get([dropped_relem, other_relem]) ||
+                    gr.recipes.get([other_relem, dropped_relem]);
 
                 if (products == undefined) {
                     continue;
                 }
 
                 let locations = products.map((val) => elem_to_location_id(val));
-                console.log(locations);
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
