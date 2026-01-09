@@ -105,7 +105,5 @@
 
 <svelte:window {onpointermove} {onpointerup} />
 
-<main style="width: 100vw; height: 100vh;">
-    <Drawer />
-    <div id="playfield"></div>
-</main>
+<Drawer />
+<div id="playfield"></div>

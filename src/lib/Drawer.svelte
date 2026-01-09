@@ -84,5 +84,6 @@
         gap: 10px;
         flex-direction: row;
         flex-wrap: wrap;
+        overflow-y: scroll;
     }
 </style>
