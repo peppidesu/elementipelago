@@ -105,8 +105,7 @@
 
     let connected = false;
 
-    async function handleLogin({ host, slot, password }) {
-        await get(apclient).login(host, slot, password);
+    async function handleLogin() {
         connected = true;
     }
 </script>
