@@ -7,6 +7,7 @@
     import { apclient, graph, slotdata } from "./lib/stores/apclient";
     import RealElement from "./lib/RealElement.svelte";
     import { elem_to_location_id, elem_to_name, name_to_kind } from "./utils";
+    import Login from "./lib/Login.svelte";
 
     function intersect(rect1, rect2) {
         return (
@@ -101,9 +102,20 @@
             }
         }
     }
+
+    let connected = false;
+
+    async function handleLogin({ host, slot, password }) {
+        await get(apclient).login(host, slot, password);
+        connected = true;
+    }
 </script>
 
 <svelte:window {onpointermove} {onpointerup} />
 
-<Drawer />
-<div id="playfield"></div>
+{#if !connected}
+    <Login onSubmit={handleLogin} />
+{:else}
+    <Drawer />
+    <div id="playfield"></div>
+{/if}
