@@ -1,6 +1,6 @@
 <script lang="js">
     import { mount } from "svelte";
-    import RealElement from "./RealElement.svelte";
+    import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
 
@@ -13,7 +13,7 @@
 
         const rect = el.getBoundingClientRect();
 
-        mount(RealElement, {
+        mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
                 x,
@@ -34,21 +34,28 @@
 
 <style>
     .element {
+        display: flex;
+        align-items: center;
+        gap: 5px;
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
         cursor: grab;
 
         list-style-type: none;
-        border-width: 3px;
-        border-style: solid;
+        padding: 5px;
     }
 
     .element > p {
+        margin: 0px;
+        text-align: left;
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
     }
 
     .element > img {
+        width: 96px;
+        height: 96px;
+        image-rendering: pixelated;
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
     }

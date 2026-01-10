@@ -1,11 +1,12 @@
 :root {
-    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: "Comic Relief";
+    font-size: 24px;
     line-height: 1.5;
     font-weight: 400;
 
-    color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
+    color-scheme: light;
+    color: black;
+    background-color: #f0f0f0;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -28,7 +29,7 @@ body {
     display: flex;
     place-items: center;
     min-width: 320px;
-    min-height: 100vh;
+    height: 100vh;
 }
 
 h1 {
@@ -41,19 +42,19 @@ h1 {
 }
 
 #app {
-    margin: 0 auto;
-    padding: 2rem;
+    margin: 0 0;
     text-align: center;
 }
 
+input,
 button {
-    border-radius: 8px;
-    border: 1px solid transparent;
+    border-radius: 10px;
+    border: 2px solid;
     padding: 0.6em 1.2em;
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    background-color: #1a1a1a;
+    background-color: white;
     cursor: pointer;
     transition: border-color 0.25s;
 }

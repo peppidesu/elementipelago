@@ -1,6 +1,6 @@
 <script>
     import { get } from "svelte/store";
-    import { apclient } from "./stores/apclient";
+    import { apclient, slotdata } from "./stores/apclient";
 
     export let onSubmit;
 
@@ -19,12 +19,14 @@
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
 
-            await get(apclient).login(
+            let conn_res = await get(apclient).login(
                 host,
                 slot,
                 "Elementipelago",
                 password != "" ? { password: password } : {},
             );
+            slotdata.set(conn_res);
+
             onSubmit({ host, slot, password });
         } catch (e) {
             for (const err of e.errors) {
@@ -74,20 +76,10 @@
         display: grid;
         gap: 6px;
     }
-    input {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-    }
     .error {
         color: #b00020;
     }
-    button {
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 0;
-        cursor: pointer;
-    }
+
     button:disabled {
         opacity: 0.6;
         cursor: not-allowed;

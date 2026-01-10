@@ -5,7 +5,7 @@
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
     import { apclient, graph, slotdata } from "./lib/stores/apclient";
-    import RealElement from "./lib/RealElement.svelte";
+    import PlacedElement from "./lib/PlacedElement.svelte";
     import { elem_to_location_id, elem_to_name, name_to_kind } from "./utils";
     import Login from "./lib/Login.svelte";
 
@@ -80,7 +80,7 @@
                         src: "",
                         recipe_elem: prod,
                     };
-                    mount(RealElement, {
+                    mount(PlacedElement, {
                         target: document.getElementById("playfield"),
                         props: {
                             x: (dropped_el_rect.x + el_rect.x) / 2,
