@@ -46,21 +46,34 @@
 <style>
     div {
         position: absolute;
-        background-color: green;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        background-color: white;
+        border-radius: 10px;
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
         cursor: grab;
 
         list-style-type: none;
         border-width: 3px;
+        width: 130px;
+        height: 130px;
         border-style: solid;
+        padding: 5px;
 
         p {
+            margin: 0px;
+
             user-select: none;
             touch-action: none; /* IMPORTANT for mobile */
         }
 
         img {
+            width: 96px;
+            height: 96px;
+            image-rendering: pixelated;
             user-select: none;
             touch-action: none; /* IMPORTANT for mobile */
         }
