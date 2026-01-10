@@ -21,7 +21,7 @@ and whether or not the compounds can be used in recipies themselves.
 
 ## What is being worked on still
 
-- Making it all look nicely
+- Polish
 - Testing and possibly fixing what happens during a disconnect
 - Useful items like "don't combine if you have the result" or "hide substances without a valid recipe right now" (subject to change)
 - Giving items more fun names (want to relate to the location they were found/what item was found by them)
