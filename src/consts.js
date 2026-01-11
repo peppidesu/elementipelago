@@ -1,6 +1,6 @@
 export const LOCATION_AMOUNT = 2000;
 
-const modules = import.meta.glob("../assets/Elements/*.png", {
+const modules = import.meta.glob("./assets/Elements/*.png", {
     eager: true,
     import: "default",
 });
