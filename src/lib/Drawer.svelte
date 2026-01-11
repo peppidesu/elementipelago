@@ -4,6 +4,8 @@
     import { name_to_kind } from "../utils";
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
+    import { iconForItem, iconForLocation } from "../iconml";
+    import { element_to_icon } from "./stores/item_cache";
 
     const modules = import.meta.glob("../assets/Elements/*.png", {
         eager: true,
@@ -34,7 +36,13 @@
 
                 acc.push({
                     name: value.name,
-                    src: el.apple,
+                    src:
+                        get(element_to_icon).get(value.name) ??
+                        (() => {
+                            const ico = el[iconForItem(value)];
+                            get(element_to_icon).set(value.name, ico);
+                            return ico;
+                        })(),
                     recipe_elem: kind,
                 });
 

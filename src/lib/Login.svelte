@@ -1,6 +1,7 @@
 <script>
     import { get } from "svelte/store";
     import { apclient, slotdata } from "./stores/apclient";
+    import { loadIconModel } from "../iconml";
 
     export let onSubmit;
 
