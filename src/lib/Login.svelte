@@ -19,14 +19,13 @@
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
 
-            let conn_res = await get(apclient).login(
+            const response = await get(apclient).login(
                 host,
                 slot,
                 "Elementipelago",
                 password != "" ? { password: password } : {},
             );
-            slotdata.set(conn_res);
-
+            slotdata.set(response);
             onSubmit({ host, slot, password });
         } catch (e) {
             for (const err of e.errors) {
