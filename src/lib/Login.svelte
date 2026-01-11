@@ -1,6 +1,6 @@
 <script>
     import { get } from "svelte/store";
-    import { apclient } from "./stores/apclient";
+    import { apclient, slotdata } from "./stores/apclient";
 
     export let onSubmit;
 
@@ -19,12 +19,13 @@
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
 
-            await get(apclient).login(
+            const response = await get(apclient).login(
                 host,
                 slot,
                 "Elementipelago",
                 password != "" ? { password: password } : {},
             );
+            slotdata.set(response);
             onSubmit({ host, slot, password });
         } catch (e) {
             for (const err of e.errors) {
