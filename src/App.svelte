@@ -11,6 +11,7 @@
     import Playfield from "./lib/Playfield.svelte";
     import { loadIconModel } from "./iconml";
     import { element_to_icon } from "./lib/stores/item_cache";
+    import { element_urls } from "./consts";
 
     /**
      * @param {{ left: number; right: number; top: number; bottom: number; }} rect1

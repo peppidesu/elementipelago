@@ -7,17 +7,7 @@
     import { iconForItem, iconForLocation } from "../iconml";
     import { element_to_icon } from "./stores/item_cache";
 
-    const modules = import.meta.glob("../assets/Elements/*.png", {
-        eager: true,
-        import: "default",
-    });
-
-    const el = Object.fromEntries(
-        Object.entries(modules).map(([path, url]) => {
-            const name = path.split("/").pop().replace(".png", "");
-            return [name, url];
-        }),
-    );
+    import { element_urls } from "../consts";
 
     let received_elements = $state([]);
     let elements = $derived(
@@ -39,7 +29,7 @@
                     src:
                         get(element_to_icon).get(value.name) ??
                         (() => {
-                            const ico = el[iconForItem(value)];
+                            const ico = element_urls[iconForItem(value)];
                             get(element_to_icon).set(value.name, ico);
                             return ico;
                         })(),
