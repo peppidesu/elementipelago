@@ -26,7 +26,7 @@
                 password != "" ? { password: password } : {},
             );
             slotdata.set(response);
-            onSubmit({ host, slot, password });
+            onSubmit();
         } catch (e) {
             for (const err of e.errors) {
                 error = error + "\n" + (err?.message ?? String(err));

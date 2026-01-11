@@ -3,13 +3,17 @@
     import Drawer from "./lib/Drawer.svelte";
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
-    import { mount, unmount } from "svelte";
-    import { apclient, graph, slotdata } from "./lib/stores/apclient";
+    import { mount } from "svelte";
+    import { apclient, graph } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import { elem_to_location_id, elem_to_name, name_to_kind } from "./utils";
+    import { elem_to_location_id, elem_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
 
+    /**
+     * @param {{ left: number; right: number; top: number; bottom: number; }} rect1
+     * @param {DOMRect} rect2
+     */
     function intersect(rect1, rect2) {
         return (
             rect1.left < rect2.right &&
@@ -19,6 +23,9 @@
         );
     }
 
+    /**
+     * @param {{ clientX: any; clientY: any; }} event
+     */
     function onpointermove(event) {
         pointerLoc.set({ x: event.clientX, y: event.clientY });
 
@@ -28,6 +35,9 @@
         }
     }
 
+    /**
+     * @param {any} event
+     */
     function onpointerup(event) {
         let dmf = get(dragging_move_function);
         if (dmf == null) {
@@ -70,7 +80,10 @@
                     continue;
                 }
 
-                let locations = products.map((val) => elem_to_location_id(val));
+                let locations = products.map(
+                    (/** @type {import("./utils").Element} */ val) =>
+                        elem_to_location_id(val),
+                );
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
@@ -106,7 +119,7 @@
 
     let connected = false;
 
-    async function handleLogin({ host, slot, password }) {
+    async function handleLogin() {
         connected = true;
     }
 </script>

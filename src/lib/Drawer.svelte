@@ -4,7 +4,6 @@
     import { name_to_kind } from "../utils";
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
-    import { DeepSet } from "deep-equality-data-structures";
 
     const modules = import.meta.glob("../assets/Elements/*.png", {
         eager: true,
