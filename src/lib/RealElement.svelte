@@ -11,9 +11,13 @@
     let oy = localy;
     let sx = $state(x - ox);
     let sy = $state(y - oy);
+    let z = $state(10000);
 
     onMount(() => {
         self.recipe_elem = elem.recipe_elem;
+        self.set_z_idx = (val) => {
+            z = val;
+        };
         if (attach) {
             dragging_elem.set({
                 self: self,
@@ -26,6 +30,7 @@
     });
 
     function onpointerdown(e) {
+        z = 10000;
         ox = e.layerX;
         oy = e.layerY;
         dragging_elem.set({
@@ -38,7 +43,11 @@
     }
 </script>
 
-<div {onpointerdown} style="left: {sx}px; top: {sy}px;" bind:this={self}>
+<div
+    {onpointerdown}
+    style="left: {sx}px; top: {sy}px; z-index: {z};"
+    bind:this={self}
+>
     <img src={elem.src} alt="" draggable="false" />
     <p>{elem.name}</p>
 </div>
