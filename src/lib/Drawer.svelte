@@ -4,18 +4,7 @@
     import { name_to_kind } from "../utils";
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
-
-    const modules = import.meta.glob("../assets/Elements/*.png", {
-        eager: true,
-        import: "default",
-    });
-
-    const el = Object.fromEntries(
-        Object.entries(modules).map(([path, url]) => {
-            const name = path.split("/").pop().replace(".png", "");
-            return [name, url];
-        }),
-    );
+    import { element_urls } from "../consts";
 
     let received_elements = $state([]);
     let elements = $derived(
@@ -34,7 +23,7 @@
 
                 acc.push({
                     name: value.name,
-                    src: el.apple,
+                    src: element_urls.apple,
                     recipe_elem: kind,
                 });
 

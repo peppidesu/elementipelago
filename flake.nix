@@ -39,21 +39,7 @@
 
               text = ''
                 set -euo pipefail
-
-                FLAKE_ROOT="$(git rev-parse --show-toplevel)"
-                SRC="$FLAKE_ROOT/assets"
-                DEST="$FLAKE_ROOT/src/assets"
-
-                find "$SRC" -type f -name '*.aseprite' | while read -r file; do
-                  rel="''${file#"$SRC"/}"
-                  out="$DEST/''${rel%.aseprite}.png"
-
-                  mkdir -p "$(dirname "$out")"
-
-                  aseprite \
-                    --batch "$file" \
-                    --save-as "$out"
-                done
+                ./build-sprites.sh
               '';
             })
           ];

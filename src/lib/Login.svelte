@@ -1,6 +1,7 @@
 <script>
     import { get } from "svelte/store";
     import { apclient, slotdata } from "./stores/apclient";
+    import { LoginError } from "archipelago.js";
 
     export let onSubmit;
 
@@ -13,12 +14,11 @@
 
     async function submit() {
         error = "";
-        loading = true;
         try {
+            loading = true;
             localStorage.setItem("ap.host", host);
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
-
             const response = await get(apclient).login(
                 host,
                 slot,
@@ -28,9 +28,7 @@
             slotdata.set(response);
             onSubmit();
         } catch (e) {
-            for (const err of e.errors) {
-                error = error + "\n" + (err?.message ?? String(err));
-            }
+            error = e.message;
         } finally {
             loading = false;
         }
@@ -55,13 +53,11 @@
         <input type="password" bind:value={password} />
     </label>
 
-    {#if error}
-        <div class="error">{error}</div>
-    {/if}
-
     <button on:click={submit} disabled={loading || !host || !slot}>
         {loading ? "Connecting..." : "Connect"}
     </button>
+
+    <div class="error">{error}</div>
 </div>
 
 <style>
@@ -83,7 +79,8 @@
         text-align: left;
     }
     .error {
-        color: #b00020;
+        color: #ff4b6a;
+        height: 1lh;
     }
 
     button {
