@@ -9,6 +9,7 @@
     import { elem_to_location_id, elem_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
+    import { element_urls } from "./consts";
 
     /**
      * @param {{ left: number; right: number; top: number; bottom: number; }} rect1
@@ -90,7 +91,7 @@
                     // spawn element with type product
                     const elem = {
                         name: elem_to_name(prod),
-                        src: "",
+                        src: element_urls.apple,
                         recipe_elem: prod,
                     };
                     mount(PlacedElement, {
