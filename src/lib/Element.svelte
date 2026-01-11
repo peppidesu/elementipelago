@@ -36,13 +36,18 @@
     .element {
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 15px;
+
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
         cursor: grab;
 
         list-style-type: none;
-        padding: 5px;
+        margin-inline: 5px;
+        padding-block: 5px;
+        &:not(:last-child) {
+            border-bottom: 2px #c0c0c0 solid;
+        }
     }
 
     .element > p {

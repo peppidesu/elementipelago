@@ -72,13 +72,19 @@
     });
 </script>
 
-<ul id="drawer">
-    {#each elements as elem}
-        <Element {elem} />
-    {/each}
-</ul>
+<div>
+    <ul id="drawer">
+        {#each elements as elem}
+            <Element {elem} />
+        {/each}
+    </ul>
+</div>
 
 <style>
+    div {
+        height: 100%;
+        display: flex;
+    }
     ul {
         display: flex;
         border: 3px solid black;

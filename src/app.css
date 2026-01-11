@@ -25,11 +25,12 @@ a:hover {
 }
 
 body {
-    margin: 0;
     display: flex;
-    place-items: center;
+
+    text-align: center;
     min-width: 320px;
-    height: 100vh;
+    height: 100dvh;
+    margin: 0 0;
 }
 
 h1 {
@@ -39,11 +40,6 @@ h1 {
 
 .card {
     padding: 2em;
-}
-
-#app {
-    margin: 0 0;
-    text-align: center;
 }
 
 input,
