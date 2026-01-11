@@ -8,7 +8,10 @@
     let el;
     export const recipe_elem = elem.recipe_elem;
 
-    function onPointerDown(e) {
+    /**
+     * @param {any} _
+     */
+    function onPointerDown(_) {
         let { x, y } = get(pointerLoc);
 
         const rect = el.getBoundingClientRect();

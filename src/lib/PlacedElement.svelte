@@ -1,8 +1,6 @@
 <script lang="js">
-    import { onDestroy, onMount } from "svelte";
+    import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
-    import { get } from "svelte/store";
-    import { pointerLoc } from "./stores/pointer";
 
     const { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
 
@@ -12,6 +10,7 @@
     let oy = localy;
     let sx = $state(x - ox);
     let sy = $state(y - oy);
+    let z = $state(10000);
 
     onMount(() => {
         const srect = self.getBoundingClientRect();
@@ -19,10 +18,13 @@
         ox += irect.left - srect.left;
         sx -= irect.left - srect.left;
         self.recipe_elem = elem.recipe_elem;
+        self.set_z_idx = (/** @type {number} */ val) => {
+            z = val;
+        };
         if (attach) {
             dragging_elem.set({
                 self: self,
-                mfunc: (lx, ly) => {
+                mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
                     sx = lx - ox;
                     sy = ly - oy;
                 },
@@ -30,12 +32,16 @@
         }
     });
 
+    /**
+     * @param {{ layerX: any; layerY: any; }} e
+     */
     function onpointerdown(e) {
+        z = 10000;
         ox = e.layerX;
         oy = e.layerY;
         dragging_elem.set({
             self: self,
-            mfunc: (lx, ly) => {
+            mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
                 sx = lx - ox;
                 sy = ly - oy;
             },
@@ -43,7 +49,11 @@
     }
 </script>
 
-<div {onpointerdown} style="left: {sx}px; top: {sy}px;" bind:this={self}>
+<div
+    {onpointerdown}
+    style="left: {sx}px; top: {sy}px; z-index: {z};"
+    bind:this={self}
+>
     <img src={elem.src} alt="" draggable="false" bind:this={icon} />
     <p>{elem.name}</p>
 </div>
