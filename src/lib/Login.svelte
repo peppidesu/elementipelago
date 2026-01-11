@@ -66,31 +66,33 @@
 
 <style>
     .login {
-        max-width: 420px;
         margin: 48px auto;
-        display: grid;
+        max-width: 700px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         gap: 12px;
+    }
+    h1 {
+        margin-top: 0;
     }
     label {
         display: grid;
-        gap: 6px;
-    }
-    input {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
+        grid-template-columns: 10em auto;
+        align-items: center;
+        text-align: left;
     }
     .error {
         color: #b00020;
     }
+
     button {
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 0;
-        cursor: pointer;
-    }
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        width: 300px;
+        margin-inline: auto;
+        margin-top: 20px;
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     }
 </style>
