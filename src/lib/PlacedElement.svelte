@@ -6,7 +6,8 @@
 
     const { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
 
-    let self;
+    let self, icon;
+
     let ox = localx;
     let oy = localy;
     let sx = $state(x - ox);
@@ -14,6 +15,10 @@
     let z = $state(10000);
 
     onMount(() => {
+        const srect = self.getBoundingClientRect();
+        const irect = icon.getBoundingClientRect();
+        ox += irect.left - srect.left;
+        sx -= irect.left - srect.left;
         self.recipe_elem = elem.recipe_elem;
         self.set_z_idx = (val) => {
             z = val;
@@ -48,28 +53,39 @@
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     bind:this={self}
 >
-    <img src={elem.src} alt="" draggable="false" />
+    <img src={elem.src} alt="" draggable="false" bind:this={icon} />
     <p>{elem.name}</p>
 </div>
 
 <style>
     div {
         position: absolute;
-        background-color: green;
+        justify-content: space-between;
+        align-items: center;
+
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
         cursor: grab;
+        padding: 0px;
 
         list-style-type: none;
-        border-width: 3px;
-        border-style: solid;
-
-        p {
-            user-select: none;
-            touch-action: none; /* IMPORTANT for mobile */
-        }
 
         img {
+            width: 96px;
+            height: 96px;
+            image-rendering: pixelated;
+            user-select: none;
+            touch-action: none; /* IMPORTANT for mobile */
+            background-color: white;
+            border-width: 3px;
+            border-radius: 10px;
+            border-style: solid;
+            padding: 5px;
+        }
+
+        p {
+            margin: 0px;
+
             user-select: none;
             touch-action: none; /* IMPORTANT for mobile */
         }

@@ -44,6 +44,7 @@
     );
 
     slotdata.subscribe((sd) => {
+        console.log(sd);
         if (sd == null) {
             return;
         }
@@ -71,19 +72,30 @@
     });
 </script>
 
-<ul id="drawer">
-    {#each elements as elem}
-        <Element {elem} />
-    {/each}
-</ul>
+<div>
+    <ul id="drawer">
+        {#each elements as elem}
+            <Element {elem} />
+        {/each}
+    </ul>
+</div>
 
 <style>
+    div {
+        height: 100%;
+        display: flex;
+    }
     ul {
         display: flex;
-        width: 200px;
+        border: 3px solid black;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px;
+        width: 300px;
+
         gap: 10px;
-        flex-direction: row;
-        flex-wrap: wrap;
+        flex-direction: column;
+        flex-wrap: nowrap;
         overflow-y: scroll;
     }
 </style>
