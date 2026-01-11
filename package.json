@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "sprites": "./build-sprites.sh",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "devDependencies": {
