@@ -6,8 +6,10 @@
     import { apclient, graph, slotdata } from "./stores/apclient";
     import { dragging_elem } from "./stores/dragging";
     import { icon_cache } from "./stores/icon_cache";
+    import Fuse from "fuse.js";
 
     let { mount_func } = $props();
+    let search_term = $state("");
 
     let received_elements = $state([]);
     let show_discard = $state(false);
@@ -33,6 +35,18 @@
                 return acc;
             }, []),
     );
+
+    let filtered_elements = $derived.by(() => {
+        if (search_term === "") return elements;
+        let fuse = new Fuse(elements, { keys: ["name"] });
+        let res = fuse
+            .search(search_term)
+            .sort((a, b) => b.score - a.score)
+            .map((r) => r.item);
+        console.log(res);
+        return res;
+    });
+
     dragging_elem.subscribe((el) => {
         show_discard = el !== null;
     });
@@ -77,9 +91,10 @@
     });
 </script>
 
-<div>
+<div id="drawer-parent">
+    <input bind:value={search_term} />
     <ul id="drawer">
-        {#each elements as elem_data}
+        {#each filtered_elements as elem_data}
             <Element
                 {elem_data}
                 {mount_func}
@@ -91,25 +106,31 @@
 </div>
 
 <style>
-    div {
+    #drawer-parent {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr;
+        grid-template-rows: 0fr auto;
     }
     @media (min-width: 600px) {
-        div {
+        #drawer-parent {
             width: 350px;
         }
     }
     @media (max-width: 600px) {
-        div {
+        #drawer-parent {
             height: 50%;
         }
+    }
+    input {
+        margin: 10px;
+        border-radius: 5px;
+        border-width: 3px;
+        padding: 10px;
     }
     span {
         transition: all 0.1s;
         pointer-events: none;
-        grid-area: 1 / 1 / 1 / 1;
+        grid-area: 2 / 1 / 2 / 1;
         background-color: color-mix(in oklab, white 80%, #ff4b6a 20%);
         border: 3px solid #ff4b6a;
         margin: 10px;
@@ -121,7 +142,7 @@
         opacity: 0.9;
     }
     ul {
-        grid-area: 1 / 1 / 1 / 1;
+        grid-area: 2 / 1 / 2 / 1;
         display: flex;
         border: 3px solid black;
         border-radius: 5px;
