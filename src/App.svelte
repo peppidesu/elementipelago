@@ -6,7 +6,11 @@
     import { mount, unmount } from "svelte";
     import { apclient, graph } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import { element_to_location_id, element_to_name } from "./utils";
+    import {
+        element_to_location_id,
+        element_to_name,
+        parse_element,
+    } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
     import { icon_cache } from "./lib/stores/icon_cache";
@@ -137,13 +141,17 @@
 
         let cache = get(icon_cache);
         items.forEach((item) => {
-            cache.set(item.locationName, iconForItem(item));
+            cache.set(item.name, {
+                icon: iconForItem(item),
+                name: item.locationName,
+            });
         });
         (await scouted).forEach((item) => {
-            cache.set(item.name, iconForLocation(item));
+            cache.set(item.locationName, {
+                icon: iconForLocation(item),
+                name: item.name,
+            });
         });
-
-        cache.forEach((val, key) => console.log(key, val));
     }
 
     let next_index = 0;
@@ -156,6 +164,7 @@
         offsety = 0,
         attach = false,
     ) {
+        console.log("spawning element:", elem_data);
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
@@ -166,6 +175,10 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
+                display_data: get(icon_cache).get(elem_data.name) ?? {
+                    icon: "void",
+                    name: elem_data.name,
+                },
             },
         });
 

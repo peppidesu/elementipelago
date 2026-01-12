@@ -131,6 +131,5 @@ function iconForText(text) {
     const res = predictIcon(get(model), text, { returnTopK: 1 });
 
     const iconKey = res.best.iconKey;
-    console.log("best icon for ${text} was", iconKey)
     return iconKey;
 }

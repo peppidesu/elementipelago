@@ -4,7 +4,7 @@
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
 
-    const { elem_data, mount_func } = $props();
+    const { elem_data, display_data, mount_func } = $props();
     let el;
 
     export const elem_id = elem_data.elem_id;
@@ -22,8 +22,8 @@
 </script>
 
 <li class="element" onpointerdown={onPointerDown} bind:this={el}>
-    <img src="/sprites/elements/apple.png" alt="" draggable="false" />
-    <p>{elem_data.name}</p>
+    <img src={display_data.icon} alt="" draggable="false" />
+    <p>{display_data.name}</p>
 </li>
 
 <style>
