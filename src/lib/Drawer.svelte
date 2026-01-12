@@ -1,12 +1,13 @@
 <script>
     import { get } from "svelte/store";
     import { create_graph } from "../graph";
-    import { name_to_kind } from "../utils";
+    import { parse_element } from "../utils";
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
-    import { element_urls } from "../consts";
+    import { dragging_elem } from "./stores/dragging";
 
     let received_elements = $state([]);
+    let show_discard = $state(false);
     let elements = $derived(
         received_elements
             .toSorted((a, b) => a.name.localeCompare(b.name))
@@ -18,18 +19,21 @@
 
                 // parse "Element 129" | "Intermediate 29"
 
-                let kind = name_to_kind(value.name);
-                if (kind == null) return acc;
+                let elem_id = parse_element(value.name);
+                if (elem_id == null) return acc;
 
                 acc.push({
                     name: value.name,
-                    src: element_urls.apple,
-                    recipe_elem: kind,
+                    elem_id: elem_id,
                 });
 
                 return acc;
             }, []),
     );
+    dragging_elem.subscribe((el) => {
+        show_discard = el !== null;
+        console.log(show_discard);
+    });
 
     slotdata.subscribe((sd) => {
         console.log(sd);
@@ -62,18 +66,36 @@
 
 <div>
     <ul id="drawer">
-        {#each elements as elem}
-            <Element {elem} />
+        {#each elements as elem_data}
+            <Element {elem_data} />
         {/each}
     </ul>
+    <span class={show_discard ? "show-discard" : ""}> </span>
 </div>
 
 <style>
     div {
         height: 100%;
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+    }
+    span {
+        transition: all 0.1s;
+        pointer-events: none;
+        grid-area: 1 / 1 / 1 / 1;
+        background-color: color-mix(in oklab, white 80%, #ff4b6a 20%);
+        border: 3px solid #ff4b6a;
+        margin: 10px;
+        border-radius: 5px;
+        opacity: 0;
+    }
+    span.show-discard {
+        display: inline;
+        opacity: 0.9;
     }
     ul {
+        grid-area: 1 / 1 / 1 / 1;
         display: flex;
         border: 3px solid black;
         border-radius: 5px;

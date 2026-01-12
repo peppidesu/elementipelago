@@ -4,9 +4,10 @@
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
 
-    const { elem } = $props();
+    const { elem_data } = $props();
     let el;
-    export const recipe_elem = elem.recipe_elem;
+
+    export const elem_id = elem_data.elem_id;
 
     /**
      * @param {any} _
@@ -21,7 +22,7 @@
             props: {
                 x,
                 y,
-                elem,
+                elem_data,
                 offsetx: x - rect.left,
                 offsety: y - rect.top,
                 attach: true,
@@ -31,8 +32,8 @@
 </script>
 
 <li class="element" onpointerdown={onPointerDown} bind:this={el}>
-    <img src={elem.src} alt="" draggable="false" />
-    <p>{elem.name}</p>
+    <img src="/sprites/elements/apple.png" alt="" draggable="false" />
+    <p>{elem_data.name}</p>
 </li>
 
 <style>

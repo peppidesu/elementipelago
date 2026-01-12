@@ -6,13 +6,12 @@
     import { mount } from "svelte";
     import { apclient, graph } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import { elem_to_location_id, elem_to_name } from "./utils";
+    import { element_to_location_id, element_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
-    import { element_urls } from "./consts";
 
     /**
-     * @param {{ left: number; right: number; top: number; bottom: number; }} rect1
+     * @param {DOMRect} rect1
      * @param {DOMRect} rect2
      */
     function intersect(rect1, rect2) {
@@ -61,45 +60,46 @@
 
         let placed_elements = document.getElementById("playfield").children;
         let gr = get(graph);
-        let dropped_relem = { ...dropped_el.recipe_elem };
+        let dropped_elem_id = { ...dropped_el.elem_id };
 
-        for (const element of placed_elements) {
+        for (const other_el of placed_elements) {
             // don't check collision with itself
-            if (element == dropped_el) {
+            if (other_el == dropped_el) {
                 continue;
             }
-            let el_rect = element.getBoundingClientRect();
-            if (intersect(dropped_el_rect, el_rect)) {
+            let other_el_rect = other_el.getBoundingClientRect();
+            if (intersect(dropped_el_rect, other_el_rect)) {
                 // Get recipe_elem for both dropped_el and element
-                let other_relem = element.recipe_elem;
+                // @ts-ignore
+                let other_elem_id = other_el.elem_id;
+
                 // Find the combination in the graph
                 let products =
-                    gr.recipes.get([dropped_relem, other_relem]) ||
-                    gr.recipes.get([other_relem, dropped_relem]);
+                    gr.recipes.get([dropped_elem_id, other_elem_id]) ||
+                    gr.recipes.get([other_elem_id, dropped_elem_id]);
 
                 if (products == undefined) {
                     continue;
                 }
 
                 let locations = products.map(
-                    (/** @type {import("./utils").Element} */ val) =>
-                        elem_to_location_id(val),
+                    (/** @type {import("./utils").ElementID} */ val) =>
+                        element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
                     // spawn element with type product
-                    const elem = {
-                        name: elem_to_name(prod),
-                        src: element_urls.apple,
-                        recipe_elem: prod,
+                    const elem_data = {
+                        name: element_to_name(prod),
+                        elem_id: prod,
                     };
                     mount(PlacedElement, {
                         target: document.getElementById("playfield"),
                         props: {
-                            x: (dropped_el_rect.x + el_rect.x) / 2,
-                            y: (dropped_el_rect.y + el_rect.y) / 2,
-                            elem,
+                            x: (dropped_el_rect.x + other_el_rect.x) / 2,
+                            y: (dropped_el_rect.y + other_el_rect.y) / 2,
+                            elem_data: elem_data,
                             offsetx: 0,
                             offsety: 0,
                             attach: false,
@@ -109,7 +109,7 @@
 
                 // remove dropped, and other
                 dropped_el.remove();
-                element.remove();
+                other_el.remove();
 
                 // no need to continue checking
                 break;

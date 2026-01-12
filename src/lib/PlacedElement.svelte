@@ -1,8 +1,16 @@
 <script lang="js">
     import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
+    import { scale } from "svelte/transition";
 
-    const { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
+    const {
+        x,
+        y,
+        elem_data,
+        offsetx: localx,
+        offsety: localy,
+        attach,
+    } = $props();
 
     let self, icon;
 
@@ -11,13 +19,14 @@
     let sx = $state(x - ox);
     let sy = $state(y - oy);
     let z = $state(10000);
+    let being_dragged = $state(false);
 
     onMount(() => {
         const srect = self.getBoundingClientRect();
         const irect = icon.getBoundingClientRect();
         ox += irect.left - srect.left;
         sx -= irect.left - srect.left;
-        self.recipe_elem = elem.recipe_elem;
+        self.elem_id = elem_data.elem_id;
         self.set_z_idx = (/** @type {number} */ val) => {
             z = val;
         };
@@ -30,6 +39,9 @@
                 },
             });
         }
+    });
+    dragging_elem.subscribe((el) => {
+        being_dragged = el != null && el.self === self;
     });
 
     /**
@@ -52,10 +64,17 @@
 <div
     {onpointerdown}
     style="left: {sx}px; top: {sy}px; z-index: {z};"
+    transition:scale
     bind:this={self}
 >
-    <img src={elem.src} alt="" draggable="false" bind:this={icon} />
-    <p>{elem.name}</p>
+    <img
+        src="/sprites/elements/apple.png"
+        alt=""
+        draggable="false"
+        class={being_dragged ? "dragged" : ""}
+        bind:this={icon}
+    />
+    <p>{elem_data.name}</p>
 </div>
 
 <style>
@@ -82,6 +101,13 @@
             border-radius: 10px;
             border-style: solid;
             padding: 5px;
+            box-shadow: 0 0px 0px 0px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s;
+
+            &.dragged {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 12px 4px rgba(0, 0, 0, 0.35);
+            }
         }
 
         p {
