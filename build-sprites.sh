@@ -1,8 +1,8 @@
 #!/bin/sh
 
 ROOT="$(git rev-parse --show-toplevel)"
-SRC="$ROOT/assets"
-DEST="$ROOT/src/assets"
+SRC="$ROOT/sprites"
+DEST="$ROOT/public/sprites"
 
 find "$SRC" -type f -name '*.aseprite' | while read -r file; do
   rel="${file#"$SRC"/}"
