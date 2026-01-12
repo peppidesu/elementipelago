@@ -79,12 +79,12 @@
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
     }
-    @media (min-width: 700px) {
+    @media (min-width: 600px) {
         div {
             width: 350px;
         }
     }
-    @media (max-width: 700px) {
+    @media (max-width: 600px) {
         div {
             height: 50%;
         }
