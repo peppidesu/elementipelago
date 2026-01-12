@@ -82,7 +82,7 @@
 >
     <img
         src={display_data.icon}
-        alt=""
+        alt={display_data.alt}
         draggable="false"
         class={being_dragged ? "dragged" : ""}
         bind:this={icon}

@@ -22,7 +22,7 @@
 </script>
 
 <li class="element" onpointerdown={onPointerDown} bind:this={el}>
-    <img src={display_data.icon} alt="" draggable="false" />
+    <img src={display_data.icon} alt={display_data.alt} draggable="false" />
     <p>{display_data.name}</p>
 </li>
 

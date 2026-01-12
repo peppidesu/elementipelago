@@ -141,14 +141,18 @@
 
         let cache = get(icon_cache);
         items.forEach((item) => {
+            let icon_name = iconForItem(item);
             cache.set(item.name, {
-                icon: iconForItem(item),
+                icon: "/sprites/elements/" + icon_name + ".png",
+                alt: icon_name,
                 name: item.locationName,
             });
         });
         (await scouted).forEach((item) => {
+            let icon_name = iconForLocation(item);
             cache.set(item.locationName, {
-                icon: iconForLocation(item),
+                icon: "/sprites/elements/" + icon_name + ".png",
+                alt: icon_name,
                 name: item.name,
             });
         });
@@ -175,10 +179,12 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: get(icon_cache).get(elem_data.name) ?? {
-                    icon: "void",
-                    name: elem_data.name,
-                },
+                display_data: get(icon_cache).get(elem_data.name) ??
+                    get(icon_cache).get("Make " + elem_data.name) ?? {
+                        icon: "void",
+                        alt: "void",
+                        name: elem_data.name,
+                    },
             },
         });
 
