@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "archipelago.js": "^2.0.4",
-    "deep-equality-data-structures": "^2.0.0"
+    "deep-equality-data-structures": "^2.0.0",
+    "fuse.js": "^7.1.0"
   }
 }
