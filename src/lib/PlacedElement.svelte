@@ -64,7 +64,7 @@
 <div
     {onpointerdown}
     style="left: {sx}px; top: {sy}px; z-index: {z};"
-    transition:scale
+    transition:scale={{ duration: 100 }}
     bind:this={self}
 >
     <img
