@@ -53,10 +53,12 @@ export function elem_to_name(elem) {
  * @param {Element} elem
  */
 export function elem_to_location_id(elem) {
+    console.log(elem);
     switch (elem.kind) {
         case ElementKind.INPUT:
             throw "Not a valid location";
         case ElementKind.INTERMEDIATE:
+            console.log(elem, LOCATION_AMOUNT + elem.id);
             return LOCATION_AMOUNT + elem.id;
         case ElementKind.OUTPUT:
             return elem.id;

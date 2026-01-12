@@ -7,7 +7,7 @@
 
         Array.from(el.children)
             .toSorted((a, b) => Number(a.style.zIndex) - Number(b.style.zIndex))
-            .forEach((ele, idx) => ele.set_z_idx(String(idx + 1)));
+            .forEach((ele, idx) => ele.set_z_idx?.(String(idx + 1)));
     }
 
     onMount(() => {

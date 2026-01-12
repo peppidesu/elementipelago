@@ -9,8 +9,7 @@
     import { elem_to_location_id, elem_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
-    import { loadIconModel } from "./iconml";
-    import { element_to_icon } from "./lib/stores/item_cache";
+    import { iconForLocation, loadIconModel } from "./iconml";
     import { element_urls } from "./consts";
 
     /**
@@ -94,14 +93,9 @@
                     // spawn element with type product
                     const elem = {
                         name: name,
-                        src:
-                            get(element_to_icon).get(name) ??
-                            (() => {
-                                const ico = el[iconForItem(value)];
-                                get(element_to_icon).set(value.name, ico);
-                                return ico;
-                            })(),
+                        src: element_urls["void"],
                         recipe_elem: prod,
+                        init: false,
                     };
                     mount(PlacedElement, {
                         target: document.getElementById("playfield"),

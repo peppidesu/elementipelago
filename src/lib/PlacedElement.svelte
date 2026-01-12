@@ -1,8 +1,14 @@
 <script lang="js">
     import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
+    import { get } from "svelte/store";
+    import { apclient } from "./stores/apclient";
+    import { elem_to_location_id } from "../utils";
+    import { iconForLocation } from "../iconml";
+    import { element_to_elem } from "./stores/item_cache";
+    import { element_urls } from "../consts";
 
-    const { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
+    let { x, y, elem, offsetx: localx, offsety: localy, attach } = $props();
 
     let self, icon;
 
@@ -12,11 +18,34 @@
     let sy = $state(y - oy);
     let z = $state(10000);
 
-    onMount(() => {
+    let display_ele = $state(Promise.resolve(elem));
+    if (elem.init) {
+        display_ele = Promise.resolve(elem);
+    } else {
+        get(apclient)
+            .scout([elem_to_location_id(elem)], 0)
+            .then((items) => {
+                const fst = items[0];
+                const disp_name = fst.name;
+                const iname = iconForLocation(elem.name);
+                const ico = element_urls[iname] ?? element_urls["void"];
+                console.log(ico);
+                let ele2 = {
+                    name: disp_name,
+                    src: ico,
+                    recipe_elem: elem.recipe_elem,
+                    init: true,
+                };
+                get(element_to_elem).set(elem.name, ele2);
+                return ele2;
+            });
+    }
+
+    onMount(async () => {
         const srect = self.getBoundingClientRect();
-        const irect = icon.getBoundingClientRect();
-        ox += irect.left - srect.left;
-        sx -= irect.left - srect.left;
+        // const irect = icon.getBoundingClientRect();
+        ox += srect.left - srect.left;
+        sx -= srect.left - srect.left;
         self.recipe_elem = elem.recipe_elem;
         self.set_z_idx = (/** @type {number} */ val) => {
             z = val;
@@ -54,8 +83,13 @@
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     bind:this={self}
 >
-    <img src={elem.src} alt="" draggable="false" bind:this={icon} />
-    <p>{elem.name}</p>
+    {#await display_ele}
+        <img src={elem.ico} alt="" draggable="false" />
+        <p>{elem.name}</p>
+    {:then value}
+        <img src={value.ico} alt="" draggable="false" />
+        <p>{value.name}</p>
+    {/await}
 </div>
 
 <style>

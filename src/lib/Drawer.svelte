@@ -5,7 +5,7 @@
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
     import { iconForItem, iconForLocation } from "../iconml";
-    import { element_to_icon } from "./stores/item_cache";
+    import { element_to_elem } from "./stores/item_cache";
 
     import { element_urls } from "../consts";
 
@@ -24,17 +24,22 @@
                 let kind = name_to_kind(value.name);
                 if (kind == null) return acc;
 
-                acc.push({
-                    name: value.name,
-                    src:
-                        get(element_to_icon).get(value.name) ??
-                        (() => {
-                            const ico = element_urls[iconForItem(value)];
-                            get(element_to_icon).set(value.name, ico);
-                            return ico;
-                        })(),
-                    recipe_elem: kind,
-                });
+                const ete = get(element_to_elem);
+                if (ete.has(value.name)) {
+                    acc.push(ete.get(value.name));
+                } else {
+                    const val = value.name;
+                    const iname = iconForItem(value);
+                    const ico = element_urls[iname] ?? element_urls["void"];
+                    let elem = {
+                        name: val,
+                        src: ico,
+                        recipe_elem: kind,
+                        init: true,
+                    };
+                    ete.set(val, elem);
+                    acc.push(elem);
+                }
 
                 return acc;
             }, []),

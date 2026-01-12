@@ -1,6 +1,5 @@
 import { get } from "svelte/store";
 import { model } from "./lib/stores/model.js";
-import type { Item } from "archipelago.js";
 
 function normalize(s) {
     s = s.trim().toLowerCase();
