@@ -53,7 +53,7 @@
         }
     });
     dragging_elem.subscribe((el) => {
-        being_dragged = el != null && el.self === self;
+        being_dragged = el != null && el.index === index;
     });
 
     /**
