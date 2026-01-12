@@ -26,11 +26,16 @@ a:hover {
 
 body {
     display: flex;
-
     text-align: center;
     min-width: 320px;
-    height: 100dvh;
+    height: 100svh;
     margin: 0 0;
+}
+
+@media (max-width: 600px) {
+    body {
+        flex-direction: column-reverse;
+    }
 }
 
 h1 {

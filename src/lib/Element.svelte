@@ -10,9 +10,10 @@
     export const elem_id = elem_data.elem_id;
 
     /**
-     * @param {any} _
+     * @param {any} event
      */
-    function onPointerDown(_) {
+    function onPointerDown(event) {
+        pointerLoc.set({ x: event.clientX, y: event.clientY });
         let { x, y } = get(pointerLoc);
 
         const rect = el.getBoundingClientRect();
@@ -21,8 +22,13 @@
     }
 </script>
 
-<li class="element" onpointerdown={onPointerDown} bind:this={el}>
-    <img src="/sprites/elements/apple.png" alt="" draggable="false" />
+<li class="element" bind:this={el}>
+    <img
+        src="/sprites/elements/apple.png"
+        alt=""
+        draggable="false"
+        onpointerdown={onPointerDown}
+    />
     <p>{elem_data.name}</p>
 </li>
 
@@ -31,10 +37,6 @@
         display: flex;
         align-items: center;
         gap: 15px;
-
-        user-select: none;
-        touch-action: none; /* IMPORTANT for mobile */
-        cursor: grab;
 
         list-style-type: none;
         margin-inline: 5px;
@@ -47,13 +49,12 @@
     .element > p {
         margin: 0px;
         text-align: left;
-        user-select: none;
-        touch-action: none; /* IMPORTANT for mobile */
     }
 
     .element > img {
         width: 96px;
         height: 96px;
+        cursor: grab;
         image-rendering: pixelated;
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
