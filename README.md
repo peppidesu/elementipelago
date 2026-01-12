@@ -14,6 +14,12 @@ Items:
 Locations:
 - Compounds: Things you have to make using the elements to send checks
 
+## How to play
+
+1. generate a multiworld with a slot using elementipelago as the game.
+2. host it somewhere where https is setup (or localhost)
+3. go to https://elementipelago.peppidesu.dev/ and connect to your slot.
+
 ## Options
 
 As a player you can set how many elements you want to exists, how many intermediates, how many extra compounds (over the amount of items that always exist) should exist
