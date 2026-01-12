@@ -5,22 +5,34 @@
 
     export let onSubmit;
 
+    let loading = false;
+    let error = "";
+
     let host = localStorage.getItem("ap.host") ?? "archipelago.gg:38281";
     let slot = localStorage.getItem("ap.slot") ?? "";
     let password = localStorage.getItem("ap.password") ?? "";
 
-    let loading = false;
-    let error = "";
-
     async function submit() {
         error = "";
+
         try {
             loading = true;
             localStorage.setItem("ap.host", host);
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
+
+            let uri = host;
+            if (import.meta.env.ALLOW_INSECURE_WS !== "1") {
+                // force wss
+                if (!uri.match(/^([a-z]+:\/\/)/)) uri = "wss://" + uri;
+                else if (!uri.startsWith("wss://")) {
+                    error = "Only secure websocket connections are supported.";
+                    return;
+                }
+            }
+
             const response = await get(apclient).login(
-                host,
+                uri,
                 slot,
                 "Elementipelago",
                 password != "" ? { password: password } : {},
