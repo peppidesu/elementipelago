@@ -12,6 +12,7 @@
         offsety: localy,
         attach,
         index,
+        display_data,
     } = $props();
 
     export const elem_id = elem_data.elem_id;
@@ -80,13 +81,13 @@
     bind:this={self}
 >
     <img
-        src="/sprites/elements/apple.png"
-        alt=""
+        src={display_data.icon}
+        alt={display_data.alt}
         draggable="false"
         class={being_dragged ? "dragged" : ""}
         bind:this={icon}
     />
-    <p>{elem_data.name}</p>
+    <p>{display_data.name}</p>
 </div>
 
 <style>

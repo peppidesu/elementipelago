@@ -1,10 +1,11 @@
 <script>
     import { get } from "svelte/store";
     import { create_graph } from "../graph";
-    import { parse_element } from "../utils";
+    import { element_to_name, parse_element } from "../utils";
     import Element from "./Element.svelte";
     import { apclient, graph, slotdata } from "./stores/apclient";
     import { dragging_elem } from "./stores/dragging";
+    import { icon_cache } from "./stores/icon_cache";
     import Fuse from "fuse.js";
 
     let { mount_func } = $props();
@@ -76,13 +77,29 @@
             received_elements.push(...items);
         });
     });
+
+    let dd = $state(undefined);
+    icon_cache.subscribe((val) => {
+        dd = val;
+    });
+
+    let display_data = $state((elem_data) => {
+        if (dd != undefined) {
+            return dd.get(elem_data.name);
+        }
+        return { icon: "void", name: elem_data.name };
+    });
 </script>
 
 <div id="drawer-parent">
     <input bind:value={search_term} />
     <ul id="drawer">
         {#each filtered_elements as elem_data}
-            <Element {elem_data} {mount_func} />
+            <Element
+                {elem_data}
+                {mount_func}
+                display_data={display_data(elem_data)}
+            />
         {/each}
     </ul>
     <span class={show_discard ? "show-discard" : ""}> </span>

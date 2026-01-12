@@ -6,9 +6,18 @@
     import { mount, unmount } from "svelte";
     import { apclient, graph } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import { element_to_location_id, element_to_name } from "./utils";
+    import {
+        element_to_location_id,
+        element_to_name,
+        parse_element,
+    } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
+    import { icon_cache } from "./lib/stores/icon_cache";
+    import {
+        iconForItem,
+        iconForLocation,
+    } from "./lib/machine-learning/iconml";
 
     const mounted = new Map();
 
@@ -124,6 +133,29 @@
 
     async function handleLogin() {
         connected = true;
+
+        let client = get(apclient);
+
+        let scouted = client.scout(client.room.allLocations, 0);
+        let items = client.items.received;
+
+        let cache = get(icon_cache);
+        items.forEach((item) => {
+            let icon_name = iconForItem(item);
+            cache.set(item.name, {
+                icon: "/sprites/elements/" + icon_name + ".png",
+                alt: icon_name,
+                name: item.locationName,
+            });
+        });
+        (await scouted).forEach((item) => {
+            let icon_name = iconForLocation(item);
+            cache.set(item.locationName, {
+                icon: "/sprites/elements/" + icon_name + ".png",
+                alt: icon_name,
+                name: item.name,
+            });
+        });
     }
 
     let next_index = 0;
@@ -136,6 +168,7 @@
         offsety = 0,
         attach = false,
     ) {
+        console.log("spawning element:", elem_data);
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
@@ -146,6 +179,12 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
+                display_data: get(icon_cache).get(elem_data.name) ??
+                    get(icon_cache).get("Make " + elem_data.name) ?? {
+                        icon: "void",
+                        alt: "void",
+                        name: elem_data.name,
+                    },
             },
         });
 
