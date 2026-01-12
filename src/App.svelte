@@ -9,7 +9,6 @@
     import { element_to_location_id, element_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
-    import { icon_cache } from "./lib/stores/icon_cache";
 
     const mounted = new Map();
 
