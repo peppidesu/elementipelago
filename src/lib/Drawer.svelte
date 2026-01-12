@@ -92,10 +92,19 @@
 
 <style>
     div {
-        height: 100%;
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
+    }
+    @media (min-width: 600px) {
+        div {
+            width: 350px;
+        }
+    }
+    @media (max-width: 600px) {
+        div {
+            height: 50%;
+        }
     }
     span {
         transition: all 0.1s;
@@ -118,7 +127,6 @@
         border-radius: 5px;
         padding: 10px;
         margin: 10px;
-        width: 300px;
 
         gap: 10px;
         flex-direction: column;
