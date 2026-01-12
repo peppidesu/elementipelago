@@ -1,19 +1,17 @@
 <script lang="javascript">
     import { onMount } from "svelte";
 
-    let el;
-    function handle_dropped() {
-        if (el == undefined) return;
-
-        Array.from(el.children)
-            .toSorted((a, b) => Number(a.style.zIndex) - Number(b.style.zIndex))
-            .forEach((ele, idx) => ele.set_z_idx(String(idx + 1)));
+    /**
+     * @param {Map<number, import("./PlacedElement.svelte").default>} mounted
+     */
+    export function handle_dropped(mounted) {
+        Array.from(mounted)
+            .toSorted(
+                ([_a, a], [_b, b]) =>
+                    Number(a.get_z_index()) - Number(b.get_z_index()),
+            )
+            .forEach(([_num, ele], idx) => ele.set_z_index(String(idx + 1)));
     }
-
-    onMount(() => {
-        el = document.getElementById("playfield");
-        el.handle_dropped = handle_dropped;
-    });
 </script>
 
 <div id="playfield"></div>

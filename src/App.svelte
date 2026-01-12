@@ -3,12 +3,15 @@
     import Drawer from "./lib/Drawer.svelte";
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
-    import { mount } from "svelte";
+    import { mount, unmount } from "svelte";
     import { apclient, graph } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
     import { element_to_location_id, element_to_name } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
+    import { icon_cache } from "./lib/stores/icon_cache";
+
+    const mounted = new Map();
 
     /**
      * @param {DOMRect} rect1
@@ -35,6 +38,8 @@
         }
     }
 
+    let on_dropped;
+
     /**
      * @param {any} event
      */
@@ -43,8 +48,9 @@
         if (dmf == null) {
             return;
         }
-        let dropped_el = dmf.self;
-        let dropped_el_rect = dropped_el.getBoundingClientRect();
+        let dropped_el_index = dmf.index;
+        let dropped_el = mounted.get(dropped_el_index);
+        let dropped_el_rect = dropped_el.get_rect();
 
         dragging_move_function.set(null);
 
@@ -55,19 +61,20 @@
 
         if (intersect(dropped_el_rect, drawer_rect)) {
             // element dropped inside of the drawer should be removed
-            dropped_el.remove();
+            unmount(dropped_el, { outro: true });
+            mounted.delete(dropped_el_index);
+            return;
         }
 
-        let placed_elements = document.getElementById("playfield").children;
         let gr = get(graph);
         let dropped_elem_id = { ...dropped_el.elem_id };
 
-        for (const other_el of placed_elements) {
+        for (const [idx, other_el] of mounted) {
             // don't check collision with itself
             if (other_el == dropped_el) {
                 continue;
             }
-            let other_el_rect = other_el.getBoundingClientRect();
+            let other_el_rect = other_el.get_rect();
             if (intersect(dropped_el_rect, other_el_rect)) {
                 // Get recipe_elem for both dropped_el and element
                 // @ts-ignore
@@ -94,34 +101,57 @@
                         name: element_to_name(prod),
                         elem_id: prod,
                     };
-                    mount(PlacedElement, {
-                        target: document.getElementById("playfield"),
-                        props: {
-                            x: (dropped_el_rect.x + other_el_rect.x) / 2,
-                            y: (dropped_el_rect.y + other_el_rect.y) / 2,
-                            elem_data: elem_data,
-                            offsetx: 0,
-                            offsety: 0,
-                            attach: false,
-                        },
-                    });
+                    mountElem(
+                        (dropped_el_rect.x + other_el_rect.x) / 2,
+                        (dropped_el_rect.y + other_el_rect.y) / 2,
+                        elem_data,
+                    );
                 }
 
                 // remove dropped, and other
-                dropped_el.remove();
-                other_el.remove();
+                unmount(dropped_el, { outro: true });
+                unmount(other_el, { outro: true });
+                mounted.delete(idx);
+                mounted.delete(dropped_el_index);
 
                 // no need to continue checking
                 break;
             }
         }
-        document.getElementById("playfield").handle_dropped();
+        on_dropped(mounted);
     }
 
     let connected = false;
 
     async function handleLogin() {
         connected = true;
+    }
+
+    let next_index = 0;
+
+    export function mountElem(
+        x,
+        y,
+        elem_data,
+        offsetx = 0,
+        offsety = 0,
+        attach = false,
+    ) {
+        let placed = mount(PlacedElement, {
+            target: document.getElementById("playfield"),
+            props: {
+                x: x,
+                y: y,
+                elem_data: elem_data,
+                offsetx: offsetx,
+                offsety: offsety,
+                attach: attach,
+                index: next_index,
+            },
+        });
+
+        mounted.set(next_index, placed);
+        next_index += 1;
     }
 </script>
 
@@ -130,6 +160,6 @@
 {#if !connected}
     <Login onSubmit={handleLogin} />
 {:else}
-    <Drawer />
-    <Playfield />
+    <Drawer mount_func={mountElem} />
+    <Playfield bind:handle_dropped={on_dropped} />
 {/if}

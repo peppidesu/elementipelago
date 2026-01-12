@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
     import { scale } from "svelte/transition";
+    import { get } from "svelte/store";
 
     const {
         x,
@@ -10,7 +11,10 @@
         offsetx: localx,
         offsety: localy,
         attach,
+        index,
     } = $props();
+
+    export const elem_id = elem_data.elem_id;
 
     let self, icon;
 
@@ -21,18 +25,26 @@
     let z = $state(10000);
     let being_dragged = $state(false);
 
+    export function get_z_index() {
+        return z;
+    }
+
+    export function set_z_index(index) {
+        z = index;
+    }
+
+    export function get_rect() {
+        return self.getBoundingClientRect?.();
+    }
+
     onMount(() => {
         const srect = self.getBoundingClientRect();
         const irect = icon.getBoundingClientRect();
         ox += irect.left - srect.left;
         sx -= irect.left - srect.left;
-        self.elem_id = elem_data.elem_id;
-        self.set_z_idx = (/** @type {number} */ val) => {
-            z = val;
-        };
         if (attach) {
             dragging_elem.set({
-                self: self,
+                index: index,
                 mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
                     sx = lx - ox;
                     sy = ly - oy;
@@ -52,7 +64,7 @@
         ox = e.layerX;
         oy = e.layerY;
         dragging_elem.set({
-            self: self,
+            index: index,
             mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
                 sx = lx - ox;
                 sy = ly - oy;
