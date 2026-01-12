@@ -6,6 +6,8 @@
     import { apclient, graph, slotdata } from "./stores/apclient";
     import { dragging_elem } from "./stores/dragging";
 
+    let { mount_func } = $props();
+
     let received_elements = $state([]);
     let show_discard = $state(false);
     let elements = $derived(
@@ -32,11 +34,9 @@
     );
     dragging_elem.subscribe((el) => {
         show_discard = el !== null;
-        console.log(show_discard);
     });
 
     slotdata.subscribe((sd) => {
-        console.log(sd);
         if (sd == null) {
             return;
         }
@@ -67,7 +67,7 @@
 <div>
     <ul id="drawer">
         {#each elements as elem_data}
-            <Element {elem_data} />
+            <Element {elem_data} {mount_func} />
         {/each}
     </ul>
     <span class={show_discard ? "show-discard" : ""}> </span>

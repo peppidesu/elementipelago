@@ -4,7 +4,7 @@
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
 
-    const { elem_data } = $props();
+    const { elem_data, mount_func } = $props();
     let el;
 
     export const elem_id = elem_data.elem_id;
@@ -17,17 +17,7 @@
 
         const rect = el.getBoundingClientRect();
 
-        mount(PlacedElement, {
-            target: document.getElementById("playfield"),
-            props: {
-                x,
-                y,
-                elem_data,
-                offsetx: x - rect.left,
-                offsety: y - rect.top,
-                attach: true,
-            },
-        });
+        mount_func(x, y, elem_data, x - rect.left, y - rect.top, true);
     }
 </script>
 
