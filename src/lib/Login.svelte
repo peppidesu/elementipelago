@@ -78,6 +78,15 @@
         align-items: center;
         text-align: left;
     }
+    @media (max-width: 700px) {
+        .login {
+            height: 100%;
+        }
+        label {
+            display: flex;
+            flex-direction: column;
+        }
+    }
     .error {
         color: #ff4b6a;
         height: 1lh;
@@ -86,7 +95,7 @@
     button {
         width: 300px;
         margin-inline: auto;
-        margin-top: 20px;
+        margin-block: 20px;
         &:disabled {
             opacity: 0.6;
             cursor: not-allowed;
