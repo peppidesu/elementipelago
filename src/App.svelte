@@ -10,6 +10,10 @@
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
     import { icon_cache } from "./lib/stores/icon_cache";
+    import {
+        iconForItem,
+        iconForLocation,
+    } from "./lib/machine-learning/iconml";
 
     const mounted = new Map();
 
@@ -125,6 +129,21 @@
 
     async function handleLogin() {
         connected = true;
+
+        let client = get(apclient);
+
+        let scouted = client.scout(client.room.allLocations, 0);
+        let items = client.items.received;
+
+        let cache = get(icon_cache);
+        items.forEach((item) => {
+            cache.set(item.locationName, iconForItem(item));
+        });
+        (await scouted).forEach((item) => {
+            cache.set(item.name, iconForLocation(item));
+        });
+
+        cache.forEach((val, key) => console.log(key, val));
     }
 
     let next_index = 0;
