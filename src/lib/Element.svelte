@@ -3,6 +3,7 @@
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
+    import { ElementKind } from "../utils";
 
     const { elem_data, display_data, mount_func } = $props();
     let el;
@@ -29,7 +30,12 @@
         draggable="false"
         onpointerdown={onPointerDown}
     />
-    <p>{display_data.name}</p>
+    {#if elem_data.elem_id.kind !== 2}
+        <p>{display_data.name}</p>
+        <p>{display_data.game} {display_data.player} {elem_data.name}</p>
+    {:else}
+        <p>{display_data.name}</p>
+    {/if}
 </li>
 
 <style>

@@ -142,18 +142,32 @@
         let cache = get(icon_cache);
         items.forEach((item) => {
             let icon_name = iconForItem(item);
+            let location_name = item.locationName;
+            if (item.sender.slot === item.receiver.slot) {
+                console.log(item.name, item.locationName);
+                location_name = item.name;
+            }
             cache.set(item.name, {
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
-                name: item.locationName,
+                name: location_name,
+                player: item.sender.alias,
+                game: item.sender.game,
             });
         });
         (await scouted).forEach((item) => {
             let icon_name = iconForLocation(item);
+            let item_name = item.name;
+            if (item.sender.slot === item.receiver.slot) {
+                console.log(item.name, item.locationName);
+                item_name = item.locationName;
+            }
             cache.set(item.locationName, {
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
-                name: item.name,
+                name: item_name,
+                player: item.receiver.alias,
+                game: item.receiver.game,
             });
         });
     }
@@ -179,12 +193,13 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: get(icon_cache).get(elem_data.name) ??
-                    get(icon_cache).get("Make " + elem_data.name) ?? {
-                        icon: "void",
-                        alt: "void",
-                        name: elem_data.name,
-                    },
+                display_data: get(icon_cache).get(elem_data.name) ?? {
+                    icon: "void",
+                    alt: "void",
+                    name: elem_data.name,
+                    game: "",
+                    player: "",
+                },
             },
         });
 
