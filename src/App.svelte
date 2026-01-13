@@ -193,13 +193,14 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: get(icon_cache).get(elem_data.name) ?? {
-                    icon: "void",
-                    alt: "void",
-                    name: elem_data.name,
-                    game: "",
-                    player: "",
-                },
+                display_data: get(icon_cache).get(elem_data.name) ??
+                    get(icon_cache).get("Make " + elem_data.name) ?? {
+                        icon: "void",
+                        alt: "void",
+                        name: elem_data.name,
+                        game: "",
+                        player: "",
+                    },
             },
         });
 
