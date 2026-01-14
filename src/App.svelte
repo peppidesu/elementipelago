@@ -165,13 +165,15 @@
                 item_name = item.locationName;
             }
 
-            cache.set(item.locationName, {
-                icon: "/sprites/elements/" + icon_name + ".png",
-                alt: icon_name,
-                name: item_name,
-                player: item.receiver.alias,
-                game: item.receiver.game,
-            });
+            if (!cache.has(item.locationName)) {
+                cache.set(item.locationName, {
+                    icon: "/sprites/elements/" + icon_name + ".png",
+                    alt: icon_name,
+                    name: item_name,
+                    player: item.receiver.alias,
+                    game: item.receiver.game,
+                });
+            }
         });
     }
 
