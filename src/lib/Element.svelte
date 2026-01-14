@@ -33,8 +33,8 @@
     <span>
         {#if elem_data.elem_id.kind !== 2}
             <h1>{display_data.name}</h1>
+            <p>from {display_data.player}</p>
             <p>{elem_data.name}</p>
-            <p>{display_data.player}</p>
         {:else}
             <h1>{elem_data.name}</h1>
         {/if}
@@ -58,7 +58,7 @@
         > span {
             min-width: 0;
             > h1 {
-                font-weight: normal;
+                font-weight: bold;
                 margin: 0px;
                 margin-bottom: 5px;
                 text-align: left;
