@@ -107,8 +107,17 @@
                 );
                 get(apclient).check(...locations);
 
+                let missing_a_product = false;
+
                 for (const prod of products) {
                     // spawn element with type product
+
+                    missing_a_product ||= get(
+                        apclient,
+                    ).room.missingLocations.includes(
+                        element_to_location_id(prod),
+                    );
+
                     const elem_data = {
                         name: element_to_name(prod),
                         elem_id: prod,
@@ -118,6 +127,10 @@
                         (dropped_el_rect.y + other_el_rect.y) / 2,
                         elem_data,
                     );
+                }
+
+                if (!missing_a_product) {
+                    break;
                 }
 
                 setTimeout(() => sfx.bubble(), 100);
