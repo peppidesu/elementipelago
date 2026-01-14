@@ -162,7 +162,6 @@
             let icon_name = iconForLocation(item);
             let item_name = item.name;
             if (item.sender.slot === item.receiver.slot) {
-                console.log(item.name, item.locationName);
                 item_name = item.locationName;
             }
 
@@ -186,7 +185,14 @@
         offsety = 0,
         attach = false,
     ) {
-        console.log("spawning element:", elem_data);
+        let display_elem = get(icon_cache).get(elem_data.name) ??
+            get(icon_cache).get("Make " + elem_data.name) ?? {
+                icon: "void",
+                alt: "void",
+                name: elem_data.name,
+                game: "",
+                player: "",
+            };
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
@@ -197,14 +203,7 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: get(icon_cache).get(elem_data.name) ??
-                    get(icon_cache).get("Make " + elem_data.name) ?? {
-                        icon: "void",
-                        alt: "void",
-                        name: elem_data.name,
-                        game: "",
-                        player: "",
-                    },
+                display_data: display_elem,
             },
         });
 

@@ -20,7 +20,6 @@ model.set(
         "/models/icon_model.weights.bin",
     ),
 );
-console.log("set model", get(model));
 
 
 export default app;

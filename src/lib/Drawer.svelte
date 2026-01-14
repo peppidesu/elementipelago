@@ -7,6 +7,7 @@
     import { dragging_elem } from "./stores/dragging";
     import { icon_cache } from "./stores/icon_cache";
     import Fuse from "fuse.js";
+    import { iconForItem } from "./machine-learning/iconml";
 
     let { mount_func } = $props();
     let search_term = $state("");
@@ -61,7 +62,6 @@
             .search(search_term)
             .sort((a, b) => b.score - a.score)
             .map((r) => r.item.elem);
-        console.log(res);
         return res;
     });
 
@@ -92,11 +92,23 @@
         const cim = client.items;
         received_elements = cim.received;
         cim.on("itemsReceived", (items, _startingIndex) => {
+            for (const item of items) {
+                let icon_name = iconForItem(item);
+                let location_name = item.locationName;
+
+                get(icon_cache).set(item.name, {
+                    icon: "/sprites/elements/" + icon_name + ".png",
+                    alt: icon_name,
+                    name: location_name,
+                    player: item.sender.alias,
+                    game: item.sender.game,
+                });
+            }
             received_elements.push(...items);
         });
     });
 
-    let dd = $state(undefined);
+    let dd = $state(get(icon_cache));
     icon_cache.subscribe((val) => {
         dd = val;
     });
