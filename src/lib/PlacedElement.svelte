@@ -4,6 +4,7 @@
     import { scale } from "svelte/transition";
     import { get } from "svelte/store";
     import { sfx } from "../audio";
+    import { ElementKind } from "../utils";
 
     let {
         x,
@@ -80,7 +81,7 @@
 </script>
 
 <div
-    class={being_dragged ? "dragged wrapper" : "wrapper"}
+    class="{being_dragged ? 'dragged' : ''} wrapper"
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     transition:scale={{ duration: 100 }}
     bind:this={self}
@@ -91,14 +92,20 @@
         src={display_data.icon}
         alt={display_data.alt}
         draggable="false"
-        class={being_dragged ? "dragged" : ""}
+        class="
+            {being_dragged ? 'dragged' : ''}
+            {elem_data.elem_id.kind === ElementKind.OUTPUT ? 'compound' : ''}
+        "
         bind:this={icon}
         bind:clientWidth={iconWidth}
     />
     <div>
-        {#if elem_data.elem_id.kind !== 2}
+        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
             <h1>{display_data.name}</h1>
-            <p>from {display_data.player}</p>
+            <p>
+                {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
+                {display_data.player}
+            </p>
             <p>{elem_data.name}</p>
         {:else}
             <h1>{elem_data.name}</h1>
@@ -144,6 +151,10 @@
 
             &.dragged {
                 box-shadow: 0 8px 12px 4px rgba(0, 0, 0, 0.35);
+            }
+            &.compound {
+                border-color: #747bff;
+                background-color: color-mix(in oklab, #747bff 20%, white 80%);
             }
         }
         > div {
