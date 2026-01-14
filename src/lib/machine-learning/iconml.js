@@ -1,5 +1,6 @@
 import { get } from "svelte/store";
 import { model } from "../stores/model.js";
+import { Rng } from "../../graph.js";
 
 function normalize(s) {
     s = s.trim().toLowerCase();
@@ -127,9 +128,51 @@ export function iconForItem(item) {
     return iconForText(`[game=${game}][kind=${kind}] ${name}`);
 }
 
+let rng = new Rng(2718281828n);
 function iconForText(text) {
-    const res = predictIcon(get(model), text, { returnTopK: 1 });
+    //const res = predictIcon(get(model), text, { returnTopK: 1 });
 
-    const iconKey = res.best.iconKey;
+    const icons = [
+        "apple",
+        "armmor",
+        "ball",
+        "berry",
+        "boat",
+        "book",
+        "boots",
+        "car",
+        "chest",
+        "coin",
+        "egg",
+        "element",
+        "emerald",
+        "fire",
+        "hat",
+        "heart",
+        "hourglass",
+        "house",
+        "ice",
+        "key",
+        "leaf",
+        "magic",
+        "map",
+        "marker",
+        "metal",
+        "piece",
+        "potion",
+        "ring",
+        "rock",
+        "sand",
+        "sign",
+        "skull",
+        "sword",
+        "tree",
+        "void",
+        "water",
+    ];
+
+    const res = icons[Number(rng.get_random()) % icons.length];
+
+    const iconKey = res;
     return iconKey;
 }

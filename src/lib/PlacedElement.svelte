@@ -4,25 +4,25 @@
     import { scale } from "svelte/transition";
     import { get } from "svelte/store";
 
-    const {
+    let {
         x,
         y,
         elem_data,
-        offsetx: localx,
-        offsety: localy,
+        offsetx: ox,
+        offsety: oy,
         attach,
         index,
         display_data,
     } = $props();
 
-    export const elem_id = elem_data.elem_id;
+    export function get_elem_id() {
+        return elem_data.elem_id;
+    }
 
     let self, icon;
 
-    let ox = localx;
-    let oy = localy;
-    let sx = $state(x - ox);
-    let sy = $state(y - oy);
+    let sx = $derived(x - ox);
+    let sy = $derived(y - oy);
     let z = $state(10000);
     let being_dragged = $state(false);
 
@@ -35,7 +35,7 @@
     }
 
     export function get_rect() {
-        return self.getBoundingClientRect?.();
+        return icon.getBoundingClientRect?.();
     }
 
     onMount(() => {
@@ -58,12 +58,14 @@
     });
 
     /**
-     * @param {{ layerX: any; layerY: any; }} e
+     * @param {{ layerX: any; layerY: any; x: any; y: any}} e
      */
     function onpointerdown(e) {
         z = 10000;
         ox = e.layerX;
         oy = e.layerY;
+        x = e.x;
+        y = e.y;
         dragging_elem.set({
             index: index,
             mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
@@ -75,12 +77,12 @@
 </script>
 
 <div
-    {onpointerdown}
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     transition:scale={{ duration: 100 }}
     bind:this={self}
 >
     <img
+        {onpointerdown}
         src={display_data.icon}
         alt={display_data.alt}
         draggable="false"
@@ -98,12 +100,12 @@
 
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
-        cursor: grab;
         padding: 0px;
 
         list-style-type: none;
 
         img {
+            cursor: grab;
             width: 96px;
             height: 96px;
             image-rendering: pixelated;

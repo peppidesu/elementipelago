@@ -75,7 +75,7 @@
         }
 
         let gr = get(graph);
-        let dropped_elem_id = { ...dropped_el.elem_id };
+        let dropped_elem_id = { ...dropped_el.get_elem_id() };
 
         for (const [idx, other_el] of mounted) {
             // don't check collision with itself
@@ -86,7 +86,7 @@
             if (intersect(dropped_el_rect, other_el_rect)) {
                 // Get recipe_elem for both dropped_el and element
                 // @ts-ignore
-                let other_elem_id = other_el.elem_id;
+                let other_elem_id = other_el.get_elem_id();
 
                 // Find the combination in the graph
                 let products =
