@@ -30,39 +30,60 @@
         draggable="false"
         onpointerdown={onPointerDown}
     />
-    {#if elem_data.elem_id.kind !== 2}
-        <p>{display_data.name}</p>
-        <p>{display_data.game} {display_data.player} {elem_data.name}</p>
-    {:else}
-        <p>{display_data.name}</p>
-    {/if}
+    <span>
+        {#if elem_data.elem_id.kind !== 2}
+            <h1>{display_data.name}</h1>
+            <p>{elem_data.name}</p>
+            <p>{display_data.player}</p>
+        {:else}
+            <h1>{elem_data.name}</h1>
+        {/if}
+    </span>
 </li>
 
 <style>
     .element {
         display: flex;
         align-items: center;
+
         gap: 15px;
 
         list-style-type: none;
         margin-inline: 5px;
         padding-block: 5px;
+
         &:not(:last-child) {
             border-bottom: 2px #c0c0c0 solid;
         }
-    }
-
-    .element > p {
-        margin: 0px;
-        text-align: left;
-    }
-
-    .element > img {
-        width: 96px;
-        height: 96px;
-        cursor: grab;
-        image-rendering: pixelated;
-        user-select: none;
-        touch-action: none; /* IMPORTANT for mobile */
+        > span {
+            min-width: 0;
+            > h1 {
+                font-weight: normal;
+                margin: 0px;
+                margin-bottom: 5px;
+                text-align: left;
+                font-size: 1em;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+            > p {
+                color: #484848;
+                margin: 0px;
+                text-align: left;
+                font-size: 0.75em;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+        }
+        > img {
+            width: 96px;
+            height: 96px;
+            cursor: grab;
+            image-rendering: pixelated;
+            user-select: none;
+            touch-action: none; /* IMPORTANT for mobile */
+        }
     }
 </style>

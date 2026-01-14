@@ -143,10 +143,7 @@
         items.forEach((item) => {
             let icon_name = iconForItem(item);
             let location_name = item.locationName;
-            if (item.sender.slot === item.receiver.slot) {
-                console.log(item.name, item.locationName);
-                location_name = item.name;
-            }
+
             cache.set(item.name, {
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
@@ -162,6 +159,7 @@
                 console.log(item.name, item.locationName);
                 item_name = item.locationName;
             }
+
             cache.set(item.locationName, {
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
