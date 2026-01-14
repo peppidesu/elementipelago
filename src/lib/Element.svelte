@@ -31,7 +31,7 @@
         onpointerdown={onPointerDown}
     />
     <span>
-        {#if elem_data.elem_id.kind !== 2}
+        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
             <h1>{display_data.name}</h1>
             <p>from {display_data.player}</p>
             <p>{elem_data.name}</p>
