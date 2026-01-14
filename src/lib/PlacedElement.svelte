@@ -21,8 +21,11 @@
     }
 
     let self, icon;
+    let selfWidth = $state(0);
+    let iconWidth = $state(0);
 
-    let sx = $derived(x - ox);
+    let lox = $derived((selfWidth - iconWidth) / 2);
+    let sx = $derived(x - ox - lox);
     let sy = $derived(y - oy);
     let z = $state(10000);
     let being_dragged = $state(false);
@@ -40,16 +43,12 @@
     }
 
     onMount(() => {
-        const srect = self.getBoundingClientRect();
-        const irect = icon.getBoundingClientRect();
-        ox += irect.left - srect.left;
-        sx -= irect.left - srect.left;
         if (attach) {
             dragging_elem.set({
                 index: index,
                 mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
-                    sx = lx - ox;
-                    sy = ly - oy;
+                    x = lx;
+                    y = ly;
                 },
             });
         }
@@ -64,6 +63,7 @@
     function onpointerdown(e) {
         sfx.drag_start();
 
+        lox = 0;
         z = 10000;
         ox = e.layerX;
         oy = e.layerY;
@@ -72,17 +72,19 @@
         dragging_elem.set({
             index: index,
             mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
-                sx = lx - ox;
-                sy = ly - oy;
+                x = lx;
+                y = ly;
             },
         });
     }
 </script>
 
 <div
+    class={being_dragged ? "dragged wrapper" : "wrapper"}
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     transition:scale={{ duration: 100 }}
     bind:this={self}
+    bind:clientWidth={selfWidth}
 >
     <img
         {onpointerdown}
@@ -91,12 +93,21 @@
         draggable="false"
         class={being_dragged ? "dragged" : ""}
         bind:this={icon}
+        bind:clientWidth={iconWidth}
     />
-    <p>{display_data.name}</p>
+    <div>
+        {#if elem_data.elem_id.kind !== 2}
+            <h1>{display_data.name}</h1>
+            <p>from {display_data.player}</p>
+            <p>{elem_data.name}</p>
+        {:else}
+            <h1>{elem_data.name}</h1>
+        {/if}
+    </div>
 </div>
 
 <style>
-    div {
+    .wrapper {
         position: absolute;
         justify-content: space-between;
         align-items: center;
@@ -108,7 +119,11 @@
         padding: 0px;
 
         list-style-type: none;
-        img {
+        transition: transform 0.1s;
+        &.dragged {
+            transform: translateY(-5px);
+        }
+        > img {
             cursor: grab;
             width: 96px;
             height: 96px;
@@ -121,22 +136,50 @@
             background-color: white;
             border-width: 3px;
             border-radius: 10px;
+            margin-bottom: 3px;
             border-style: solid;
             padding: 5px;
             box-shadow: 0 0px 0px 0px rgba(0, 0, 0, 0.4);
             transition: all 0.1s;
 
             &.dragged {
-                transform: translateY(-5px);
                 box-shadow: 0 8px 12px 4px rgba(0, 0, 0, 0.35);
             }
         }
+        > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            > h1 {
+                background-color: #f0f0f0;
+                border-radius: 5px;
+                margin: 5px;
+                padding: 2px;
 
-        p {
-            margin: 0px;
+                font-size: 1em;
 
-            user-select: none;
-            touch-action: none; /* IMPORTANT for mobile */
+                user-select: none;
+                touch-action: none; /* IMPORTANT for mobile */
+            }
+            > p {
+                display: inline;
+
+                background-color: #f0f0f0;
+                border-radius: 5px;
+                margin: 0px;
+
+                font-size: 0.75em;
+                color: #484848;
+
+                opacity: 0;
+                transition: opacity 0.1s;
+
+                user-select: none;
+                touch-action: none; /* IMPORTANT for mobile */
+            }
+        }
+        &:hover > div > p {
+            opacity: 1;
         }
     }
 </style>
