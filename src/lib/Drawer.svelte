@@ -62,7 +62,6 @@
             .search(search_term)
             .sort((a, b) => b.score - a.score)
             .map((r) => r.item.elem);
-        console.log(res);
         return res;
     });
 

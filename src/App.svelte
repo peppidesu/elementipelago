@@ -162,7 +162,6 @@
             let icon_name = iconForLocation(item);
             let item_name = item.name;
             if (item.sender.slot === item.receiver.slot) {
-                console.log(item.name, item.locationName);
                 item_name = item.locationName;
             }
 
@@ -194,7 +193,6 @@
                 game: "",
                 player: "",
             };
-        console.log("spawning element:", elem_data, display_elem);
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
