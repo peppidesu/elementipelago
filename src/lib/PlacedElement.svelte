@@ -103,17 +103,21 @@
 
         user-select: none;
         touch-action: none; /* IMPORTANT for mobile */
+        pointer-events: none;
+
         padding: 0px;
 
         list-style-type: none;
-
         img {
             cursor: grab;
             width: 96px;
             height: 96px;
             image-rendering: pixelated;
+
             user-select: none;
             touch-action: none; /* IMPORTANT for mobile */
+            pointer-events: all;
+
             background-color: white;
             border-width: 3px;
             border-radius: 10px;
