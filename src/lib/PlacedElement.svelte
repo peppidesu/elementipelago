@@ -3,6 +3,7 @@
     import { dragging_elem } from "./stores/dragging";
     import { scale } from "svelte/transition";
     import { get } from "svelte/store";
+    import { sfx } from "../audio";
 
     let {
         x,
@@ -61,6 +62,8 @@
      * @param {{ layerX: any; layerY: any; x: any; y: any}} e
      */
     function onpointerdown(e) {
+        sfx.drag_start();
+
         z = 10000;
         ox = e.layerX;
         oy = e.layerY;

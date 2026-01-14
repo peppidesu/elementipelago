@@ -18,6 +18,7 @@
         iconForItem,
         iconForLocation,
     } from "./lib/machine-learning/iconml";
+    import { sfx } from "./audio.js";
 
     const mounted = new Map();
 
@@ -69,10 +70,13 @@
 
         if (intersect(dropped_el_rect, drawer_rect)) {
             // element dropped inside of the drawer should be removed
+            sfx.trash();
             unmount(dropped_el, { outro: true });
             mounted.delete(dropped_el_index);
             return;
         }
+
+        sfx.drag_end();
 
         let gr = get(graph);
         let dropped_elem_id = { ...dropped_el.get_elem_id() };
@@ -115,6 +119,8 @@
                         elem_data,
                     );
                 }
+
+                setTimeout(() => sfx.bubble(), 100);
 
                 // remove dropped, and other
                 unmount(dropped_el, { outro: true });

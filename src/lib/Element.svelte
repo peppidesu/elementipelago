@@ -4,21 +4,21 @@
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
     import { ElementKind } from "../utils";
+    import { sfx } from "../audio.js";
 
     const { elem_data, display_data, mount_func } = $props();
     let el;
 
     export const elem_id = elem_data.elem_id;
-
     /**
      * @param {any} event
      */
     function onPointerDown(event) {
+        sfx.drag_start();
+
         pointerLoc.set({ x: event.clientX, y: event.clientY });
         let { x, y } = get(pointerLoc);
-
         const rect = el.getBoundingClientRect();
-
         mount_func(x, y, elem_data, x - rect.left, y - rect.top, true);
     }
 </script>
