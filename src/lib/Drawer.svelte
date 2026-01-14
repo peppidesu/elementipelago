@@ -38,11 +38,29 @@
 
     let filtered_elements = $derived.by(() => {
         if (search_term === "") return elements;
-        let fuse = new Fuse(elements, { keys: ["name"] });
+
+        let table = elements.map((e) => {
+            return {
+                elem: e,
+                display: get(icon_cache).get(e.name),
+            };
+        });
+
+        let fuse = new Fuse(table, {
+            keys: [
+                {
+                    name: "elem.name",
+                    weight: 0.5,
+                },
+                { name: "display.name", weight: 1 },
+                { name: "display.player", weight: 0.5 },
+            ],
+            threshold: 0.3,
+        });
         let res = fuse
             .search(search_term)
             .sort((a, b) => b.score - a.score)
-            .map((r) => r.item);
+            .map((r) => r.item.elem);
         console.log(res);
         return res;
     });
@@ -111,12 +129,13 @@
         grid-template-columns: 1fr;
         grid-template-rows: 0fr auto;
     }
-    @media (min-width: 600px) {
+    @media (min-width: 800px) {
         #drawer-parent {
-            width: 350px;
+            min-width: 400px;
+            width: 35%;
         }
     }
-    @media (max-width: 600px) {
+    @media (max-width: 800px) {
         #drawer-parent {
             height: 50%;
         }
