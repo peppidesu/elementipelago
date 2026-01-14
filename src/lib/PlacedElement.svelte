@@ -151,12 +151,16 @@
             flex-direction: column;
             align-items: center;
             > h1 {
-                background-color: #f0f0f0;
                 border-radius: 5px;
                 margin: 5px;
                 padding: 2px;
+                line-height: 1.3;
 
                 font-size: 1em;
+                max-width: 500px;
+                clip-path: rect(0 100% 1rlh 0);
+
+                transition: all 0.1s;
 
                 user-select: none;
                 touch-action: none; /* IMPORTANT for mobile */
@@ -164,7 +168,6 @@
             > p {
                 display: inline;
 
-                background-color: #f0f0f0;
                 border-radius: 5px;
                 margin: 0px;
 
@@ -178,8 +181,13 @@
                 touch-action: none; /* IMPORTANT for mobile */
             }
         }
-        &:hover > div > p {
-            opacity: 1;
+        &:hover > div {
+            > h1 {
+                clip-path: rect(0 100% 100% 0);
+            }
+            > p {
+                opacity: 1;
+            }
         }
     }
 </style>
