@@ -2,9 +2,8 @@
     import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
     import { scale } from "svelte/transition";
-    import { get } from "svelte/store";
     import { sfx } from "../audio";
-    import { ElementKind } from "../utils";
+    import { ElementKind } from "./stores/graph.js";
 
     let {
         x,
@@ -14,14 +13,13 @@
         offsety: oy,
         attach,
         index,
-        display_data,
     } = $props();
 
     export function get_elem_id() {
         return elem_data.elem_id;
     }
 
-    let self, icon;
+    let icon;
     let selfWidth = $state(0);
     let iconWidth = $state(0);
 
@@ -84,13 +82,12 @@
     class="{being_dragged ? 'dragged' : ''} wrapper"
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     transition:scale={{ duration: 100 }}
-    bind:this={self}
     bind:clientWidth={selfWidth}
 >
     <img
         {onpointerdown}
-        src={display_data.icon}
-        alt={display_data.alt}
+        src={elem_data.icon}
+        alt={elem_data.alt}
         draggable="false"
         class="
             {being_dragged ? 'dragged' : ''}
@@ -101,10 +98,10 @@
     />
     <div>
         {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{display_data.name}</h1>
+            <h1>{elem_data.location}</h1>
             <p>
                 {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
-                {display_data.player}
+                {elem_data.player}
             </p>
             <p>{elem_data.name}</p>
         {:else}
