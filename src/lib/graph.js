@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import { DeepMap, DeepSet } from "deep-equality-data-structures";
-import { slotdata } from "./apclient";
+import { graph, slotdata } from "./stores/apclient";
 
 const mask64 = 0xffffffffffffffffn;
 
@@ -16,12 +16,6 @@ export const ElementKind = {
 /**
  * @typedef {{ id: number, kind: ElementKind } } ElementID
  */
-
-/**
- * @import { Writable, Readable } from "svelte/store";
- * @type {Writable<Graph>}
- */
-export const graph = writable(null);
 
 export function initGraph() {
   const sd = get(slotdata);

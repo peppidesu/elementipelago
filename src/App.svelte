@@ -4,7 +4,7 @@
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
-    import { apclient, elementData, initElementStores } from "./lib/stores/apclient";
+    import { apclient, graph, elementData, initElementStores } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
     import {
         element_to_location_id,
@@ -14,7 +14,7 @@
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
     import { sfx } from "./audio.js";
-    import { graph, initGraph } from "./lib/stores/graph";
+    import { initGraph } from "./lib/graph";
 
     const mounted = new Map();
 

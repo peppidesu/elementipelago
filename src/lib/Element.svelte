@@ -3,7 +3,7 @@
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
-    import { ElementKind } from "./stores/graph.js";
+    import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
 
     /**

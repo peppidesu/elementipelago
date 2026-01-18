@@ -3,9 +3,8 @@ import { Client } from "archipelago.js";
 import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
-import { graph } from "./graph";
 /**
- * @import { Graph } from "./graph"
+ * @import { Graph } from "../graph"
  * @import { Writable, Readable } from "svelte/store";
  * @import { ElementID } from "./graph";
  * @import { Item } from "archipelago.js";
@@ -23,7 +22,10 @@ import { graph } from "./graph";
 
 export const apclient = writable(new Client());
 export const slotdata = writable(null);
-
+/**
+ * @type {Writable<Graph>}
+ */
+export const graph = writable(null);
 /**
  * @type {Readable<SvelteMap<string, ElementData>>}
  */
@@ -44,8 +46,8 @@ export const drawerElements = derived(
 
 export const reachableElements = derived(
   [graph, drawerElements],
-  ([graph, drawerElements], _, update) => {
-    for (const [[i1, i2], ps] of graph.recipes.entries()) {
+  ([gr, drawerElements], _, update) => {
+    for (const [[i1, i2], ps] of gr.recipes.entries()) {
       const i1_name = element_to_name(i1);
       const i2_name = element_to_name(i2);
 
