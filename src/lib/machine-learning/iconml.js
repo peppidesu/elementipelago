@@ -1,11 +1,12 @@
 import { get } from "svelte/store";
 import { model } from "../stores/model.js";
+import { md5 } from "js-md5";
 // Todo: actual machine learning
 
 /**
  * @param {import("archipelago.js").Item} location
  */
-export async function iconForLocation(location) {
+export function iconForLocation(location) {
   const game = location.game;
   const kind = "item";
   const name = location.name;
@@ -16,7 +17,7 @@ export async function iconForLocation(location) {
 /**
  * @param {import("archipelago.js").Item} item
  */
-export async function iconForItem(item) {
+export function iconForItem(item) {
   const game = item.locationGame;
   const kind = "location";
   const name = item.locationName;
@@ -24,7 +25,7 @@ export async function iconForItem(item) {
   return iconForText(`[game=${game}][kind=${kind}] ${name}`);
 }
 
-async function iconForText(text) {
+function iconForText(text) {
   //const res = predictIcon(get(model), text, { returnTopK: 1 });
 
   const icons = [
@@ -64,9 +65,7 @@ async function iconForText(text) {
     "tree",
     "water",
   ];
-  const enc = new TextEncoder();
-  const txtbuf = enc.encode(text);
-  const buffer = new Uint32Array(await crypto.subtle.digest("SHA-1", txtbuf));
+  const buffer = new Uint32Array(md5.arrayBuffer(text));
   const res = icons[buffer[buffer.length - 1] % icons.length];
 
   const iconKey = res;
