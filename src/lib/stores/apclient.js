@@ -80,7 +80,7 @@ export async function initElementStores() {
   let inner = get(elementData);
   for (const item of await scoutedLocations) {
     if (!inner.has(item.locationName)) {
-      let icon_name = await iconForLocation(item);
+      let icon_name = iconForLocation(item);
       let elem_id = parse_element(item.locationName);
       inner.set(item.locationName, {
         elem_id,
@@ -105,7 +105,7 @@ async function extendReceivedElements(items) {
   let el_data = get(elementData);
   let el_set = get(receivedElements);
   for (const item of items) {
-    let icon_name = await iconForItem(item);
+    let icon_name = iconForItem(item);
     let elem_id = parse_element(item.name);
 
     el_data.set(item.name, {
