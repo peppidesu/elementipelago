@@ -1,5 +1,5 @@
 import { LOCATION_AMOUNT } from "./consts";
-import { ElementKind } from "./lib/stores/graph";
+import { ElementKind } from "./lib/graph";
 
 /**
  * @param {string} name

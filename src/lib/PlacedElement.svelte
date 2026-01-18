@@ -3,7 +3,7 @@
     import { dragging_elem } from "./stores/dragging";
     import { scale } from "svelte/transition";
     import { sfx } from "../audio";
-    import { ElementKind } from "./stores/graph.js";
+    import { ElementKind } from "./graph.js";
 
     let {
         x,
