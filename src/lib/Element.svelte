@@ -53,9 +53,9 @@
 
     <span class="icon">
         {#if is_exhausted}
-            <img src="/sprites/ui/check.png" />
+            <img src="/sprites/ui/check.png" alt="exhausted" />
         {:else if is_bk}
-            <img src="/sprites/ui/burger.png" />
+            <img src="/sprites/ui/burger.png" alt="BK" />
         {/if}
     </span>
 </li>

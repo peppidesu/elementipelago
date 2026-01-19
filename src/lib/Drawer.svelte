@@ -73,7 +73,7 @@
     }
     input {
         margin: 10px;
-        border-radius: 5px;
+        border-radius: 10px;
         border-width: 3px;
         padding: 10px;
     }
@@ -84,7 +84,7 @@
         background-color: color-mix(in oklab, white 80%, #ff4b6a 20%);
         border: 3px solid #ff4b6a;
         margin: 10px;
-        border-radius: 5px;
+        border-radius: 10px;
         opacity: 0;
     }
     span.show-discard {
@@ -95,7 +95,7 @@
         grid-area: 2 / 1 / 2 / 1;
         display: flex;
         border: 3px solid black;
-        border-radius: 5px;
+        border-radius: 10px;
         padding: 10px;
         margin: 10px;
 
@@ -103,5 +103,6 @@
         flex-direction: column;
         flex-wrap: nowrap;
         overflow-y: scroll;
+        scrollbar-color: #000 rgba(0, 0, 0, 0);
     }
 </style>
