@@ -1,21 +1,25 @@
 <script>
     import { get } from "svelte/store";
     import Element from "./Element.svelte";
-    import { drawerElements, elementData } from "./stores/apclient";
+    import {
+        getDrawerElements,
+        getElementData,
+    } from "./stores/apclient.svelte";
     import { dragging_elem } from "./stores/dragging";
     import Fuse from "fuse.js";
 
     let { mount_func } = $props();
     let search_term = $state("");
 
-
     let show_discard = $state(false);
 
     let filtered_elements = $derived.by(() => {
-        let table = Array.from(get(drawerElements)
-          .values()
-          .map((e) => get(elementData).get(e))
-          .filter((e) => e.elem_id != null)
+        let el_data = getElementData();
+        let table = Array.from(
+            getDrawerElements()
+                .values()
+                .map((e) => el_data.get(e))
+                .filter((e) => e.elem_id != null),
         ).sort((a, b) => a.name.localeCompare(b.name));
 
         if (search_term === "") return table;
@@ -38,18 +42,13 @@
     dragging_elem.subscribe((el) => {
         show_discard = el !== null;
     });
-
-
 </script>
 
 <div id="drawer-parent">
     <input bind:value={search_term} />
     <ul id="drawer">
         {#each filtered_elements as elem_data}
-            <Element
-                {elem_data}
-                {mount_func}
-            />
+            <Element {elem_data} {mount_func} />
         {/each}
     </ul>
     <span class={show_discard ? "show-discard" : ""}> </span>
@@ -61,15 +60,15 @@
         grid-template-columns: 1fr;
         grid-template-rows: 0fr auto;
     }
-    @media (min-width: 800px) {
+    @media (min-width: 1000px) {
         #drawer-parent {
-            min-width: 400px;
-            width: 35%;
+            min-width: 500px;
+            width: 40%;
         }
     }
-    @media (max-width: 800px) {
+    @media (max-width: 1000px) {
         #drawer-parent {
-            height: 50%;
+            height: 55%;
         }
     }
     input {
@@ -100,7 +99,7 @@
         padding: 10px;
         margin: 10px;
 
-        gap: 10px;
+        gap: 0px;
         flex-direction: column;
         flex-wrap: nowrap;
         overflow-y: scroll;

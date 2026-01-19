@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import { DeepMap, DeepSet } from "deep-equality-data-structures";
-import { graph, slotdata } from "./stores/apclient";
+import { graph, slotdata } from "./stores/apclient.svelte";
 
 const mask64 = 0xffffffffffffffffn;
 
