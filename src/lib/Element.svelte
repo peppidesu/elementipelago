@@ -3,10 +3,14 @@
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
     import { get } from "svelte/store";
-    import { ElementKind } from "../utils";
+    import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
 
-    const { elem_data, display_data, mount_func } = $props();
+    /**
+     * @import { ElementData } from "./stores/apclient";
+     * @type {{ elem_data: ElementData, mount_func: any}}
+     */
+    const { elem_data, mount_func } = $props();
     let el;
 
     export const elem_id = elem_data.elem_id;
@@ -25,15 +29,15 @@
 
 <li class="element" bind:this={el}>
     <img
-        src={display_data.icon}
-        alt={display_data.alt}
+        src={elem_data.icon}
+        alt={elem_data.alt}
         draggable="false"
         onpointerdown={onPointerDown}
     />
     <span>
         {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{display_data.name}</h1>
-            <p>from {display_data.player}</p>
+            <h1>{elem_data.location}</h1>
+            <p>from {elem_data.player}</p>
             <p>{elem_data.name}</p>
         {:else}
             <h1>{elem_data.name}</h1>

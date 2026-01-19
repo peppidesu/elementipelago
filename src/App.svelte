@@ -4,7 +4,7 @@
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
-    import { apclient, graph } from "./lib/stores/apclient";
+    import { apclient, graph, elementData, initElementStores } from "./lib/stores/apclient";
     import PlacedElement from "./lib/PlacedElement.svelte";
     import {
         element_to_location_id,
@@ -13,12 +13,8 @@
     } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
-    import { icon_cache } from "./lib/stores/icon_cache";
-    import {
-        iconForItem,
-        iconForLocation,
-    } from "./lib/machine-learning/iconml";
     import { sfx } from "./audio.js";
+    import { initGraph } from "./lib/graph";
 
     const mounted = new Map();
 
@@ -102,7 +98,7 @@
                 }
 
                 let locations = products.map(
-                    (/** @type {import("./utils").ElementID} */ val) =>
+                    (/** @type {import("./lib/stores/graph").ElementID} */ val) =>
                         element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
@@ -111,17 +107,14 @@
 
                 for (const prod of products) {
                     // spawn element with type product
-
                     missing_a_product ||= get(
                         apclient,
                     ).room.missingLocations.includes(
                         element_to_location_id(prod),
                     );
+                  
+                    const elem_data = get(elementData).get(element_to_name(prod))
 
-                    const elem_data = {
-                        name: element_to_name(prod),
-                        elem_id: prod,
-                    };
                     mountElem(
                         (dropped_el_rect.x + other_el_rect.x) / 2,
                         (dropped_el_rect.y + other_el_rect.y) / 2,
@@ -149,50 +142,20 @@
     }
 
     let connected = false;
-
     async function handleLogin() {
-        connected = true;
-
-        let client = get(apclient);
-
-        let scouted = client.scout(client.room.allLocations, 0);
-        let items = client.items.received;
-
-        let cache = get(icon_cache);
-        items.forEach((item) => {
-            let icon_name = iconForItem(item);
-            let location_name = item.locationName;
-
-            cache.set(item.name, {
-                icon: "/sprites/elements/" + icon_name + ".png",
-                alt: icon_name,
-                name: location_name,
-                player: item.sender.alias,
-                game: item.sender.game,
-            });
-        });
-        (await scouted).forEach((item) => {
-            let icon_name = iconForLocation(item);
-            let item_name = item.name;
-            if (item.sender.slot === item.receiver.slot) {
-                item_name = item.locationName;
-            }
-
-            if (!cache.has(item.locationName)) {
-                cache.set(item.locationName, {
-                    icon: "/sprites/elements/" + icon_name + ".png",
-                    alt: icon_name,
-                    name: item_name,
-                    player: item.receiver.alias,
-                    game: item.receiver.game,
-                });
-            }
-        });
+      connected = true;
+      initGraph();
+      await initElementStores();
     }
 
     let next_index = 0;
-
-    export function mountElem(
+    /**
+     * @import { ElementData } from "./lib/stores/apclient";
+     * @param {number} x
+     * @param {number} y
+     * @param {ElementData} elem_data
+     */
+     export function mountElem(
         x,
         y,
         elem_data,
@@ -200,14 +163,6 @@
         offsety = 0,
         attach = false,
     ) {
-        let display_elem = get(icon_cache).get(elem_data.name) ??
-            get(icon_cache).get("Make " + elem_data.name) ?? {
-                icon: "void",
-                alt: "void",
-                name: elem_data.name,
-                game: "",
-                player: "",
-            };
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
@@ -218,7 +173,6 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: display_elem,
             },
         });
 

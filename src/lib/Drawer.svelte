@@ -1,58 +1,28 @@
 <script>
     import { get } from "svelte/store";
-    import { create_graph } from "../graph";
-    import { element_to_name, parse_element } from "../utils";
     import Element from "./Element.svelte";
-    import { apclient, graph, slotdata } from "./stores/apclient";
+    import { drawerElements, elementData } from "./stores/apclient";
     import { dragging_elem } from "./stores/dragging";
-    import { icon_cache } from "./stores/icon_cache";
     import Fuse from "fuse.js";
-    import { iconForItem } from "./machine-learning/iconml";
 
     let { mount_func } = $props();
     let search_term = $state("");
 
-    let received_elements = $state([]);
+
     let show_discard = $state(false);
-    let elements = $derived(
-        received_elements
-            .toSorted((a, b) => a.name.localeCompare(b.name))
-            .reduce((acc, value) => {
-                // de-dupe (array is already sorted)
-                if (acc.length && acc[acc.length - 1].name === value.name) {
-                    return acc;
-                }
-
-                // parse "Element 129" | "Intermediate 29"
-
-                let elem_id = parse_element(value.name);
-                if (elem_id == null) return acc;
-
-                acc.push({
-                    name: value.name,
-                    elem_id: elem_id,
-                });
-
-                return acc;
-            }, []),
-    );
 
     let filtered_elements = $derived.by(() => {
-        if (search_term === "") return elements;
+        let table = Array.from(get(drawerElements)
+          .values()
+          .map((e) => get(elementData).get(e))
+          .filter((e) => e.elem_id != null)
+        ).sort((a, b) => a.name.localeCompare(b.name));
 
-        let table = elements.map((e) => {
-            return {
-                elem: e,
-                display: get(icon_cache).get(e.name),
-            };
-        });
+        if (search_term === "") return table;
 
         let fuse = new Fuse(table, {
             keys: [
-                {
-                    name: "elem.name",
-                    weight: 0.5,
-                },
+                { name: "display.location", weight: 0.5 },
                 { name: "display.name", weight: 1 },
                 { name: "display.player", weight: 0.5 },
             ],
@@ -61,7 +31,7 @@
         let res = fuse
             .search(search_term)
             .sort((a, b) => b.score - a.score)
-            .map((r) => r.item.elem);
+            .map((r) => r.item);
         return res;
     });
 
@@ -69,56 +39,7 @@
         show_discard = el !== null;
     });
 
-    slotdata.subscribe((sd) => {
-        if (sd == null) {
-            return;
-        }
 
-        graph.set(
-            create_graph(
-                BigInt(sd.graph_seed),
-                sd.element_amount,
-                sd.compound_amount,
-                sd.intermediate_amount,
-                4,
-                sd.compounds_are_ingredients,
-            ),
-        );
-        let client = get(apclient);
-        if (!client.authenticated) {
-            throw "Slotdata was received without a connected client.";
-        }
-
-        const cim = client.items;
-        received_elements = cim.received;
-        cim.on("itemsReceived", (items, _startingIndex) => {
-            for (const item of items) {
-                let icon_name = iconForItem(item);
-                let location_name = item.locationName;
-
-                get(icon_cache).set(item.name, {
-                    icon: "/sprites/elements/" + icon_name + ".png",
-                    alt: icon_name,
-                    name: location_name,
-                    player: item.sender.alias,
-                    game: item.sender.game,
-                });
-            }
-            received_elements.push(...items);
-        });
-    });
-
-    let dd = $state(get(icon_cache));
-    icon_cache.subscribe((val) => {
-        dd = val;
-    });
-
-    let display_data = $state((elem_data) => {
-        if (dd != undefined) {
-            return dd.get(elem_data.name);
-        }
-        return { icon: "void", name: elem_data.name };
-    });
 </script>
 
 <div id="drawer-parent">
@@ -128,7 +49,6 @@
             <Element
                 {elem_data}
                 {mount_func}
-                display_data={display_data(elem_data)}
             />
         {/each}
     </ul>
