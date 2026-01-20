@@ -60,11 +60,13 @@ export function getDrawerElements() {
  * @type {SvelteSet<string>}
  */
 const explorableElements = new SvelteSet();
+
 /**
- * @returns {Set<string>}
+ * @param {string} el
+ * @returns {boolean}
  */
-export function getExplorableElements() {
-  return explorableElements;
+export function isExplorable(el) {
+  return explorableElements.has(el);
 }
 
 /**
@@ -73,10 +75,11 @@ export function getExplorableElements() {
 const exhaustedElements = new SvelteSet();
 
 /**
- * @returns {Set<string>}
+ * @param {string} el
+ * @returns {boolean}
  */
-export function getExhaustedElements() {
-  return exhaustedElements;
+export function isExhausted(el) {
+  return exhaustedElements.has(el);
 }
 
 export function updateSets() {

@@ -2,10 +2,7 @@
     import { mount } from "svelte";
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
-    import {
-        getExhaustedElements,
-        getExplorableElements,
-    } from "./stores/apclient.svelte";
+    import { isExhausted, isExplorable } from "./stores/apclient.svelte";
     import { get } from "svelte/store";
     import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
@@ -30,8 +27,8 @@
         mount_func(x, y, elem_data, x - rect.left, y - rect.top, true);
     }
 
-    let is_bk = $derived(!getExplorableElements().has(elem_data.name));
-    let is_exhausted = $derived(getExhaustedElements().has(elem_data.name));
+    let is_bk = $derived(!isExplorable(elem_data.name));
+    let is_exhausted = $derived(isExhausted(elem_data.name));
 </script>
 
 <li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>

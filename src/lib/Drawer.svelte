@@ -1,9 +1,12 @@
 <script>
+    // @ts-ignore
     import { get } from "svelte/store";
     import Element from "./Element.svelte";
     import {
         getDrawerElements,
         getElementData,
+        isExhausted,
+        isExplorable,
     } from "./stores/apclient.svelte";
     import { dragging_elem } from "./stores/dragging";
     import Fuse from "fuse.js";
@@ -20,7 +23,15 @@
                 .values()
                 .map((e) => el_data.get(e))
                 .filter((e) => e.elem_id != null),
-        ).sort((a, b) => a.name.localeCompare(b.name));
+        ).sort(
+            (a, b) =>
+                // @ts-ignore
+                isExplorable(b.name) - isExplorable(a.name) ||
+                // @ts-ignore
+                isExhausted(a.name) - isExhausted(b.name) ||
+                a.elem_id.kind - b.elem_id.kind ||
+                a.elem_id.id - b.elem_id.id,
+        );
 
         if (search_term === "") return table;
 
