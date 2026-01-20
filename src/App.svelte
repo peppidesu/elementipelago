@@ -20,6 +20,7 @@
     import Playfield from "./lib/Playfield.svelte";
     import { sfx } from "./audio.js";
     import { initGraph } from "./lib/graph";
+    import Toast from "./lib/Toast.svelte";
 
     const mounted = new Map();
 
@@ -181,4 +182,5 @@
 {:else}
     <Drawer mount_func={mountElem} />
     <Playfield bind:handle_dropped={on_dropped} />
+    <Toast />
 {/if}
