@@ -133,7 +133,6 @@ export function updateSets() {
             }
         }
     }
-    console.log(exhaustedElements);
 }
 
 export async function initElementStores() {

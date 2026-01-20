@@ -19,4 +19,8 @@ export const sfx = {
     sfx.volume = 0.6;
     sfx.play();
   },
+  toast: () => {
+    const sfx = new Audio("/audio/received-item.wav");
+    sfx.play();
+  },
 };
