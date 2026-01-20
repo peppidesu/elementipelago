@@ -18,6 +18,7 @@ There is also the "TODO" filler item, which currently does nothing. In the futur
 
 # License
 The Elementipelago source code is licensed under the AGPL-3.0 license provided in the LICENSE file.
+
 All sprites are © 2026 by Pepijn Bakker & Noa Aarts and licensed under CC BY-NC 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/4.0/
 
 SFX include samples sourced from freesound.com:
