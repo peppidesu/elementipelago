@@ -1,35 +1,25 @@
 # Elementipelago
+Elementipelago is an alchemy-game developed for [Archipelago](archipelago.gg). Think doodle-god, but now for your favorite multiworld randomizer.
 
-A game inspired by the likes of doodle-god, infinitecraft and many other alchemy games like them.
-Unlike the others, this game doesn't (yet) support sensible recipes but is instead built as an [Archipelago](archipelago.gg) first game.
+## How it works
+The items you receive are **Elements** used for crafting. These elements are named after the location where they were found.
 
-## The randomisation
+You combine elements from the drawer to create products. Products can be one of the following:
+- **Intermediates**: Don't give checks, but can be used for further crafting
+- **Compounds**: Give checks and aren't used for crafting (unless `compounds_are_ingredients` is enabled)
 
-In this game a couple of things are randomised at the moment, using the terms as defined by archipelago we have:
-
-Items:
-- Elements: things you can use to merge with
-- TODO: a filler item for which we still need to think of an alternative
-
-Locations:
-- Compounds: Things you have to make using the elements to send checks
+There is also the "TODO" filler item, which currently does nothing. In the future this will be replaced by functional filler items, traps and upgrades.
 
 ## How to play
+1. Download and install the `elementipelago.apworld` from the latest release tag;
+2. Generate your YAML using the Options Creator in the Archipelago Launcher and generate your multiworld;
+2. Host the AP server locally, on archipelago.gg or any remote that allows secure websocket connections;
+3. Go to https://elementipelago.peppidesu.dev/ and connect to your slot.
 
-1. generate a multiworld with a slot using elementipelago as the game.
-2. host it somewhere where https is setup (or localhost)
-3. go to https://elementipelago.peppidesu.dev/ and connect to your slot.
+# License
+The Elementipelago source code is licensed under the AGPL-3.0 license provided in the LICENSE file.
+All sprites are © 2026 by Pepijn Bakker & Noa Aarts and licensed under CC BY-NC 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/4.0/
 
-## Options
-
-As a player you can set how many elements you want to exists, how many intermediates, how many extra compounds (over the amount of items that always exist) should exist
-and whether or not the compounds can be used in recipies themselves.
-
-## What is being worked on still
-
-- Polish
-- Testing and possibly fixing what happens during a disconnect
-- Useful items like "don't combine if you have the result" or "hide substances without a valid recipe right now" (subject to change)
-- Giving items more fun names (want to relate to the location they were found/what item was found by them)
-- Automatically picking an icon depending on the name
-- Tracker integration (possibly behind an item)
+SFX include samples sourced from freesound.com:
+- Doorbell Pull with pull Store Bell 05.wav by maisonsonique -- https://freesound.org/s/196372/ -- License: Attribution 4.0
+- Door, Front, Opening, A.wav by InspectorJ -- https://freesound.org/s/431117/ -- License: Attribution 4.0
