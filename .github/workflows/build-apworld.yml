@@ -28,7 +28,7 @@ jobs:
 
           WORLD_NAME="elementipelago"
           SRC_DIR="upstream/worlds/${WORLD_NAME}"
-          OUT_DIR="dist"
+          OUT_DIR="${PWD}/dist"
           mkdir -p "$OUT_DIR"
 
           # APWorld spec: zip must contain a top-level folder with the SAME name as the apworld (case-sensitive)
@@ -40,12 +40,11 @@ jobs:
             --exclude="*.pyc" \
             "${SRC_DIR}/" "${STAGE}/${WORLD_NAME}/"
 
-          TAG="${GITHUB_REF_NAME}"
           ASSET_BASENAME="${WORLD_NAME}"
           ZIP_PATH="${OUT_DIR}/${ASSET_BASENAME}.zip"
           APWORLD_PATH="${OUT_DIR}/${ASSET_BASENAME}.apworld"
 
-          (cd "$STAGE" && zip -r -9 "../${ZIP_PATH}" "${WORLD_NAME}")
+          (cd "$STAGE" && zip -r -9 "${ZIP_PATH}" "${WORLD_NAME}")
           mv "${ZIP_PATH}" "${APWORLD_PATH}"
 
           echo "Built ${APWORLD_PATH}"
@@ -67,4 +66,3 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           gh release upload "$TAG" dist/*.apworld --clobber
-
