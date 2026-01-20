@@ -1,6 +1,6 @@
 <script>
     import { get } from "svelte/store";
-    import { apclient, slotdata } from "./stores/apclient";
+    import { apclient, slotdata } from "./stores/apclient.svelte";
     import { LoginError } from "archipelago.js";
 
     export let onSubmit;

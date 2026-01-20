@@ -11,7 +11,7 @@ export function iconForLocation(location) {
   const kind = "item";
   const name = location.name;
 
-  return iconForText(`[game=${game}][kind=${kind}] ${name}`);
+  return iconForText(`[game=${game}] ${name}`);
 }
 
 /**
@@ -22,7 +22,7 @@ export function iconForItem(item) {
   const kind = "location";
   const name = item.locationName;
 
-  return iconForText(`[game=${game}][kind=${kind}] ${name}`);
+  return iconForText(`[game=${game}] ${name}`);
 }
 
 function iconForText(text) {

@@ -4,7 +4,12 @@
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
-    import { apclient, graph, elementData, initElementStores } from "./lib/stores/apclient";
+    import {
+        apclient,
+        graph,
+        getElementData,
+        initElementStores,
+    } from "./lib/stores/apclient.svelte";
     import PlacedElement from "./lib/PlacedElement.svelte";
     import {
         element_to_location_id,
@@ -75,6 +80,7 @@
         sfx.drag_end();
 
         let gr = get(graph);
+        let elem_data_map = getElementData();
         let dropped_elem_id = { ...dropped_el.get_elem_id() };
 
         for (const [idx, other_el] of mounted) {
@@ -98,14 +104,14 @@
                 }
 
                 let locations = products.map(
-                    (/** @type {import("./lib/stores/graph").ElementID} */ val) =>
+                    (/** @type {import("./lib/graph").ElementID} */ val) =>
                         element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
                     // spawn element with type product
-                    const elem_data = get(elementData).get(element_to_name(prod))
+                    const elem_data = elem_data_map.get(element_to_name(prod));
                     mountElem(
                         (dropped_el_rect.x + other_el_rect.x) / 2,
                         (dropped_el_rect.y + other_el_rect.y) / 2,
@@ -130,9 +136,9 @@
 
     let connected = false;
     async function handleLogin() {
-      connected = true;
-      initGraph();
-      await initElementStores();
+        connected = true;
+        initGraph();
+        await initElementStores();
     }
 
     let next_index = 0;
@@ -142,7 +148,7 @@
      * @param {number} y
      * @param {ElementData} elem_data
      */
-     export function mountElem(
+    export function mountElem(
         x,
         y,
         elem_data,
