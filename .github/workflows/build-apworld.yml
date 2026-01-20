@@ -1,0 +1,70 @@
+name: Build Elementipelago APWorld and attach to Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout upstream (itepastra/Archipelago@elemetipelago)
+        uses: actions/checkout@v4
+        with:
+          repository: itepastra/Archipelago
+          ref: elemetipelago
+          path: upstream
+
+      - name: Package .apworld
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WORLD_NAME="elementipelago"
+          SRC_DIR="upstream/worlds/${WORLD_NAME}"
+          OUT_DIR="dist"
+          mkdir -p "$OUT_DIR"
+
+          # APWorld spec: zip must contain a top-level folder with the SAME name as the apworld (case-sensitive)
+          # We'll stage it so the zip root is: elementipelago/...
+          STAGE="$(mktemp -d)"
+          mkdir -p "${STAGE}/${WORLD_NAME}"
+          rsync -a --delete \
+            --exclude="__pycache__/" \
+            --exclude="*.pyc" \
+            "${SRC_DIR}/" "${STAGE}/${WORLD_NAME}/"
+
+          TAG="${GITHUB_REF_NAME}"
+          ASSET_BASENAME="${WORLD_NAME}"
+          ZIP_PATH="${OUT_DIR}/${ASSET_BASENAME}.zip"
+          APWORLD_PATH="${OUT_DIR}/${ASSET_BASENAME}.apworld"
+
+          (cd "$STAGE" && zip -r -9 "../${ZIP_PATH}" "${WORLD_NAME}")
+          mv "${ZIP_PATH}" "${APWORLD_PATH}"
+
+          echo "Built ${APWORLD_PATH}"
+          ls -lah "${OUT_DIR}"
+
+      - name: Ensure release exists for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          # Create the release if it doesn't exist (idempotent)
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes ""
+
+      - name: Upload .apworld to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          gh release upload "$TAG" dist/*.apworld --clobber
+
