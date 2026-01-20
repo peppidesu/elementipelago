@@ -167,6 +167,7 @@ export async function initElementStores() {
         }
     }
     updateSets();
+    checkForGoal([]);
 
     client.items.on("itemsReceived", extendReceivedElements);
     client.items.on("itemsReceived", updateSets);
