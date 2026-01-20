@@ -37,9 +37,9 @@
 
         let fuse = new Fuse(table, {
             keys: [
-                { name: "display.location", weight: 0.5 },
-                { name: "display.name", weight: 1 },
-                { name: "display.player", weight: 0.5 },
+                { name: "location", weight: 1 },
+                { name: "player", weight: 0.5 },
+                { name: "name", weight: 0.5 },
             ],
             threshold: 0.3,
         });
