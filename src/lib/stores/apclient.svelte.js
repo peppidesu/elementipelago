@@ -97,10 +97,6 @@ export const upgrades = $state({
     sorting: false,
 });
 
-export function set_filter_level(level) {
-    upgrades.progressive_filter = level;
-}
-
 /**
  * @param {number[]} locations
  */
