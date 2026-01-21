@@ -5,15 +5,7 @@
     import { sfx } from "../audio";
     import { ElementKind } from "./graph.js";
 
-    let {
-        x,
-        y,
-        elem_data,
-        offsetx: ox,
-        offsety: oy,
-        attach,
-        index,
-    } = $props();
+    let { x, y, elem_data, offsetx: ox, offsety: oy, attach, index } = $props();
 
     export function get_elem_id() {
         return elem_data.elem_id;
@@ -97,16 +89,12 @@
         bind:clientWidth={iconWidth}
     />
     <div>
-        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{elem_data.location}</h1>
-            <p>
-                {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
-                {elem_data.player}
-            </p>
-            <p>{elem_data.name}</p>
-        {:else}
-            <h1>{elem_data.name}</h1>
-        {/if}
+        <h1>{elem_data.location}</h1>
+        <p>
+            {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
+            {elem_data.player}
+        </p>
+        <p>{elem_data.name}</p>
     </div>
 </div>
 

@@ -5,8 +5,10 @@ import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT } from "../../consts";
+import { get_name, init_naming } from "./names.js";
+import { ElementKind } from "../graph.js";
 /**
- * @import { Graph, ElementID } from "../graph"
+ * @import { Graph, ElementID } from "../graph.js"
  * @import { Writable, Readable } from "svelte/store";
  * @import { Item } from "archipelago.js";
 
@@ -99,7 +101,7 @@ function checkForGoal(locations) {
         );
     }
     if (neededToGoal.size == 0) {
-        client.goal()
+        client.goal();
     }
 }
 
@@ -120,7 +122,8 @@ export function updateSets() {
     for (const [[i1, i2], ps] of gr.recipes.entries()) {
         const i1_name = element_to_name(i1);
         const i2_name = element_to_name(i2);
-        const has_both = drawerElements.has(i1_name) && drawerElements.has(i2_name);
+        const has_both = drawerElements.has(i1_name) &&
+            drawerElements.has(i2_name);
 
         for (const p of ps) {
             if (!sentElements.has(element_to_name(p))) {
@@ -136,15 +139,25 @@ export function updateSets() {
 }
 
 export async function initElementStores() {
-    let client = get(apclient);
-    let scoutedLocations = client.scout(client.room.allLocations, 0);
-    await extendReceivedElements(client.items.received);
+    const client = get(apclient);
+    const scoutedLocations = client.scout(client.room.allLocations, 0);
+
+    // This might fit better in a different place, but should happen between
+    // login and the stores being filled
+    const sd = get(slotdata);
+    init_naming(sd.graph_seed);
+
+    extendReceivedElements(client.items.received);
     extendSentElements(client.room.checkedLocations);
 
+    // Add the missing intermediates to `neededToGoal` for the goal condition
     for (const location of client.room.missingLocations) {
-        if (location <= LOCATION_AMOUNT || location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT) {
+        if (
+            location <= LOCATION_AMOUNT ||
+            location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT
+        ) {
             // the location is not an "intermediate" so we skip adding it
-            continue
+            continue;
         }
         neededToGoal.add(
             client.package.lookupLocationName("Elementipelago", location),
@@ -153,8 +166,8 @@ export async function initElementStores() {
 
     for (const item of await scoutedLocations) {
         if (!elementData.has(item.locationName)) {
-            let icon_name = iconForLocation(item);
-            let elem_id = parse_element(item.locationName);
+            const icon_name = iconForLocation(item);
+            const elem_id = parse_element(item.locationName);
             elementData.set(item.locationName, {
                 elem_id,
                 name: item.locationName,
@@ -179,9 +192,12 @@ export async function initElementStores() {
 /**
  * @param {Item[]} items
  */
-async function extendReceivedElements(items) {
+function extendReceivedElements(items) {
     for (const item of items) {
         let icon_name = iconForItem(item);
+        if (item.id < 100) {
+            continue;
+        }
         let elem_id = parse_element(item.name);
 
         elementData.set(item.name, {
@@ -189,7 +205,10 @@ async function extendReceivedElements(items) {
             name: item.name,
             icon: "/sprites/elements/" + icon_name + ".png",
             alt: icon_name,
-            location: item.locationName,
+            location: elem_id.kind === ElementKind.INTERMEDIATE ||
+                item.locationGame === "Archipelago"
+                ? get_name()
+                : item.locationName,
             player: item.sender.alias,
             game: item.sender.game,
         });

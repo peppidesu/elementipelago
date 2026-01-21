@@ -39,13 +39,9 @@
         onpointerdown={onPointerDown}
     />
     <span class="info">
-        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{elem_data.location}</h1>
-            <p>from {elem_data.player}</p>
-            <p>{elem_data.name}</p>
-        {:else}
-            <h1>{elem_data.name}</h1>
-        {/if}
+        <h1>{elem_data.location}</h1>
+        <p>from {elem_data.player}</p>
+        <p>{elem_data.name}</p>
     </span>
 
     <span class="icon">
