@@ -97,6 +97,12 @@ export const upgrades = $state({
     sorting: false,
 });
 
+export function set_filter_level(level) {
+    upgrades.progressive_filter = level;
+}
+
+window.setFilterLevel = set_filter_level;
+
 /**
  * @param {number[]} locations
  */
@@ -196,8 +202,6 @@ async function extendReceivedElements(items) {
     for (const item of items) {
         // it isn't an element, but an upgrade or todo instead
         if (item.id < NON_ELEMENT_ITEMS) {
-            console.log(item);
-
             if (item.name == "TODO") {
                 // do nothing
                 continue;
