@@ -9,8 +9,11 @@ import {
     LOCATION_AMOUNT,
     NON_ELEMENT_ITEMS,
 } from "../../consts";
+import { get_name, init_naming } from "./names.js";
+import { ElementKind } from "../graph.js";
+
 /**
- * @import { Graph, ElementID } from "../graph"
+ * @import { Graph, ElementID } from "../graph.js"
  * @import { Writable, Readable } from "svelte/store";
  * @import { Item } from "archipelago.js";
 
@@ -151,11 +154,18 @@ export function updateSets() {
 }
 
 export async function initElementStores() {
-    let client = get(apclient);
-    let scoutedLocations = client.scout(client.room.allLocations, 0);
-    await extendReceivedElements(client.items.received);
+    const client = get(apclient);
+    const scoutedLocations = client.scout(client.room.allLocations, 0);
+
+    // This might fit better in a different place, but should happen between
+    // login and the stores being filled
+    const sd = get(slotdata);
+    init_naming(sd.graph_seed);
+
+    extendReceivedElements(client.items.received);
     extendSentElements(client.room.checkedLocations);
 
+    // Add the missing intermediates to `neededToGoal` for the goal condition
     for (const location of client.room.missingLocations) {
         if (
             location <= LOCATION_AMOUNT ||
@@ -171,8 +181,8 @@ export async function initElementStores() {
 
     for (const item of await scoutedLocations) {
         if (!elementData.has(item.locationName)) {
-            let icon_name = iconForLocation(item);
-            let elem_id = parse_element(item.locationName);
+            const icon_name = iconForLocation(item);
+            const elem_id = parse_element(item.locationName);
             elementData.set(item.locationName, {
                 elem_id,
                 name: item.locationName,
@@ -197,7 +207,7 @@ export async function initElementStores() {
 /**
  * @param {Item[]} items
  */
-async function extendReceivedElements(items) {
+function extendReceivedElements(items) {
     for (const item of items) {
         // it isn't an element, but an upgrade or todo instead
         if (item.id < NON_ELEMENT_ITEMS) {
@@ -221,7 +231,10 @@ async function extendReceivedElements(items) {
             name: item.name,
             icon: "/sprites/elements/" + icon_name + ".png",
             alt: icon_name,
-            location: item.locationName,
+            location: elem_id.kind === ElementKind.INTERMEDIATE ||
+                item.locationGame === "Archipelago"
+                ? get_name()
+                : item.locationName,
             player: item.sender.alias,
             game: item.sender.game,
         });
