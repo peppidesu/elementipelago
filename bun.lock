@@ -11,7 +11,7 @@
         "js-md5": "^0.8.3",
       },
       "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^6.2.1",
+        "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "gh-pages": "^6.3.0",
         "svelte": "^5.43.8",
         "vite": "npm:rolldown-vite@7.2.5",

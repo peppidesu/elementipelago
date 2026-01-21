@@ -7,6 +7,7 @@
         getElementData,
         isExhausted,
         isExplorable,
+        upgrades,
     } from "./stores/apclient.svelte";
     import { dragging_elem } from "./stores/dragging";
     import Fuse from "fuse.js";
@@ -23,15 +24,24 @@
                 .values()
                 .map((e) => el_data.get(e))
                 .filter((e) => e.elem_id != null),
-        ).sort(
-            (a, b) =>
+        ).sort((a, b) => {
+            let res = 0;
+
+            if (upgrades.progressive_filter > 1) {
                 // @ts-ignore
-                isExplorable(b.name) - isExplorable(a.name) ||
+                res = res || isExplorable(b.name) - isExplorable(a.name);
+            }
+            if (upgrades.progressive_filter > 0) {
                 // @ts-ignore
-                isExhausted(a.name) - isExhausted(b.name) ||
+                res = res || isExhausted(a.name) - isExhausted(b.name);
+            }
+
+            return (
+                res ||
                 a.elem_id.kind - b.elem_id.kind ||
-                a.elem_id.id - b.elem_id.id,
-        );
+                a.elem_id.id - b.elem_id.id
+            );
+        });
 
         if (search_term === "") return table;
 

@@ -4,7 +4,11 @@ import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
-import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT } from "../../consts";
+import {
+    INTERMEDIATE_AMOUNT,
+    LOCATION_AMOUNT,
+    NON_ELEMENT_ITEMS,
+} from "../../consts";
 /**
  * @import { Graph, ElementID } from "../graph"
  * @import { Writable, Readable } from "svelte/store";
@@ -88,6 +92,15 @@ export function isExhausted(el) {
  */
 const neededToGoal = new SvelteSet();
 
+export const upgrades = $state({
+    progressive_filter: 0,
+    sorting: false,
+});
+
+export function set_filter_level(level) {
+    upgrades.progressive_filter = level;
+}
+
 /**
  * @param {number[]} locations
  */
@@ -99,7 +112,7 @@ function checkForGoal(locations) {
         );
     }
     if (neededToGoal.size == 0) {
-        client.goal()
+        client.goal();
     }
 }
 
@@ -120,7 +133,8 @@ export function updateSets() {
     for (const [[i1, i2], ps] of gr.recipes.entries()) {
         const i1_name = element_to_name(i1);
         const i2_name = element_to_name(i2);
-        const has_both = drawerElements.has(i1_name) && drawerElements.has(i2_name);
+        const has_both = drawerElements.has(i1_name) &&
+            drawerElements.has(i2_name);
 
         for (const p of ps) {
             if (!sentElements.has(element_to_name(p))) {
@@ -142,9 +156,12 @@ export async function initElementStores() {
     extendSentElements(client.room.checkedLocations);
 
     for (const location of client.room.missingLocations) {
-        if (location <= LOCATION_AMOUNT || location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT) {
+        if (
+            location <= LOCATION_AMOUNT ||
+            location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT
+        ) {
             // the location is not an "intermediate" so we skip adding it
-            continue
+            continue;
         }
         neededToGoal.add(
             client.package.lookupLocationName("Elementipelago", location),
@@ -181,6 +198,25 @@ export async function initElementStores() {
  */
 async function extendReceivedElements(items) {
     for (const item of items) {
+        // it isn't an element, but an upgrade or todo instead
+        if (item.id < NON_ELEMENT_ITEMS) {
+            console.log(item);
+
+            if (item.name == "TODO") {
+                // do nothing
+                continue;
+            }
+
+            if (item.name == "Progressive Filter") {
+                upgrades.progressive_filter += 1;
+            }
+            if (item.name == "Sorting") {
+                upgrades.sorting = true;
+            }
+
+            continue;
+        }
+
         let icon_name = iconForItem(item);
         let elem_id = parse_element(item.name);
 
