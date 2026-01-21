@@ -94,7 +94,6 @@ const neededToGoal = new SvelteSet();
 
 export const upgrades = $state({
     progressive_filter: 0,
-    sorting: false,
 });
 
 export function set_filter_level(level) {
@@ -209,9 +208,6 @@ async function extendReceivedElements(items) {
 
             if (item.name == "Progressive Filter") {
                 upgrades.progressive_filter += 1;
-            }
-            if (item.name == "Sorting") {
-                upgrades.sorting = true;
             }
 
             continue;
