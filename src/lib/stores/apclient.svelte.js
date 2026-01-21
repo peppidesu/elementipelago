@@ -173,7 +173,9 @@ export async function initElementStores() {
                 name: item.locationName,
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
-                location: item.name,
+                location: elem_id.kind === ElementKind.INTERMEDIATE
+                    ? get_name()
+                    : item.name,
                 player: item.receiver.alias,
                 game: item.receiver.game,
             });
@@ -199,6 +201,11 @@ function extendReceivedElements(items) {
             continue;
         }
         let elem_id = parse_element(item.name);
+        receivedElements.add(item.name);
+        if (elementData.has(item.name)) {
+            console.log("skipping element since we already have", item.name);
+            continue;
+        }
 
         elementData.set(item.name, {
             elem_id,
@@ -212,8 +219,6 @@ function extendReceivedElements(items) {
             player: item.sender.alias,
             game: item.sender.game,
         });
-
-        receivedElements.add(item.name);
     }
 }
 
