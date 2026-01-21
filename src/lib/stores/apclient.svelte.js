@@ -202,8 +202,7 @@ function extendReceivedElements(items) {
         }
         let elem_id = parse_element(item.name);
         receivedElements.add(item.name);
-        if (elementData.has(item.name)) {
-            console.log("skipping element since we already have", item.name);
+        if (elementData.has(item.name)) {            
             continue;
         }
 
