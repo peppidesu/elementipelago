@@ -4,8 +4,10 @@
     import { scale } from "svelte/transition";
     import { sfx } from "../audio";
     import { ElementKind } from "./graph.js";
+    import { getElementData } from "./stores/apclient.svelte";
+    import { element_to_name } from "../utils";
 
-    let { x, y, elem_data, offsetx: ox, offsety: oy, attach, index } = $props();
+    let { x, y, elem_id, offsetx: ox, offsety: oy, attach, index } = $props();
 
     export function get_elem_id() {
         return elem_data.elem_id;
@@ -68,6 +70,19 @@
             },
         });
     }
+
+    const elem_data_map = getElementData();
+    const elem_name = $derived(element_to_name(elem_id));
+    const elem_data = $derived(
+        elem_data_map.get(elem_name) ?? {
+            icon: "/sprites/elements/void.png",
+            alt: "void",
+            location: "Loading...",
+            player: "Loading...",
+            elem_id: elem_id,
+            name: elem_name,
+        },
+    );
 </script>
 
 <div

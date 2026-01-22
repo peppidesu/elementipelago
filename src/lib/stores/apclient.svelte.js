@@ -138,7 +138,10 @@ export function updateSets() {
 
 export async function initElementStores() {
     const client = get(apclient);
-    const scoutedLocations = client.scout(client.room.allLocations, 0);
+    const scoutedLocations = client.scout(
+        client.room.allLocations.filter((loc) => loc <= LOCATION_AMOUNT),
+        0,
+    );
 
     // This might fit better in a different place, but should happen between
     // login and the stores being filled

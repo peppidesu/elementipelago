@@ -112,11 +112,10 @@
 
                 for (const prod of products) {
                     // spawn element with type product
-                    const elem_data = elem_data_map.get(element_to_name(prod));
                     mountElem(
                         (dropped_el_rect.x + other_el_rect.x) / 2,
                         (dropped_el_rect.y + other_el_rect.y) / 2,
-                        elem_data,
+                        prod,
                     );
                 }
 
@@ -144,25 +143,18 @@
 
     let next_index = 0;
     /**
-     * @import { ElementData } from "./lib/stores/apclient";
+     * @import { ElementID } from "./lib/graph";
      * @param {number} x
      * @param {number} y
-     * @param {ElementData} elem_data
+     * @param {ElementID} elem_id
      */
-    export function mountElem(
-        x,
-        y,
-        elem_data,
-        offsetx = 0,
-        offsety = 0,
-        attach = false,
-    ) {
+    export function mountElem(x, y, elem_id, offsetx = 0, offsety = 0, attach = false) {
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
                 x: x,
                 y: y,
-                elem_data: elem_data,
+                elem_id: elem_id,
                 offsetx: offsetx,
                 offsety: offsety,
                 attach: attach,
