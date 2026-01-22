@@ -15,7 +15,7 @@ import { ElementKind } from "../graph.js";
 /**
  * @import { Graph, ElementID } from "../graph.js"
  * @import { Writable, Readable } from "svelte/store";
- * @import { Item } from "archipelago.js";
+ * @import { Hint, Item } from "archipelago.js";
 
  * @typedef {{
     elem_id: ElementID
@@ -68,6 +68,17 @@ export function getDrawerElements() {
  * @type {SvelteSet<string>}
  */
 const explorableElements = new SvelteSet();
+
+/**
+ *  @type {SvelteMap<string, {
+ *      found: boolean,
+ *      ingredient_1: string,
+ *      ingredient_2: string,
+ *      result: string
+ *      }
+ *  >}
+ */
+const hintedElements = new SvelteMap();
 
 /**
  * @param {string} el
@@ -193,11 +204,52 @@ export async function initElementStores() {
     updateSets();
     checkForGoal([]);
 
+    client.items.hints.forEach((hint) => extendReceivedHints(hint));
+    client.items.on("hintsInitialized", (hints) =>
+        hints.forEach((hint) => extendReceivedHints(hint)),
+    );
+    client.items.on("hintReceived", extendReceivedHints);
+
     client.items.on("itemsReceived", extendReceivedElements);
     client.items.on("itemsReceived", updateSets);
+
     client.room.on("locationsChecked", extendSentElements);
     client.room.on("locationsChecked", updateSets);
     client.room.on("locationsChecked", checkForGoal);
+}
+
+/**
+ * @param {Hint} hint
+ */
+function extendReceivedHints(hint) {
+    const item = hint.item;
+    const elem_name = item.locationName;
+    if (hintedElements.has(elem_name)) {
+        // we already have this compound in the recipe tree, no need to add it again
+        return;
+    }
+
+    let gr = get(graph);
+    if (gr == null) return;
+
+    let ways_its_been_made = 0;
+
+    for (const [[i1, i2], ps] of gr.recipes.entries()) {
+        for (const p of ps) {
+            const prod_name = element_to_name(p);
+            if (prod_name == elem_name) {
+                const i1_name = element_to_name(i1);
+                const i2_name = element_to_name(i2);
+                hintedElements.set(elem_name + " " + ways_its_been_made, {
+                    found: hint.found,
+                    ingredient_1: i1_name,
+                    ingredient_2: i2_name,
+                    result: elem_name,
+                });
+                ways_its_been_made += 1;
+            }
+        }
+    }
 }
 
 /**
