@@ -97,6 +97,7 @@ const neededToGoal = new SvelteSet();
 
 export const upgrades = $state({
     progressive_filter: 0,
+    field_size: 10,
 });
 
 export function set_filter_level(level) {
@@ -218,6 +219,9 @@ function extendReceivedElements(items) {
 
             if (item.name == "Progressive Filter") {
                 upgrades.progressive_filter += 1;
+            }
+            if (item.name == "Progressive Item Limit") {
+                upgrades.field_size += 1;
             }
 
             continue;

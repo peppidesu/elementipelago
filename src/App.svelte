@@ -21,8 +21,9 @@
     import { sfx } from "./audio.js";
     import { initGraph } from "./lib/graph";
     import Toast from "./lib/Toast.svelte";
+    import { SvelteMap } from "svelte/reactivity";
 
-    const mounted = new Map();
+    const mounted = new SvelteMap();
 
     /**
      * @param {DOMRect} rect1
@@ -180,7 +181,7 @@
 {#if !connected}
     <Login onSubmit={handleLogin} />
 {:else}
-    <Drawer mount_func={mountElem} />
+    <Drawer mount_func={mountElem} mounted_elements={mounted} />
     <Playfield bind:handle_dropped={on_dropped} />
     <Toast />
 {/if}
