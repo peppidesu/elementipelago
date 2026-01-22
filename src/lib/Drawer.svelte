@@ -114,6 +114,5 @@
         flex-direction: column;
         flex-wrap: nowrap;
         overflow-y: scroll;
-        scrollbar-color: #000 rgba(0, 0, 0, 0);
     }
 </style>
