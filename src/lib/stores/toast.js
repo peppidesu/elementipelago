@@ -14,22 +14,22 @@ export const toast_queue = writable([]);
 
 const initialized = writable(false);
 apclient.subscribe((client) => {
-  if (get(initialized)) return;
-  initialized.set(true);
+    if (get(initialized)) return;
+    initialized.set(true);
 
-  client.items.on("itemsReceived", (items) => {
-    let image = iconForItem(items[0]);
-    let first_item = items[0].locationName;
-    let others_suffix = items.length > 1 ? ` + ${items.length - 1} more` : "";
-    let description = `${first_item}${others_suffix}`;
+    client.items.on("itemsReceived", (items) => {
+        let image = iconForItem(items[0]);
+        let first_item = items[0].locationName;
+        let others_suffix = items.length > 1 ? ` + ${items.length - 1} more` : "";
+        let description = `${first_item}${others_suffix}`;
 
-    toast_queue.update((queue) => {
-      queue.push({
-        title: "New elements available!",
-        description,
-        image: "/sprites/elements/" + image + ".png",
-      });
-      return queue;
+        toast_queue.update((queue) => {
+            queue.push({
+                title: "New elements available!",
+                description,
+                image: "/sprites/elements/" + image + ".png",
+            });
+            return queue;
+        });
     });
-  });
 });
