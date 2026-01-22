@@ -24,7 +24,7 @@
         pointerLoc.set({ x: event.clientX, y: event.clientY });
         let { x, y } = get(pointerLoc);
         const rect = el.getBoundingClientRect();
-        mount_func(x, y, elem_id, x - rect.left, y - rect.top, true);
+        mount_func(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
     }
 
     let is_bk = $derived(!isExplorable(elem_data.name));
