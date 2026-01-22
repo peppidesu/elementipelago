@@ -28,7 +28,6 @@
             cooldown = true;
             sfx.toast();
             close_timeout = setTimeout(close, 5000);
-            console.log(current);
         }
     }
 

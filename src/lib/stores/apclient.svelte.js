@@ -4,7 +4,11 @@ import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
-import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT } from "../../consts";
+import {
+    INTERMEDIATE_AMOUNT,
+    LOCATION_AMOUNT,
+    NON_ELEMENT_ITEMS,
+} from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
 
@@ -90,6 +94,16 @@ export function isExhausted(el) {
  * @type {Set<string>}
  */
 const neededToGoal = new SvelteSet();
+
+export const upgrades = $state({
+    progressive_filter: 0,
+});
+
+export function set_filter_level(level) {
+    upgrades.progressive_filter = level;
+}
+
+window.setFilterLevel = set_filter_level;
 
 /**
  * @param {number[]} locations
@@ -190,10 +204,21 @@ export async function initElementStores() {
  */
 function extendReceivedElements(items) {
     for (const item of items) {
-        let icon_name = iconForItem(item);
-        if (item.id < 100) {
+        // it isn't an element, but an upgrade or todo instead
+        if (item.id < NON_ELEMENT_ITEMS) {
+            if (item.name == "TODO") {
+                // do nothing
+                continue;
+            }
+
+            if (item.name == "Progressive Filter") {
+                upgrades.progressive_filter += 1;
+            }
+
             continue;
         }
+
+        let icon_name = iconForItem(item);
         let elem_id = parse_element(item.name);
         receivedElements.add(item.name);
         if (elementData.has(item.name)) {
