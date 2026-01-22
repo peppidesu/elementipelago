@@ -78,7 +78,7 @@ const explorableElements = new SvelteSet();
  *      }
  *  >}
  */
-const hintedElements = new SvelteMap();
+export const hintedElements = new SvelteMap();
 
 /**
  * @param {string} el
