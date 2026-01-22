@@ -7,6 +7,7 @@ import { draw } from "svelte/transition";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT } from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
+
 /**
  * @import { Graph, ElementID } from "../graph.js"
  * @import { Writable, Readable } from "svelte/store";
@@ -96,9 +97,7 @@ const neededToGoal = new SvelteSet();
 function checkForGoal(locations) {
     let client = get(apclient);
     for (const location of locations) {
-        neededToGoal.delete(
-            client.package.lookupLocationName("Elementipelago", location),
-        );
+        neededToGoal.delete(client.package.lookupLocationName("Elementipelago", location));
     }
     if (neededToGoal.size == 0) {
         client.goal();
@@ -122,8 +121,7 @@ export function updateSets() {
     for (const [[i1, i2], ps] of gr.recipes.entries()) {
         const i1_name = element_to_name(i1);
         const i2_name = element_to_name(i2);
-        const has_both = drawerElements.has(i1_name) &&
-            drawerElements.has(i2_name);
+        const has_both = drawerElements.has(i1_name) && drawerElements.has(i2_name);
 
         for (const p of ps) {
             if (!sentElements.has(element_to_name(p))) {
@@ -152,16 +150,11 @@ export async function initElementStores() {
 
     // Add the missing intermediates to `neededToGoal` for the goal condition
     for (const location of client.room.missingLocations) {
-        if (
-            location <= LOCATION_AMOUNT ||
-            location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT
-        ) {
+        if (location <= LOCATION_AMOUNT || location > LOCATION_AMOUNT + INTERMEDIATE_AMOUNT) {
             // the location is not an "intermediate" so we skip adding it
             continue;
         }
-        neededToGoal.add(
-            client.package.lookupLocationName("Elementipelago", location),
-        );
+        neededToGoal.add(client.package.lookupLocationName("Elementipelago", location));
     }
 
     for (const item of await scoutedLocations) {
@@ -173,9 +166,7 @@ export async function initElementStores() {
                 name: item.locationName,
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
-                location: elem_id.kind === ElementKind.INTERMEDIATE
-                    ? get_name()
-                    : item.name,
+                location: elem_id.kind === ElementKind.INTERMEDIATE ? get_name() : item.name,
                 player: item.receiver.alias,
                 game: item.receiver.game,
             });
@@ -202,7 +193,7 @@ function extendReceivedElements(items) {
         }
         let elem_id = parse_element(item.name);
         receivedElements.add(item.name);
-        if (elementData.has(item.name)) {            
+        if (elementData.has(item.name)) {
             continue;
         }
 
@@ -211,10 +202,10 @@ function extendReceivedElements(items) {
             name: item.name,
             icon: "/sprites/elements/" + icon_name + ".png",
             alt: icon_name,
-            location: elem_id.kind === ElementKind.INTERMEDIATE ||
-                item.locationGame === "Archipelago"
-                ? get_name()
-                : item.locationName,
+            location:
+                elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
+                    ? get_name()
+                    : item.locationName,
             player: item.sender.alias,
             game: item.sender.game,
         });
@@ -227,8 +218,6 @@ function extendReceivedElements(items) {
 function extendSentElements(locations) {
     let client = get(apclient);
     for (const location of locations) {
-        sentElements.add(
-            client.package.lookupLocationName("Elementipelago", location),
-        );
+        sentElements.add(client.package.lookupLocationName("Elementipelago", location));
     }
 }
