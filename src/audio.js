@@ -12,27 +12,32 @@ function get_sfx_volume() {
 
 export const sfx = {
     drag_start: () => {
-        const sfx = sfx_store.drag_start;
+        /** @type HTMLAudioElement */ // @ts-ignore
+        const sfx = sfx_store.drag_start.cloneNode();
         sfx.volume = 0.3 * get_sfx_volume();
         sfx.play();
     },
     drag_end: () => {
-        const sfx = sfx_store.drag_end;
+        /** @type HTMLAudioElement */ // @ts-ignore
+        const sfx = sfx_store.drag_end.cloneNode();
         sfx.volume = 0.4 * get_sfx_volume();
         sfx.play();
     },
     trash: () => {
-        const sfx = sfx_store.trash;
+        /** @type HTMLAudioElement */ // @ts-ignore
+        const sfx = sfx_store.trash.cloneNode();
         sfx.volume = 0.6 * get_sfx_volume();
         sfx.play();
     },
     bubble: () => {
-        const sfx = sfx_store.bubble;
+        /** @type HTMLAudioElement */ // @ts-ignore
+        const sfx = sfx_store.bubble.cloneNode();
         sfx.volume = 1 * get_sfx_volume();
         sfx.play();
     },
     toast: () => {
-        const sfx = sfx_store.toast;
+        /** @type HTMLAudioElement */ // @ts-ignore
+        const sfx = sfx_store.toast.cloneNode();
         sfx.volume = 1 * get_sfx_volume();
         sfx.play();
     },
