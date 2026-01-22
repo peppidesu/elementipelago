@@ -11,19 +11,19 @@
         initElementStores,
     } from "./lib/stores/apclient.svelte";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import {
-        element_to_location_id,
-        element_to_name,
-        parse_element,
-    } from "./utils";
+    import { element_to_location_id, element_to_name, parse_element } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
     import { sfx } from "./audio.js";
     import { initGraph } from "./lib/graph";
     import Toast from "./lib/Toast.svelte";
     import { SvelteMap } from "svelte/reactivity";
+    import Chat from "./lib/Chat.svelte";
+    import Tray from "./lib/Tray.svelte";
 
     const mounted = new SvelteMap();
+
+    let showChat = $state(false);
 
     /**
      * @param {DOMRect} rect1
@@ -67,9 +67,7 @@
         dragging_move_function.set(null);
 
         // if overlaps with the drawer
-        let drawer_rect = document
-            .getElementById("drawer")
-            .getBoundingClientRect();
+        let drawer_rect = document.getElementById("drawer").getBoundingClientRect();
 
         if (intersect(dropped_el_rect, drawer_rect)) {
             // element dropped inside of the drawer should be removed
@@ -105,9 +103,8 @@
                     continue;
                 }
 
-                let locations = products.map(
-                    (/** @type {import("./lib/graph").ElementID} */ val) =>
-                        element_to_location_id(val),
+                let locations = products.map((/** @type {import("./lib/graph").ElementID} */ val) =>
+                    element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
 
@@ -135,7 +132,7 @@
         on_dropped(mounted);
     }
 
-    let connected = false;
+    let connected = $state(false);
     async function handleLogin() {
         connected = true;
         initGraph();
@@ -173,7 +170,24 @@
 {#if !connected}
     <Login onSubmit={handleLogin} />
 {:else}
-    <Drawer mount_func={mountElem} mounted_elements={mounted} />
-    <Playfield bind:handle_dropped={on_dropped} />
+    <div class="game">
+        <Drawer mount_func={mountElem} mounted_elements={mounted} />
+        <Playfield bind:handle_dropped={on_dropped} />
+    </div>
+    <Tray
+        handler={(btn) => {
+            if (btn === "chat") showChat = true;
+        }}
+    />
     <Toast />
+    <Chat show={showChat} onClose={() => (showChat = false)} />
 {/if}
+
+<style>
+    .game {
+        display: flex;
+        @media (max-width: 1000px) {
+            flex-direction: column-reverse;
+        }
+    }
+</style>

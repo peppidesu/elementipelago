@@ -211,7 +211,6 @@ function extendReceivedElements(items) {
                 // do nothing
                 continue;
             }
-
             if (item.name == "Progressive Filter") {
                 upgrades.progressive_filter += 1;
             }

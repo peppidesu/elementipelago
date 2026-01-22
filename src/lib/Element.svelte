@@ -17,8 +17,6 @@
      */
     const { elem_data, mount_func } = $props();
     let el;
-
-    export const elem_id = elem_data.elem_id;
     /**
      * @param {any} event
      */
@@ -40,12 +38,7 @@
 </script>
 
 <li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>
-    <img
-        src={elem_data.icon}
-        alt={elem_data.alt}
-        draggable="false"
-        onpointerdown={onPointerDown}
-    />
+    <img src={elem_data.icon} alt={elem_data.alt} draggable="false" onpointerdown={onPointerDown} />
     <span class="info">
         <h1>{elem_data.location}</h1>
         <p>from {elem_data.player}</p>

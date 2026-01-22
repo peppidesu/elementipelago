@@ -70,6 +70,8 @@
         gap: 12px;
     }
     h1 {
+        font-size: 3.2em;
+
         margin-top: 0;
     }
     label {
