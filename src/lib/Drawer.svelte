@@ -12,7 +12,7 @@
     import { dragging_elem } from "./stores/dragging";
     import Fuse from "fuse.js";
 
-    let { mount_func } = $props();
+    let { mount_func, mounted_elements } = $props();
     let search_term = $state("");
 
     let show_discard = $state(false);
@@ -72,7 +72,14 @@
             <Element {elem_data} {mount_func} />
         {/each}
     </ul>
-    <span class={show_discard ? "show-discard" : ""}> </span>
+    <span
+        class={show_discard
+            ? "show-discard"
+            : mounted_elements.size >= upgrades.field_size
+              ? "show-blocking"
+              : ""}
+    >
+    </span>
 </div>
 
 <style>
@@ -107,6 +114,13 @@
         margin: 10px;
         border-radius: 10px;
         opacity: 0;
+    }
+    span.show-blocking {
+        background-color: color-mix(in oklab, white 60%, #000000 40%);
+        pointer-events: all;
+        border: 3px solid #111111;
+        display: inline;
+        opacity: 0.9;
     }
     span.show-discard {
         display: inline;

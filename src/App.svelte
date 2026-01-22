@@ -17,10 +17,11 @@
     import { sfx } from "./audio.js";
     import { initGraph } from "./lib/graph";
     import Toast from "./lib/Toast.svelte";
+    import { SvelteMap } from "svelte/reactivity";
     import Chat from "./lib/Chat.svelte";
     import Tray from "./lib/Tray.svelte";
 
-    const mounted = new Map();
+    const mounted = new SvelteMap();
 
     let showChat = $state(false);
 
@@ -170,7 +171,7 @@
     <Login onSubmit={handleLogin} />
 {:else}
     <div class="game">
-        <Drawer mount_func={mountElem} />
+        <Drawer mount_func={mountElem} mounted_elements={mounted} />
         <Playfield bind:handle_dropped={on_dropped} />
     </div>
     <Tray
