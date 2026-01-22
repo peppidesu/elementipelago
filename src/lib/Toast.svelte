@@ -39,10 +39,7 @@
 </script>
 
 {#if current != null}
-    <div
-        {onpointerup}
-        transition:fly={{ duration: transition_duration, x: "100%", y: 0 }}
-    >
+    <div {onpointerup} transition:fly={{ duration: transition_duration, x: "100%", y: 0 }}>
         <h1>{current.title}</h1>
         <p>{current.description}</p>
         <img src={current.image} />
@@ -68,7 +65,7 @@
         width: 400px;
         row-gap: 0px;
         background-color: white;
-        z-index: 100001;
+        z-index: 10000;
 
         h1 {
             font-size: 1em;
