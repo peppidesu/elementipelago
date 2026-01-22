@@ -4,11 +4,7 @@ import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
-import {
-    INTERMEDIATE_AMOUNT,
-    LOCATION_AMOUNT,
-    NON_ELEMENT_ITEMS,
-} from "../../consts";
+import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
 
@@ -81,6 +77,16 @@ const explorableElements = new SvelteSet();
 export const hintedElements = new SvelteMap();
 
 /**
+ *  @type {SvelteMap<string, {
+ *      ingredient_1: ElementData,
+ *      ingredient_2: ElementData,
+ *      result: ElementData
+ *      }
+ *  >}
+ */
+export const hints = new SvelteMap();
+
+/**
  * @param {string} el
  * @returns {boolean}
  */
@@ -111,11 +117,25 @@ export const upgrades = $state({
     field_size: 10,
 });
 
-export function set_filter_level(level) {
-    upgrades.progressive_filter = level;
+/**
+ * @param {string} name
+ */
+function default_data(name) {
+    let elem_id = parse_element(name);
+    return {
+        icon: "/sprites/elements/void.png",
+        alt: "void",
+        name: name,
+        elem_id: elem_id,
+        location: name,
+        player:
+            elem_id.kind === ElementKind.INTERMEDIATE
+                ? get(apclient).players.self.alias
+                : "Unknown",
+        game:
+            elem_id.kind === ElementKind.INTERMEDIATE ? get(apclient).players.self.game : "Unknown",
+    };
 }
-
-window.setFilterLevel = set_filter_level;
 
 /**
  * @param {number[]} locations
@@ -160,6 +180,26 @@ export function updateSets() {
             }
         }
     }
+}
+
+function updateHints() {
+    hints.clear();
+    hintedElements
+        .entries()
+        .map(([name, hint]) => {
+            console.log(hint);
+            return [
+                name,
+                {
+                    ingredient_1:
+                        elementData.get(hint.ingredient_1) ?? default_data(hint.ingredient_1),
+                    ingredient_2:
+                        elementData.get(hint.ingredient_2) ?? default_data(hint.ingredient_2),
+                    product: elementData.get(hint.result) ?? default_data(hint.result),
+                },
+            ];
+        })
+        .forEach(([name, val]) => hints.set(name, val));
 }
 
 export async function initElementStores() {
@@ -250,6 +290,8 @@ function extendReceivedHints(hint) {
             }
         }
     }
+
+    updateHints();
 }
 
 /**

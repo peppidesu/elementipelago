@@ -4,6 +4,7 @@
     const buttons = [
         { id: "settings", inner: "settings" },
         { id: "chat", inner: "chat" },
+        { id: "hints", inner: "hints" },
     ];
 </script>
 

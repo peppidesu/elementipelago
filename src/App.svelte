@@ -20,8 +20,8 @@
     import { SvelteMap } from "svelte/reactivity";
     import Chat from "./lib/Chat.svelte";
     import Tray from "./lib/Tray.svelte";
-    import Hint from "./lib/Hint.svelte";
     import Settings from "./lib/Settings.svelte";
+    import Hints from "./lib/Hints.svelte";
 
     const mounted = new SvelteMap();
 
@@ -175,7 +175,6 @@
     <div class="game">
         <Drawer mount_func={mountElem} mounted_elements={mounted} />
         <Playfield bind:handle_dropped={on_dropped} />
-        <Hint />
     </div>
     <Tray
         handler={(btn) => {
@@ -185,6 +184,7 @@
     <Toast />
     <Chat show={openWindow == "chat"} onClose={() => (openWindow = "")} />
     <Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
+    <Hints show={openWindow == "hints"} onClose={() => (openWindow = "")} />
 {/if}
 
 <style>
