@@ -11,18 +11,18 @@
         initElementStores,
     } from "./lib/stores/apclient.svelte";
     import PlacedElement from "./lib/PlacedElement.svelte";
-    import {
-        element_to_location_id,
-        element_to_name,
-        parse_element,
-    } from "./utils";
+    import { element_to_location_id, element_to_name, parse_element } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
     import { sfx } from "./audio.js";
     import { initGraph } from "./lib/graph";
     import Toast from "./lib/Toast.svelte";
+    import Chat from "./lib/Chat.svelte";
+    import Tray from "./lib/Tray.svelte";
 
     const mounted = new Map();
+
+    let showChat = $state(false);
 
     /**
      * @param {DOMRect} rect1
@@ -66,9 +66,7 @@
         dragging_move_function.set(null);
 
         // if overlaps with the drawer
-        let drawer_rect = document
-            .getElementById("drawer")
-            .getBoundingClientRect();
+        let drawer_rect = document.getElementById("drawer").getBoundingClientRect();
 
         if (intersect(dropped_el_rect, drawer_rect)) {
             // element dropped inside of the drawer should be removed
@@ -104,19 +102,17 @@
                     continue;
                 }
 
-                let locations = products.map(
-                    (/** @type {import("./lib/graph").ElementID} */ val) =>
-                        element_to_location_id(val),
+                let locations = products.map((/** @type {import("./lib/graph").ElementID} */ val) =>
+                    element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
                     // spawn element with type product
-                    const elem_data = elem_data_map.get(element_to_name(prod));
                     mountElem(
                         (dropped_el_rect.x + other_el_rect.x) / 2,
                         (dropped_el_rect.y + other_el_rect.y) / 2,
-                        elem_data,
+                        prod,
                     );
                 }
 
@@ -135,7 +131,7 @@
         on_dropped(mounted);
     }
 
-    let connected = false;
+    let connected = $state(false);
     async function handleLogin() {
         connected = true;
         initGraph();
@@ -144,25 +140,18 @@
 
     let next_index = 0;
     /**
-     * @import { ElementData } from "./lib/stores/apclient";
+     * @import { ElementID } from "./lib/graph";
      * @param {number} x
      * @param {number} y
-     * @param {ElementData} elem_data
+     * @param {ElementID} elem_id
      */
-    export function mountElem(
-        x,
-        y,
-        elem_data,
-        offsetx = 0,
-        offsety = 0,
-        attach = false,
-    ) {
+    export function mountElem(x, y, elem_id, offsetx = 0, offsety = 0, attach = false) {
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
                 x: x,
                 y: y,
-                elem_data: elem_data,
+                elem_id: elem_id,
                 offsetx: offsetx,
                 offsety: offsety,
                 attach: attach,
@@ -180,7 +169,24 @@
 {#if !connected}
     <Login onSubmit={handleLogin} />
 {:else}
-    <Drawer mount_func={mountElem} />
-    <Playfield bind:handle_dropped={on_dropped} />
+    <div class="game">
+        <Drawer mount_func={mountElem} />
+        <Playfield bind:handle_dropped={on_dropped} />
+    </div>
+    <Tray
+        handler={(btn) => {
+            if (btn === "chat") showChat = true;
+        }}
+    />
     <Toast />
+    <Chat show={showChat} onClose={() => (showChat = false)} />
 {/if}
+
+<style>
+    .game {
+        display: flex;
+        @media (max-width: 1000px) {
+            flex-direction: column-reverse;
+        }
+    }
+</style>
