@@ -8,10 +8,6 @@
     import { onMount } from "svelte";
 
     const { show, onClose } = $props();
-
-    onMount(() => {
-        console.log(hintedElements);
-    });
 </script>
 
 <Window {show} {onClose}>

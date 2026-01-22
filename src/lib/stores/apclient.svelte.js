@@ -187,7 +187,6 @@ function updateHints() {
     hintedElements
         .entries()
         .map(([name, hint]) => {
-            console.log(hint);
             return [
                 name,
                 {
