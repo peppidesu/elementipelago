@@ -20,6 +20,7 @@
     import { SvelteMap } from "svelte/reactivity";
     import Chat from "./lib/Chat.svelte";
     import Tray from "./lib/Tray.svelte";
+    import Hint from "./lib/Hint.svelte";
 
     const mounted = new SvelteMap();
 
@@ -173,6 +174,7 @@
     <div class="game">
         <Drawer mount_func={mountElem} mounted_elements={mounted} />
         <Playfield bind:handle_dropped={on_dropped} />
+        <Hint />
     </div>
     <Tray
         handler={(btn) => {

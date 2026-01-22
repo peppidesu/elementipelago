@@ -2,11 +2,7 @@
     import { mount } from "svelte";
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
-    import {
-        isExhausted,
-        isExplorable,
-        upgrades,
-    } from "./stores/apclient.svelte";
+    import { isExhausted, isExplorable, upgrades } from "./stores/apclient.svelte";
     import { get } from "svelte/store";
     import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
@@ -29,12 +25,8 @@
         mount_func(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
     }
 
-    let is_bk = $derived(
-        !isExplorable(elem_data.name) && upgrades.progressive_filter > 1,
-    );
-    let is_exhausted = $derived(
-        isExhausted(elem_data.name) && upgrades.progressive_filter > 0,
-    );
+    let is_bk = $derived(!isExplorable(elem_data.name) && upgrades.progressive_filter > 1);
+    let is_exhausted = $derived(isExhausted(elem_data.name) && upgrades.progressive_filter > 0);
 </script>
 
 <li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>
@@ -55,71 +47,4 @@
 </li>
 
 <style>
-    .element {
-        display: flex;
-        align-items: center;
-        image-rendering: pixelated;
-        gap: 15px;
-
-        list-style-type: none;
-        margin-inline: 10px;
-        padding-block: 10px;
-
-        &:not(:last-child) {
-            border-bottom: 2px #c0c0c0 solid;
-        }
-        > span.info {
-            min-width: 0;
-            flex-grow: 1;
-            > h1 {
-                font-weight: bold;
-                margin: 0px;
-
-                margin-bottom: 2px;
-                padding-bottom: 3px;
-
-                text-align: left;
-                font-size: 1em;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                overflow: hidden;
-            }
-            > p {
-                color: #484848;
-                margin: 0px;
-                text-align: left;
-                font-size: 0.75em;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                overflow: hidden;
-            }
-        }
-        > img {
-            width: 96px;
-            height: 96px;
-            cursor: grab;
-
-            user-select: none;
-            touch-action: none; /* IMPORTANT for mobile */
-        }
-        &.disabled {
-            > span.info > * {
-                color: #686868;
-            }
-            > img {
-                filter: saturate(0.3) contrast(0.5) brightness(1.4);
-            }
-        }
-        > span.icon {
-            display: flex;
-            height: 100%;
-            flex-direction: column;
-            justify-content: start;
-
-            > img {
-                height: 32px;
-                margin-left: auto;
-            }
-        }
-    }
 </style>
