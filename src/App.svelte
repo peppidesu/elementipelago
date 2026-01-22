@@ -20,10 +20,11 @@
     import { SvelteMap } from "svelte/reactivity";
     import Chat from "./lib/Chat.svelte";
     import Tray from "./lib/Tray.svelte";
+    import Settings from "./lib/Settings.svelte";
 
     const mounted = new SvelteMap();
 
-    let showChat = $state(false);
+    let openWindow = $state("");
 
     /**
      * @param {DOMRect} rect1
@@ -176,11 +177,12 @@
     </div>
     <Tray
         handler={(btn) => {
-            if (btn === "chat") showChat = true;
+            openWindow = btn;
         }}
     />
     <Toast />
-    <Chat show={showChat} onClose={() => (showChat = false)} />
+    <Chat show={openWindow == "chat"} onClose={() => (openWindow = "")} />
+    <Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
 {/if}
 
 <style>
