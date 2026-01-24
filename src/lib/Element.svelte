@@ -2,11 +2,7 @@
     import { mount } from "svelte";
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
-    import {
-        isExhausted,
-        isExplorable,
-        upgrades,
-    } from "./stores/apclient.svelte";
+    import { isExhausted, isExplorable, upgrades } from "./stores/apclient.svelte";
     import { get } from "svelte/store";
     import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
@@ -29,12 +25,8 @@
         mount_func(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
     }
 
-    let is_bk = $derived(
-        !isExplorable(elem_data.name) && upgrades.progressive_filter > 1,
-    );
-    let is_exhausted = $derived(
-        isExhausted(elem_data.name) && upgrades.progressive_filter > 0,
-    );
+    let is_bk = $derived(!isExplorable(elem_data.name) && upgrades.progressive_filter > 1);
+    let is_exhausted = $derived(isExhausted(elem_data.name) && upgrades.progressive_filter > 0);
 </script>
 
 <li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>
@@ -68,9 +60,11 @@
         &:not(:last-child) {
             border-bottom: 2px #c0c0c0 solid;
         }
+
         > span.info {
             min-width: 0;
             flex-grow: 1;
+
             > h1 {
                 font-weight: bold;
                 margin: 0px;
@@ -84,6 +78,7 @@
                 white-space: nowrap;
                 overflow: hidden;
             }
+
             > p {
                 color: #484848;
                 margin: 0px;
@@ -94,22 +89,27 @@
                 overflow: hidden;
             }
         }
+
         > img {
             width: 96px;
             height: 96px;
             cursor: grab;
 
             user-select: none;
-            touch-action: none; /* IMPORTANT for mobile */
+            touch-action: none;
+            /* IMPORTANT for mobile */
         }
+
         &.disabled {
             > span.info > * {
                 color: #686868;
             }
+
             > img {
                 filter: saturate(0.3) contrast(0.5) brightness(1.4);
             }
         }
+
         > span.icon {
             display: flex;
             height: 100%;

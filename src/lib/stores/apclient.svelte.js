@@ -4,18 +4,14 @@ import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
 import { iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
-import {
-    INTERMEDIATE_AMOUNT,
-    LOCATION_AMOUNT,
-    NON_ELEMENT_ITEMS,
-} from "../../consts";
+import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
 
 /**
  * @import { Graph, ElementID } from "../graph.js"
  * @import { Writable, Readable } from "svelte/store";
- * @import { Item } from "archipelago.js";
+ * @import { Hint, Item } from "archipelago.js";
 
  * @typedef {{
     elem_id: ElementID
@@ -70,6 +66,27 @@ export function getDrawerElements() {
 const explorableElements = new SvelteSet();
 
 /**
+ *  @type {SvelteMap<string, {
+ *      found: boolean,
+ *      ingredient_1: string,
+ *      ingredient_2: string,
+ *      result: string
+ *      }
+ *  >}
+ */
+export const hintedElements = new SvelteMap();
+
+/**
+ *  @type {SvelteMap<string, {
+ *      ingredient_1: ElementData,
+ *      ingredient_2: ElementData,
+ *      product: ElementData
+ *      }
+ *  >}
+ */
+export const hints = new SvelteMap();
+
+/**
  * @param {string} el
  * @returns {boolean}
  */
@@ -100,11 +117,25 @@ export const upgrades = $state({
     field_size: 10,
 });
 
-export function set_filter_level(level) {
-    upgrades.progressive_filter = level;
+/**
+ * @param {string} name
+ */
+function default_data(name) {
+    let elem_id = parse_element(name);
+    return {
+        icon: "/sprites/elements/void.png",
+        alt: "void",
+        name: name,
+        elem_id: elem_id,
+        location: name,
+        player:
+            elem_id.kind === ElementKind.INTERMEDIATE
+                ? get(apclient).players.self.alias
+                : "Unknown",
+        game:
+            elem_id.kind === ElementKind.INTERMEDIATE ? get(apclient).players.self.game : "Unknown",
+    };
 }
-
-window.setFilterLevel = set_filter_level;
 
 /**
  * @param {number[]} locations
@@ -151,6 +182,25 @@ export function updateSets() {
     }
 }
 
+function updateHints() {
+    hints.clear();
+    hintedElements
+        .entries()
+        .map(([name, hint]) => {
+            return [
+                name,
+                {
+                    ingredient_1:
+                        elementData.get(hint.ingredient_1) ?? default_data(hint.ingredient_1),
+                    ingredient_2:
+                        elementData.get(hint.ingredient_2) ?? default_data(hint.ingredient_2),
+                    product: elementData.get(hint.result) ?? default_data(hint.result),
+                },
+            ];
+        })
+        .forEach(([name, val]) => hints.set(name, val));
+}
+
 export async function initElementStores() {
     const client = get(apclient);
     const scoutedLocations = client.scout(
@@ -193,11 +243,54 @@ export async function initElementStores() {
     updateSets();
     checkForGoal([]);
 
+    client.items.hints.forEach((hint) => extendReceivedHints(hint));
+    client.items.on("hintsInitialized", (hints) =>
+        hints.forEach((hint) => extendReceivedHints(hint)),
+    );
+    client.items.on("hintReceived", extendReceivedHints);
+
     client.items.on("itemsReceived", extendReceivedElements);
     client.items.on("itemsReceived", updateSets);
+
     client.room.on("locationsChecked", extendSentElements);
     client.room.on("locationsChecked", updateSets);
     client.room.on("locationsChecked", checkForGoal);
+}
+
+/**
+ * @param {Hint} hint
+ */
+function extendReceivedHints(hint) {
+    const item = hint.item;
+    const elem_name = item.locationName;
+    if (hintedElements.has(elem_name)) {
+        // we already have this compound in the recipe tree, no need to add it again
+        return;
+    }
+
+    let gr = get(graph);
+    if (gr == null) return;
+
+    let ways_its_been_made = 0;
+
+    for (const [[i1, i2], ps] of gr.recipes.entries()) {
+        for (const p of ps) {
+            const prod_name = element_to_name(p);
+            if (prod_name == elem_name) {
+                const i1_name = element_to_name(i1);
+                const i2_name = element_to_name(i2);
+                hintedElements.set(elem_name + " " + ways_its_been_made, {
+                    found: hint.found,
+                    ingredient_1: i1_name,
+                    ingredient_2: i2_name,
+                    result: elem_name,
+                });
+                ways_its_been_made += 1;
+            }
+        }
+    }
+
+    updateHints();
 }
 
 /**

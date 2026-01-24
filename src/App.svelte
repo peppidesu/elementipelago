@@ -21,6 +21,7 @@
     import Chat from "./lib/Chat.svelte";
     import Tray from "./lib/Tray.svelte";
     import Settings from "./lib/Settings.svelte";
+    import Hints from "./lib/Hints.svelte";
 
     const mounted = new SvelteMap();
 
@@ -183,6 +184,7 @@
     <Toast />
     <Chat show={openWindow == "chat"} onClose={() => (openWindow = "")} />
     <Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
+    <Hints show={openWindow == "hints"} onClose={() => (openWindow = "")} />
 {/if}
 
 <style>

@@ -31,7 +31,8 @@ body {
     text-align: center;
     margin: 0;
     overflow: hidden;
-    > * {
+
+    >* {
         grid-area: 1 / 1 / 1 / 1;
     }
 }
@@ -39,6 +40,7 @@ body {
 .card {
     padding: 2em;
 }
+
 
 input,
 button {
