@@ -80,7 +80,7 @@ export const hintedElements = new SvelteMap();
  *  @type {SvelteMap<string, {
  *      ingredient_1: ElementData,
  *      ingredient_2: ElementData,
- *      result: ElementData
+ *      product: ElementData
  *      }
  *  >}
  */
