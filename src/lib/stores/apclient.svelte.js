@@ -67,10 +67,10 @@ const explorableElements = new SvelteSet();
 
 /**
  *  @type {SvelteMap<string, {
- *      found: boolean,
  *      ingredient_1: string,
  *      ingredient_2: string,
- *      result: string
+ *      result: string,
+ *      found: boolean
  *      }
  *  >}
  */
@@ -81,6 +81,7 @@ export const hintedElements = new SvelteMap();
  *      ingredient_1: ElementData,
  *      ingredient_2: ElementData,
  *      product: ElementData
+ *      found: boolean
  *      }
  *  >}
  */
@@ -180,9 +181,6 @@ export function updateSets() {
             }
         }
     }
-}
-
-function updateHints() {
     hints.clear();
     hintedElements
         .entries()
@@ -195,6 +193,7 @@ function updateHints() {
                     ingredient_2:
                         elementData.get(hint.ingredient_2) ?? default_data(hint.ingredient_2),
                     product: elementData.get(hint.result) ?? default_data(hint.result),
+                    found: hint.found
                 },
             ];
         })
@@ -240,14 +239,17 @@ export async function initElementStores() {
             });
         }
     }
+    client.items.hints.forEach((hint) => extendReceivedHints(hint));
     updateSets();
     checkForGoal([]);
 
-    client.items.hints.forEach((hint) => extendReceivedHints(hint));
-    client.items.on("hintsInitialized", (hints) =>
-        hints.forEach((hint) => extendReceivedHints(hint)),
+    client.items.on("hintsInitialized", (hints) => {
+        hints.forEach((hint) => extendReceivedHints(hint))
+        updateSets()
+    }
     );
-    client.items.on("hintReceived", extendReceivedHints);
+    client.items.on("hintReceived", (hint) => { extendReceivedHints(hint); updateSets(); });
+    client.items.on("hintFound", (hint) => { if (hintedElements.has(hint.item.locationName)) { hintedElements.get(hint.item.locationName).found = true; } updateSets(); });
 
     client.items.on("itemsReceived", extendReceivedElements);
     client.items.on("itemsReceived", updateSets);
@@ -289,8 +291,6 @@ function extendReceivedHints(hint) {
             }
         }
     }
-
-    updateHints();
 }
 
 /**

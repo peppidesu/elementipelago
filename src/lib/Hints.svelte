@@ -14,11 +14,11 @@
     <div class="holder">
         <h1>Hinted Items</h1>
         <div class="hint-list">
-            {#each hints.values() as hint_data}
+            {#each hints as [_a, hint_data]}
                 {@const i1_data = hint_data.ingredient_1}
                 {@const i2_data = hint_data.ingredient_2}
                 {@const prod_data = hint_data.product}
-                <div>
+                <div class={hint_data.found ? "disabled" : ""}>
                     <img src={i1_data.icon} alt={i1_data.alt} draggable="false" />
                     <span class="info">
                         <h1>{i1_data.location}</h1>
@@ -27,7 +27,7 @@
                     </span>
                 </div>
                 <span>+</span>
-                <div>
+                <div class={hint_data.found ? "disabled" : ""}>
                     <img src={i2_data.icon} alt={i2_data.alt} draggable="false" />
                     <span class="info">
                         <h1>{i2_data.location}</h1>
@@ -36,7 +36,7 @@
                     </span>
                 </div>
                 <span>=</span>
-                <div>
+                <div class={hint_data.found ? "disabled" : ""}>
                     <img src={prod_data.icon} alt={prod_data.alt} draggable="false" />
                     <span class="info">
                         <h1>{prod_data.location}</h1>
@@ -78,9 +78,10 @@
         width: 100%;
 
         overflow-y: scroll;
-        align-content: center;
         align-items: center;
         grid-template-columns: 1fr auto 1fr auto 1fr;
+
+        padding-top: 3em;
 
         > span {
             font-size: 2rem;
@@ -124,6 +125,16 @@
                     text-overflow: ellipsis;
                     white-space: nowrap;
                     overflow: hidden;
+                }
+            }
+
+            &.disabled {
+                > span.info > * {
+                    color: #686868;
+                }
+
+                > img {
+                    filter: saturate(0.3) contrast(0.5) brightness(1.4);
                 }
             }
 
