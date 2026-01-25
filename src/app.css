@@ -43,7 +43,8 @@ body {
 
 
 input,
-button {
+button,
+a {
     border-radius: 10px;
     border: 3px solid black;
     padding: 0.6em 0.8em;
