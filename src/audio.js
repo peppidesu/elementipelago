@@ -7,7 +7,14 @@ const sfx_store = {
 };
 
 function get_sfx_volume() {
-    return parseFloat(localStorage.getItem("settings.sfx_volume") ?? "1.0");
+    let raw = parseFloat(localStorage.getItem("settings.sfx_volume") ?? "1.0");
+    let log_a = 1 / 10 ** 2;
+    let log_b = Math.log(1 / log_a);
+    let val = log_a * Math.exp(log_b * raw);
+    if (raw < 0.01) {
+        val = raw * 10 * log_a * Math.exp(log_b * 0.1);
+    }
+    return val;
 }
 
 export const sfx = {
@@ -32,13 +39,13 @@ export const sfx = {
     bubble: () => {
         /** @type HTMLAudioElement */ // @ts-ignore
         const sfx = sfx_store.bubble.cloneNode();
-        sfx.volume = 1 * get_sfx_volume();
+        sfx.volume = get_sfx_volume() * 0.99;
         sfx.play();
     },
     toast: () => {
         /** @type HTMLAudioElement */ // @ts-ignore
         const sfx = sfx_store.toast.cloneNode();
-        sfx.volume = 1 * get_sfx_volume();
+        sfx.volume = get_sfx_volume() * 0.99;
         sfx.play();
     },
 };
