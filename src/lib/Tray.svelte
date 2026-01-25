@@ -5,6 +5,7 @@
         { id: "settings", icon: "settings" },
         { id: "chat", icon: "chat" },
         { id: "hints", icon: "hint2" },
+        { id: "clear", icon: "broom" },
     ];
 </script>
 

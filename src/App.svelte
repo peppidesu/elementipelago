@@ -178,6 +178,10 @@
     </div>
     <Tray
         handler={(btn) => {
+            if (btn == "clear") {
+                mounted.forEach((elem) => unmount(elem, { outro: true }));
+                return;
+            }
             openWindow = btn;
         }}
     />
