@@ -159,6 +159,7 @@
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
+                mount_func: mountElem,
             },
         });
 
