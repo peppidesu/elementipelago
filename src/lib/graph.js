@@ -1,9 +1,37 @@
+import { get, writable } from "svelte/store";
 import { DeepMap, DeepSet } from "deep-equality-data-structures";
-import { ElementKind } from "./utils";
+import { graph, slotdata } from "./stores/apclient.svelte";
 
 const mask64 = 0xffffffffffffffffn;
 
-export class Rng {
+/**
+ * @enum {number}
+ */
+export const ElementKind = {
+    INPUT: 1,
+    INTERMEDIATE: 2,
+    OUTPUT: 3,
+};
+
+/**
+ * @typedef {{ id: number, kind: ElementKind } } ElementID
+ */
+
+export function initGraph() {
+    const sd = get(slotdata);
+    graph.set(
+        create_graph(
+            BigInt(sd.graph_seed),
+            sd.element_amount,
+            sd.compound_amount,
+            sd.intermediate_amount,
+            4,
+            sd.compounds_are_ingredients,
+        ),
+    );
+}
+
+class Rng {
     /**
      * @param {BigInt} seed
      */
@@ -37,6 +65,9 @@ function range(start, end) {
 }
 
 /**
+ * @typedef {{ recipes: DeepMap<[ElementID, ElementID], ElementID[]>, ingredients: ElementID[] }} Graph
+ */
+/**
  * @param {bigint} seed
  * @param {number} inputs
  * @param {number} outputs
@@ -44,9 +75,9 @@ function range(start, end) {
  * @param {number} start_items
  * @param {any} compounds_are_ingredients
  *
- * @returns {{ recipes: DeepMap<[Element, Element], Element>, ingredients: Element[] }}
+ * @returns {Graph}
  */
-export function create_graph(
+function create_graph(
     seed,
     inputs,
     outputs,
@@ -71,24 +102,20 @@ export function create_graph(
     let inputs_placed = 0;
     let outputs_placed = 0;
 
-    let to_place_length = inputs_to_place.length +
-        intermediates_to_place.length +
-        outputs_to_place.length;
+    let to_place_length =
+        inputs_to_place.length + intermediates_to_place.length + outputs_to_place.length;
 
     while (to_place_length > 0) {
         const previous_items = dag_edges.length;
         const new_layer = [];
         const max_layer_size = Math.min(
-            Math.floor((previous_items * previous_items) / 2) -
-            already_used.size -
-            1,
+            Math.floor((previous_items * previous_items) / 2) - already_used.size - 1,
             to_place_length - 1,
         );
 
         let new_layer_size = 1;
         if (max_layer_size > 0) {
-            new_layer_size = Number(rng.get_random() % BigInt(max_layer_size)) +
-                1;
+            new_layer_size = Number(rng.get_random() % BigInt(max_layer_size)) + 1;
         }
 
         for (let i = 0; i < new_layer_size; i++) {
@@ -102,14 +129,9 @@ export function create_graph(
                 ) {
                     to_place_type = ElementKind.INPUT;
                     inputs_placed = inputs_placed + 1;
-                } else if (
-                    kind == ElementKind.INTERMEDIATE &&
-                    intermediates_to_place.length > 0
-                ) {
+                } else if (kind == ElementKind.INTERMEDIATE && intermediates_to_place.length > 0) {
                     to_place_type = ElementKind.INTERMEDIATE;
-                } else if (
-                    kind == ElementKind.OUTPUT && outputs_to_place.length > 0
-                ) {
+                } else if (kind == ElementKind.OUTPUT && outputs_to_place.length > 0) {
                     to_place_type = ElementKind.OUTPUT;
                     outputs_placed = outputs_placed + 1;
                 }
@@ -129,43 +151,24 @@ export function create_graph(
 
             let output;
             if (to_place_type == ElementKind.INPUT) {
-                const output_idx = Number(
-                    rng.get_random() % BigInt(inputs_to_place.length),
-                );
+                const output_idx = Number(rng.get_random() % BigInt(inputs_to_place.length));
                 output = inputs_to_place.splice(output_idx, 1)[0];
             } else if (to_place_type == ElementKind.INTERMEDIATE) {
-                const output_idx = Number(
-                    rng.get_random() % BigInt(intermediates_to_place.length),
-                );
+                const output_idx = Number(rng.get_random() % BigInt(intermediates_to_place.length));
                 output = intermediates_to_place.splice(output_idx, 1)[0];
             } else if (to_place_type == ElementKind.OUTPUT) {
-                const output_idx = Number(
-                    rng.get_random() % BigInt(outputs_to_place.length),
-                );
+                const output_idx = Number(rng.get_random() % BigInt(outputs_to_place.length));
                 output = outputs_to_place.splice(output_idx, 1)[0];
             }
 
-            if (
-                compounds_are_ingredients || to_place_type != ElementKind.OUTPUT
-            ) {
-                new_layer.push([
-                    inputs1_idx,
-                    inputs2_idx,
-                    output,
-                    to_place_type,
-                ]);
+            if (compounds_are_ingredients || to_place_type != ElementKind.OUTPUT) {
+                new_layer.push([inputs1_idx, inputs2_idx, output, to_place_type]);
             } else {
-                compound_edges.push([
-                    inputs1_idx,
-                    inputs2_idx,
-                    output,
-                    to_place_type,
-                ]);
+                compound_edges.push([inputs1_idx, inputs2_idx, output, to_place_type]);
             }
         }
-        to_place_length = inputs_to_place.length +
-            intermediates_to_place.length +
-            outputs_to_place.length;
+        to_place_length =
+            inputs_to_place.length + intermediates_to_place.length + outputs_to_place.length;
 
         dag_edges.push(...new_layer);
     }
@@ -196,14 +199,14 @@ export function create_graph(
             Object({
                 id: x,
                 kind: ElementKind.INPUT,
-            })
+            }),
         )
         .concat(
             range(1, intermediates + 1).map((x) =>
                 Object({
                     id: x,
                     kind: ElementKind.INTERMEDIATE,
-                })
+                }),
             ),
         );
 
@@ -213,7 +216,7 @@ export function create_graph(
                 Object({
                     id: x,
                     kind: ElementKind.OUTPUT,
-                })
+                }),
             ),
         );
     }

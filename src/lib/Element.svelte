@@ -2,14 +2,17 @@
     import { mount } from "svelte";
     import PlacedElement from "./PlacedElement.svelte";
     import { pointerLoc } from "./stores/pointer";
+    import { isExhausted, isExplorable, upgrades } from "./stores/apclient.svelte";
     import { get } from "svelte/store";
-    import { ElementKind } from "../utils";
+    import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
 
-    const { elem_data, display_data, mount_func } = $props();
+    /**
+     * @import { ElementData } from "./stores/apclient.svelte";
+     * @type {{ elem_data: ElementData, mount_func: any}}
+     */
+    const { elem_data, mount_func } = $props();
     let el;
-
-    export const elem_id = elem_data.elem_id;
     /**
      * @param {any} event
      */
@@ -19,24 +22,26 @@
         pointerLoc.set({ x: event.clientX, y: event.clientY });
         let { x, y } = get(pointerLoc);
         const rect = el.getBoundingClientRect();
-        mount_func(x, y, elem_data, x - rect.left, y - rect.top, true);
+        mount_func(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
     }
+
+    let is_bk = $derived(!isExplorable(elem_data.name) && upgrades.progressive_filter > 1);
+    let is_exhausted = $derived(isExhausted(elem_data.name) && upgrades.progressive_filter > 0);
 </script>
 
-<li class="element" bind:this={el}>
-    <img
-        src={display_data.icon}
-        alt={display_data.alt}
-        draggable="false"
-        onpointerdown={onPointerDown}
-    />
-    <span>
-        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{display_data.name}</h1>
-            <p>from {display_data.player}</p>
-            <p>{elem_data.name}</p>
-        {:else}
-            <h1>{elem_data.name}</h1>
+<li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>
+    <img src={elem_data.icon} alt={elem_data.alt} draggable="false" onpointerdown={onPointerDown} />
+    <span class="info">
+        <h1>{elem_data.location}</h1>
+        <p>from {elem_data.player}</p>
+        <p>{elem_data.name}</p>
+    </span>
+
+    <span class="icon">
+        {#if is_exhausted}
+            <img src="/sprites/ui/check.png" alt="exhausted" />
+        {:else if is_bk}
+            <img src="/sprites/ui/burger.png" alt="BK" />
         {/if}
     </span>
 </li>
@@ -45,28 +50,35 @@
     .element {
         display: flex;
         align-items: center;
-
+        image-rendering: pixelated;
         gap: 15px;
 
         list-style-type: none;
-        margin-inline: 5px;
-        padding-block: 5px;
+        margin-inline: 10px;
+        padding-block: 10px;
 
         &:not(:last-child) {
             border-bottom: 2px #c0c0c0 solid;
         }
-        > span {
+
+        > span.info {
             min-width: 0;
+            flex-grow: 1;
+
             > h1 {
                 font-weight: bold;
                 margin: 0px;
-                margin-bottom: 5px;
+
+                margin-bottom: 2px;
+                padding-bottom: 3px;
+
                 text-align: left;
                 font-size: 1em;
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 overflow: hidden;
             }
+
             > p {
                 color: #484848;
                 margin: 0px;
@@ -77,13 +89,37 @@
                 overflow: hidden;
             }
         }
+
         > img {
             width: 96px;
             height: 96px;
             cursor: grab;
-            image-rendering: pixelated;
+
             user-select: none;
-            touch-action: none; /* IMPORTANT for mobile */
+            touch-action: none;
+            /* IMPORTANT for mobile */
+        }
+
+        &.disabled {
+            > span.info > * {
+                color: #686868;
+            }
+
+            > img {
+                filter: saturate(0.3) contrast(0.5) brightness(1.4);
+            }
+        }
+
+        > span.icon {
+            display: flex;
+            height: 100%;
+            flex-direction: column;
+            justify-content: start;
+
+            > img {
+                height: 32px;
+                margin-left: auto;
+            }
         }
     }
 </style>

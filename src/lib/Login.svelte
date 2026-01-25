@@ -1,6 +1,6 @@
 <script>
     import { get } from "svelte/store";
-    import { apclient, slotdata } from "./stores/apclient";
+    import { apclient, slotdata } from "./stores/apclient.svelte";
     import { LoginError } from "archipelago.js";
 
     export let onSubmit;
@@ -36,7 +36,7 @@
 </script>
 
 <div class="login">
-    <h1>Connect to Archipelago</h1>
+    <h1>elementipelago</h1>
 
     <label>
         Host
@@ -54,10 +54,15 @@
     </label>
 
     <button on:click={submit} disabled={loading || !host || !slot}>
-        {loading ? "Connecting..." : "Connect"}
+        {loading ? "Connecting..." : "Connect to multiworld"}
     </button>
 
     <div class="error">{error}</div>
+</div>
+<div class="download">
+    Download AP world here <a href="https://github.com/peppidesu/elementipelago/releases"
+        ><img src="/sprites/ui/download.png" /></a
+    >
 </div>
 
 <style>
@@ -69,7 +74,45 @@
         justify-content: center;
         gap: 12px;
     }
+    .download {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 10px;
+        z-index: 10000;
+        display: flex;
+        height: fit-content;
+        width: fit-content;
+        align-items: center;
+        gap: 5px;
+        > a {
+            padding: 0.25em;
+            > img {
+                display: block;
+                width: 32px;
+                height: 32px;
+                image-rendering: pixelated;
+            }
+            margin-inline: auto;
+            border-radius: 10px;
+            border: 3px solid black;
+            padding: 0.4em 0.4em;
+            font-size: 1em;
+            font-weight: 500;
+            font-family: inherit;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.25s;
+            margin-left: 0.5em;
+
+            &:hover {
+                border-color: #646cff;
+            }
+        }
+    }
     h1 {
+        font-size: 3.2em;
+
         margin-top: 0;
     }
     label {

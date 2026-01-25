@@ -2,26 +2,18 @@
     import { onMount } from "svelte";
     import { dragging_elem } from "./stores/dragging";
     import { scale } from "svelte/transition";
-    import { get } from "svelte/store";
     import { sfx } from "../audio";
-    import { ElementKind } from "../utils";
+    import { ElementKind } from "./graph.js";
+    import { getElementData } from "./stores/apclient.svelte";
+    import { element_to_name } from "../utils";
 
-    let {
-        x,
-        y,
-        elem_data,
-        offsetx: ox,
-        offsety: oy,
-        attach,
-        index,
-        display_data,
-    } = $props();
+    let { x, y, elem_id, offsetx: ox, offsety: oy, attach, index } = $props();
 
     export function get_elem_id() {
         return elem_data.elem_id;
     }
 
-    let self, icon;
+    let icon;
     let selfWidth = $state(0);
     let iconWidth = $state(0);
 
@@ -78,19 +70,31 @@
             },
         });
     }
+
+    const elem_data_map = getElementData();
+    const elem_name = $derived(element_to_name(elem_id));
+    const elem_data = $derived(
+        elem_data_map.get(elem_name) ?? {
+            icon: "/sprites/elements/void.png",
+            alt: "void",
+            location: "Loading...",
+            player: "Loading...",
+            elem_id: elem_id,
+            name: elem_name,
+        },
+    );
 </script>
 
 <div
     class="{being_dragged ? 'dragged' : ''} wrapper"
     style="left: {sx}px; top: {sy}px; z-index: {z};"
     transition:scale={{ duration: 100 }}
-    bind:this={self}
     bind:clientWidth={selfWidth}
 >
     <img
         {onpointerdown}
-        src={display_data.icon}
-        alt={display_data.alt}
+        src={elem_data.icon}
+        alt={elem_data.alt}
         draggable="false"
         class="
             {being_dragged ? 'dragged' : ''}
@@ -100,16 +104,12 @@
         bind:clientWidth={iconWidth}
     />
     <div>
-        {#if elem_data.elem_id.kind !== ElementKind.INTERMEDIATE}
-            <h1>{display_data.name}</h1>
-            <p>
-                {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
-                {display_data.player}
-            </p>
-            <p>{elem_data.name}</p>
-        {:else}
-            <h1>{elem_data.name}</h1>
-        {/if}
+        <h1>{elem_data.location}</h1>
+        <p>
+            {elem_data.elem_id.kind === ElementKind.OUTPUT ? "to" : "from"}
+            {elem_data.player}
+        </p>
+        <p>{elem_data.name}</p>
     </div>
 </div>
 

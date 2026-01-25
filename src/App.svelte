@@ -4,23 +4,28 @@
     import { dragging_elem as dragging_move_function } from "./lib/stores/dragging";
     import { pointerLoc } from "./lib/stores/pointer";
     import { mount, unmount } from "svelte";
-    import { apclient, graph } from "./lib/stores/apclient";
-    import PlacedElement from "./lib/PlacedElement.svelte";
     import {
-        element_to_location_id,
-        element_to_name,
-        parse_element,
-    } from "./utils";
+        apclient,
+        graph,
+        getElementData,
+        initElementStores,
+    } from "./lib/stores/apclient.svelte";
+    import PlacedElement from "./lib/PlacedElement.svelte";
+    import { element_to_location_id, element_to_name, parse_element } from "./utils";
     import Login from "./lib/Login.svelte";
     import Playfield from "./lib/Playfield.svelte";
-    import { icon_cache } from "./lib/stores/icon_cache";
-    import {
-        iconForItem,
-        iconForLocation,
-    } from "./lib/machine-learning/iconml";
     import { sfx } from "./audio.js";
+    import { initGraph } from "./lib/graph";
+    import Toast from "./lib/Toast.svelte";
+    import { SvelteMap } from "svelte/reactivity";
+    import Chat from "./lib/Chat.svelte";
+    import Tray from "./lib/Tray.svelte";
+    import Settings from "./lib/Settings.svelte";
+    import Hints from "./lib/Hints.svelte";
 
-    const mounted = new Map();
+    const mounted = new SvelteMap();
+
+    let openWindow = $state("");
 
     /**
      * @param {DOMRect} rect1
@@ -64,9 +69,7 @@
         dragging_move_function.set(null);
 
         // if overlaps with the drawer
-        let drawer_rect = document
-            .getElementById("drawer")
-            .getBoundingClientRect();
+        let drawer_rect = document.getElementById("drawer").getBoundingClientRect();
 
         if (intersect(dropped_el_rect, drawer_rect)) {
             // element dropped inside of the drawer should be removed
@@ -79,6 +82,7 @@
         sfx.drag_end();
 
         let gr = get(graph);
+        let elem_data_map = getElementData();
         let dropped_elem_id = { ...dropped_el.get_elem_id() };
 
         for (const [idx, other_el] of mounted) {
@@ -101,22 +105,17 @@
                     continue;
                 }
 
-                let locations = products.map(
-                    (/** @type {import("./utils").ElementID} */ val) =>
-                        element_to_location_id(val),
+                let locations = products.map((/** @type {import("./lib/graph").ElementID} */ val) =>
+                    element_to_location_id(val),
                 );
                 get(apclient).check(...locations);
 
                 for (const prod of products) {
                     // spawn element with type product
-                    const elem_data = {
-                        name: element_to_name(prod),
-                        elem_id: prod,
-                    };
                     mountElem(
                         (dropped_el_rect.x + other_el_rect.x) / 2,
                         (dropped_el_rect.y + other_el_rect.y) / 2,
-                        elem_data,
+                        prod,
                     );
                 }
 
@@ -135,77 +134,31 @@
         on_dropped(mounted);
     }
 
-    let connected = false;
-
+    let connected = $state(false);
     async function handleLogin() {
         connected = true;
-
-        let client = get(apclient);
-
-        let scouted = client.scout(client.room.allLocations, 0);
-        let items = client.items.received;
-
-        let cache = get(icon_cache);
-        items.forEach((item) => {
-            let icon_name = iconForItem(item);
-            let location_name = item.locationName;
-
-            cache.set(item.name, {
-                icon: "/sprites/elements/" + icon_name + ".png",
-                alt: icon_name,
-                name: location_name,
-                player: item.sender.alias,
-                game: item.sender.game,
-            });
-        });
-        (await scouted).forEach((item) => {
-            let icon_name = iconForLocation(item);
-            let item_name = item.name;
-            if (item.sender.slot === item.receiver.slot) {
-                item_name = item.locationName;
-            }
-
-            if (!cache.has(item.locationName)) {
-                cache.set(item.locationName, {
-                    icon: "/sprites/elements/" + icon_name + ".png",
-                    alt: icon_name,
-                    name: item_name,
-                    player: item.receiver.alias,
-                    game: item.receiver.game,
-                });
-            }
-        });
+        initGraph();
+        await initElementStores();
     }
 
     let next_index = 0;
-
-    export function mountElem(
-        x,
-        y,
-        elem_data,
-        offsetx = 0,
-        offsety = 0,
-        attach = false,
-    ) {
-        let display_elem = get(icon_cache).get(elem_data.name) ??
-            get(icon_cache).get("Make " + elem_data.name) ?? {
-                icon: "void",
-                alt: "void",
-                name: elem_data.name,
-                game: "",
-                player: "",
-            };
+    /**
+     * @import { ElementID } from "./lib/graph";
+     * @param {number} x
+     * @param {number} y
+     * @param {ElementID} elem_id
+     */
+    export function mountElem(x, y, elem_id, offsetx = 0, offsety = 0, attach = false) {
         let placed = mount(PlacedElement, {
             target: document.getElementById("playfield"),
             props: {
                 x: x,
                 y: y,
-                elem_data: elem_data,
+                elem_id: elem_id,
                 offsetx: offsetx,
                 offsety: offsety,
                 attach: attach,
                 index: next_index,
-                display_data: display_elem,
             },
         });
 
@@ -219,6 +172,26 @@
 {#if !connected}
     <Login onSubmit={handleLogin} />
 {:else}
-    <Drawer mount_func={mountElem} />
-    <Playfield bind:handle_dropped={on_dropped} />
+    <div class="game">
+        <Drawer mount_func={mountElem} mounted_elements={mounted} />
+        <Playfield bind:handle_dropped={on_dropped} />
+    </div>
+    <Tray
+        handler={(btn) => {
+            openWindow = btn;
+        }}
+    />
+    <Toast />
+    <Chat show={openWindow == "chat"} onClose={() => (openWindow = "")} />
+    <Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
+    <Hints show={openWindow == "hints"} onClose={() => (openWindow = "")} />
 {/if}
+
+<style>
+    .game {
+        display: flex;
+        @media (max-width: 1000px) {
+            flex-direction: column-reverse;
+        }
+    }
+</style>

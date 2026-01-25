@@ -1,22 +1,10 @@
 import { LOCATION_AMOUNT } from "./consts";
-
-/**
- * @enum {number}
- */
-export const ElementKind = {
-    INPUT: 1,
-    INTERMEDIATE: 2,
-    OUTPUT: 3,
-};
-
-/**
- * @typedef {{ id: number, kind: ElementKind } } ElementID
- */
+import { ElementKind } from "./lib/graph";
 
 /**
  * @param {string} name
  *
- * @returns {ElementID}
+ * @returns {import("./lib/stores/graph").ElementID}
  */
 export function parse_element(name) {
     const m = name.match(/^(Element|Intermediate|Compound)\s+(\d+)$/);
@@ -38,7 +26,7 @@ export function parse_element(name) {
 }
 
 /**
- * @param {ElementID} elem
+ * @param {import("./lib/stores/graph").ElementID} elem
  */
 export function element_to_name(elem) {
     switch (elem.kind) {
@@ -52,7 +40,7 @@ export function element_to_name(elem) {
 }
 
 /**
- * @param {ElementID} elem
+ * @param {import("./lib/stores/graph").ElementID} elem
  */
 export function element_to_location_id(elem) {
     switch (elem.kind) {
@@ -64,5 +52,3 @@ export function element_to_location_id(elem) {
             return elem.id;
     }
 }
-
-

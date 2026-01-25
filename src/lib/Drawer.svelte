@@ -1,123 +1,67 @@
 <script>
+    // @ts-ignore
     import { get } from "svelte/store";
-    import { create_graph } from "../graph";
-    import { element_to_name, parse_element } from "../utils";
     import Element from "./Element.svelte";
-    import { apclient, graph, slotdata } from "./stores/apclient";
+    import {
+        getDrawerElements,
+        getElementData,
+        isExhausted,
+        isExplorable,
+        upgrades,
+    } from "./stores/apclient.svelte";
     import { dragging_elem } from "./stores/dragging";
-    import { icon_cache } from "./stores/icon_cache";
     import Fuse from "fuse.js";
-    import { iconForItem } from "./machine-learning/iconml";
 
-    let { mount_func } = $props();
+    let { mount_func, mounted_elements } = $props();
     let search_term = $state("");
 
-    let received_elements = $state([]);
     let show_discard = $state(false);
-    let elements = $derived(
-        received_elements
-            .toSorted((a, b) => a.name.localeCompare(b.name))
-            .reduce((acc, value) => {
-                // de-dupe (array is already sorted)
-                if (acc.length && acc[acc.length - 1].name === value.name) {
-                    return acc;
-                }
-
-                // parse "Element 129" | "Intermediate 29"
-
-                let elem_id = parse_element(value.name);
-                if (elem_id == null) return acc;
-
-                acc.push({
-                    name: value.name,
-                    elem_id: elem_id,
-                });
-
-                return acc;
-            }, []),
-    );
 
     let filtered_elements = $derived.by(() => {
-        if (search_term === "") return elements;
+        let el_data = getElementData();
+        let table = Array.from(
+            getDrawerElements()
+                .values()
+                .map((e) => el_data.get(e))
+                .filter((e) => e.elem_id != null),
+        ).sort((a, b) => {
+            let res = 0;
 
-        let table = elements.map((e) => {
-            return {
-                elem: e,
-                display: get(icon_cache).get(e.name),
-            };
+            if (upgrades.progressive_filter > 1) {
+                // @ts-ignore
+                res = res || isExplorable(b.name) - isExplorable(a.name);
+            }
+            if (upgrades.progressive_filter > 0) {
+                // @ts-ignore
+                res = res || isExhausted(a.name) - isExhausted(b.name);
+            }
+
+            return (
+                res ||
+                a.elem_id.kind - b.elem_id.kind ||
+                a.elem_id.id - b.elem_id.id
+            );
         });
+
+        if (search_term === "") return table;
 
         let fuse = new Fuse(table, {
             keys: [
-                {
-                    name: "elem.name",
-                    weight: 0.5,
-                },
-                { name: "display.name", weight: 1 },
-                { name: "display.player", weight: 0.5 },
+                { name: "location", weight: 1 },
+                { name: "player", weight: 0.5 },
+                { name: "name", weight: 0.5 },
             ],
             threshold: 0.3,
         });
         let res = fuse
             .search(search_term)
             .sort((a, b) => b.score - a.score)
-            .map((r) => r.item.elem);
+            .map((r) => r.item);
         return res;
     });
 
     dragging_elem.subscribe((el) => {
         show_discard = el !== null;
-    });
-
-    slotdata.subscribe((sd) => {
-        if (sd == null) {
-            return;
-        }
-
-        graph.set(
-            create_graph(
-                BigInt(sd.graph_seed),
-                sd.element_amount,
-                sd.compound_amount,
-                sd.intermediate_amount,
-                4,
-                sd.compounds_are_ingredients,
-            ),
-        );
-        let client = get(apclient);
-        if (!client.authenticated) {
-            throw "Slotdata was received without a connected client.";
-        }
-
-        const cim = client.items;
-        received_elements = cim.received;
-        cim.on("itemsReceived", (items, _startingIndex) => {
-            for (const item of items) {
-                let icon_name = iconForItem(item);
-                let location_name = item.locationName;
-
-                get(icon_cache).set(item.name, {
-                    icon: "/sprites/elements/" + icon_name + ".png",
-                    alt: icon_name,
-                    name: location_name,
-                    player: item.sender.alias,
-                    game: item.sender.game,
-                });
-            }
-            received_elements.push(...items);
-        });
-    });
-
-    let dd = $state(get(icon_cache));
-    icon_cache.subscribe((val) => {
-        dd = val;
-    });
-
-    let display_data = $state((elem_data) => {
-        if (dd != undefined) {
-            return dd.get(elem_data.name);
-        }
-        return { icon: "void", name: elem_data.name };
     });
 </script>
 
@@ -125,14 +69,17 @@
     <input bind:value={search_term} />
     <ul id="drawer">
         {#each filtered_elements as elem_data}
-            <Element
-                {elem_data}
-                {mount_func}
-                display_data={display_data(elem_data)}
-            />
+            <Element {elem_data} {mount_func} />
         {/each}
     </ul>
-    <span class={show_discard ? "show-discard" : ""}> </span>
+    <span
+        class={show_discard
+            ? "show-discard"
+            : mounted_elements.size >= upgrades.field_size
+              ? "show-blocking"
+              : ""}
+    >
+    </span>
 </div>
 
 <style>
@@ -141,20 +88,20 @@
         grid-template-columns: 1fr;
         grid-template-rows: 0fr auto;
     }
-    @media (min-width: 800px) {
+    @media (min-width: 1000px) {
         #drawer-parent {
-            min-width: 400px;
-            width: 35%;
+            min-width: 500px;
+            width: 40%;
         }
     }
-    @media (max-width: 800px) {
+    @media (max-width: 1000px) {
         #drawer-parent {
-            height: 50%;
+            height: 55%;
         }
     }
     input {
         margin: 10px;
-        border-radius: 5px;
+        border-radius: 10px;
         border-width: 3px;
         padding: 10px;
     }
@@ -165,8 +112,15 @@
         background-color: color-mix(in oklab, white 80%, #ff4b6a 20%);
         border: 3px solid #ff4b6a;
         margin: 10px;
-        border-radius: 5px;
+        border-radius: 10px;
         opacity: 0;
+    }
+    span.show-blocking {
+        background-color: color-mix(in oklab, white 60%, #000000 40%);
+        pointer-events: all;
+        border: 3px solid #111111;
+        display: inline;
+        opacity: 0.9;
     }
     span.show-discard {
         display: inline;
@@ -176,11 +130,11 @@
         grid-area: 2 / 1 / 2 / 1;
         display: flex;
         border: 3px solid black;
-        border-radius: 5px;
+        border-radius: 10px;
         padding: 10px;
         margin: 10px;
 
-        gap: 10px;
+        gap: 0px;
         flex-direction: column;
         flex-wrap: nowrap;
         overflow-y: scroll;
