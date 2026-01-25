@@ -1,6 +1,6 @@
 <script lang="js">
     import { onMount } from "svelte";
-    import { dragging_elem } from "../state/playfield.svelte";
+    import { dragging_elem, mountElem } from "../state/playfield.svelte";
     import { scale } from "svelte/transition";
     import { sfx } from "../audio";
     import { ElementKind } from "../graph.js";
@@ -50,6 +50,9 @@
         being_dragged = el != null && el.index === index;
     });
 
+    let numClicks = 0;
+    let dblClickTimer;
+
     /**
      * @param {{ layerX: any; layerY: any; x: any; y: any}} e
      */
@@ -57,19 +60,31 @@
         window.getSelection().removeAllRanges();
         sfx.drag_start();
 
-        lox = 0;
-        z = 10000;
-        ox = e.layerX;
-        oy = e.layerY;
-        x = e.x;
-        y = e.y;
-        dragging_elem.set({
-            index: index,
-            mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
-                x = lx;
-                y = ly;
-            },
-        });
+        numClicks++;
+
+        if (numClicks == 1) {
+            lox = 0;
+            z = 10000;
+            ox = e.layerX;
+            oy = e.layerY;
+            x = e.x;
+            y = e.y;
+            dragging_elem.set({
+                index: index,
+                mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
+                    x = lx;
+                    y = ly;
+                },
+            });
+            dblClickTimer = setTimeout(() => {
+                numClicks = 0;
+                clearTimeout(dblClickTimer);
+            }, 300);
+        } else if (numClicks == 2) {
+            mountElem(x, y, elem_data.elem_id, 50, 50, false);
+            numClicks = 0;
+            clearTimeout(dblClickTimer);
+        }
     }
 
     const elem_name = $derived(elementIdToName(elem_id));
