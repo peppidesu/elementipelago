@@ -27,12 +27,12 @@ a:hover {
 body {
     scrollbar-color: #000 rgba(0, 0, 0, 0);
     display: grid;
-    grid-template: 100svh / 100svw;
+    grid-template: 100dvh / 100dvw;
     text-align: center;
     margin: 0;
     overflow: hidden;
 
-    > * {
+    >* {
         grid-area: 1 / 1 / 1 / 1;
     }
 }
