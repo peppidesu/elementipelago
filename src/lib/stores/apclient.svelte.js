@@ -226,14 +226,15 @@ export async function initElementStores() {
 
     for (const item of await scoutedLocations) {
         if (!elementData.has(item.locationName)) {
-            const icon_name = iconForLocation(item);
             const elem_id = parse_element(item.locationName);
+            const loc = elem_id.kind === ElementKind.INTERMEDIATE ? get_name() : item.name;
+            const icon_name = iconForLocation(item.game, loc);
             elementData.set(item.locationName, {
                 elem_id,
                 name: item.locationName,
                 icon: "/sprites/elements/" + icon_name + ".png",
                 alt: icon_name,
-                location: elem_id.kind === ElementKind.INTERMEDIATE ? get_name() : item.name,
+                location: loc,
                 player: item.receiver.alias,
                 game: item.receiver.game,
             });
@@ -314,8 +315,11 @@ function extendReceivedElements(items) {
             continue;
         }
 
-        let icon_name = iconForItem(item);
         let elem_id = parse_element(item.name);
+        const loc = elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
+            ? get_name()
+            : item.locationName;
+        let icon_name = iconForItem(item.game, loc);
         receivedElements.add(item.name);
         if (elementData.has(item.name)) {
             continue;
@@ -326,10 +330,7 @@ function extendReceivedElements(items) {
             name: item.name,
             icon: "/sprites/elements/" + icon_name + ".png",
             alt: icon_name,
-            location:
-                elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
-                    ? get_name()
-                    : item.locationName,
+            location: loc,
             player: item.sender.alias,
             game: item.sender.game,
         });

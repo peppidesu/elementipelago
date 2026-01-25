@@ -1,27 +1,24 @@
 import { get } from "svelte/store";
 import { model } from "../stores/model.js";
 import { md5 } from "js-md5";
+import { getElementData } from "../stores/apclient.svelte.js";
 // Todo: actual machine learning
 
 /**
- * @param {import("archipelago.js").Item} location
+ * @param {string} game
+ * @param {string} name
  */
-export function iconForLocation(location) {
-    const game = location.game;
+export function iconForLocation(game, name) {
     const kind = "item";
-    const name = location.name;
-
     return iconForText(`[game=${game}] ${name}`);
 }
 
 /**
- * @param {import("archipelago.js").Item} item
+ * @param {string} game
+ * @param {string} name
  */
-export function iconForItem(item) {
-    const game = item.locationGame;
+export function iconForItem(game, name) {
     const kind = "location";
-    const name = item.locationName;
-
     return iconForText(`[game=${game}] ${name}`);
 }
 
