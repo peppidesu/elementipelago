@@ -7,6 +7,7 @@ import { draw } from "svelte/transition";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
+import { sendReceivedToasts } from "./toast";
 
 /**
  * @import { Graph, ElementID } from "../graph.js"
@@ -193,7 +194,7 @@ export function updateSets() {
                     ingredient_2:
                         elementData.get(hint.ingredient_2) ?? default_data(hint.ingredient_2),
                     product: elementData.get(hint.result) ?? default_data(hint.result),
-                    found: hint.found
+                    found: hint.found,
                 },
             ];
         })
@@ -244,12 +245,19 @@ export async function initElementStores() {
     checkForGoal([]);
 
     client.items.on("hintsInitialized", (hints) => {
-        hints.forEach((hint) => extendReceivedHints(hint))
-        updateSets()
-    }
-    );
-    client.items.on("hintReceived", (hint) => { extendReceivedHints(hint); updateSets(); });
-    client.items.on("hintFound", (hint) => { if (hintedElements.has(hint.item.locationName)) { hintedElements.get(hint.item.locationName).found = true; } updateSets(); });
+        hints.forEach((hint) => extendReceivedHints(hint));
+        updateSets();
+    });
+    client.items.on("hintReceived", (hint) => {
+        extendReceivedHints(hint);
+        updateSets();
+    });
+    client.items.on("hintFound", (hint) => {
+        if (hintedElements.has(hint.item.locationName)) {
+            hintedElements.get(hint.item.locationName).found = true;
+        }
+        updateSets();
+    });
 
     client.items.on("itemsReceived", extendReceivedElements);
     client.items.on("itemsReceived", updateSets);
@@ -334,6 +342,7 @@ function extendReceivedElements(items) {
             game: item.sender.game,
         });
     }
+    sendReceivedToasts(items);
 }
 
 /**
