@@ -36,7 +36,7 @@
 </script>
 
 <div class="login">
-    <h1>Connect to Archipelago</h1>
+    <h1>elementipelago</h1>
 
     <label>
         Host
@@ -54,7 +54,7 @@
     </label>
 
     <button on:click={submit} disabled={loading || !host || !slot}>
-        {loading ? "Connecting..." : "Connect"}
+        {loading ? "Connecting..." : "Connect to multiworld"}
     </button>
 
     <div class="error">{error}</div>
