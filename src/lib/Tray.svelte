@@ -2,15 +2,15 @@
     let { handler } = $props();
 
     const buttons = [
-        { id: "settings", inner: "settings" },
-        { id: "chat", inner: "chat" },
-        { id: "hints", inner: "hints" },
+        { id: "settings", icon: "settings" },
+        { id: "chat", icon: "chat" },
+        { id: "hints", icon: "hint2" },
     ];
 </script>
 
 <div>
     {#each buttons as btn}
-        <button onclick={() => handler(btn.id)}>{btn.inner}</button>
+        <button onclick={() => handler(btn.id)}><img src="/sprites/ui/{btn.icon}.png" /></button>
     {/each}
 </div>
 
@@ -27,6 +27,12 @@
         gap: 5px;
         > button {
             padding: 0.25em;
+            > img {
+                display: block;
+                width: 32px;
+                height: 32px;
+                image-rendering: pixelated;
+            }
         }
     }
 </style>
