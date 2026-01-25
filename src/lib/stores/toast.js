@@ -49,15 +49,16 @@ export function sendReceivedToasts(items) {
 */
 function elementsReceivedMessage(elements) {
     if (elements.length == 0) return;
-    let image = iconForItem(elements[0]);
-    let first_item = getElementData().get(elements[0].name).location;
+    const first_item_data = getElementData().get(elements[0].name)
+    let image = first_item_data.icon;
+    let first_item = first_item_data.location;
     let others_suffix = elements.length > 1 ? ` + ${elements.length - 1} more` : "";
     let description = `${first_item}${others_suffix}`;
 
     return {
         title: "New elements available!",
         description,
-        image: "/sprites/elements/" + image + ".png",
+        image: image,
     };
 }
 
@@ -66,7 +67,7 @@ function elementsReceivedMessage(elements) {
     @returns {{title: string, description: string, image: string}}
 */
 function upgradeReceivedMessage(upgrade) {
-    let image = iconForItem(upgrade);
+    let image = iconForItem(upgrade.game, upgrade.name);
 
     return {
         title: "Upgrade received!",
