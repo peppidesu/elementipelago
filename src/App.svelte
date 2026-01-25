@@ -8,7 +8,7 @@
     import Tray from "./lib/components/Tray.svelte";
     import Settings from "./lib/components/Settings.svelte";
     import Hints from "./lib/components/Hints.svelte";
-    import { moveDragging } from "./lib/state/playfield.svelte";
+    import { mounted, moveDragging, unmountElem } from "./lib/state/playfield.svelte";
 
     let openWindow = $state("");
     /** @type {Playfield} */
@@ -45,10 +45,16 @@
     </div>
 {/if}
 <Tray
-    handler={(/** @type {string} */ btn) => {
+    {connected}
+    handler={(btn) => {
+        if (btn == "clear") {
+            mounted.entries().forEach(([idx, elem]) => {
+                unmountElem(elem, idx);
+            });
+            return;
+        }
         openWindow = btn;
     }}
-    {connected}
 />
 
 <Toast />
