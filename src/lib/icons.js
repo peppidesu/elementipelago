@@ -31,13 +31,14 @@ const substituteIcons = [
     "berry",
     "boat",
     "book",
+    "boots",
+    "car",
     "element",
     "emerald",
-    "car",
+    "leaf"
 ];
 
 const icons = [
-    "boots",
     "bow",
     "cave",
     "chest",
@@ -55,7 +56,6 @@ const icons = [
     "ice",
     "island",
     "key",
-    "leaf",
     "magic",
     "map",
     "marker",
