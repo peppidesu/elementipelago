@@ -5,7 +5,7 @@ SRC="$ROOT/sprites"
 TMP="$(mktemp -d)/sprites"
 DEST="$ROOT/public/sprites"
 
-sub_inputs=(ff00ff aa00aa 440044 110011)
+sub_inputs=(ff00ff aa00aa 440044 220022)
 
 declare -A palettes=(
     [lightblue]="305182 4192c3 61d3e3 a2fff3"
