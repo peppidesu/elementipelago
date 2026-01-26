@@ -1,5 +1,5 @@
 
-<p align="center"><img width="1920" height="1080" alt="elementipelago" src="https://github.com/user-attachments/assets/eca27809-dd3b-4142-a6d9-ea6cafc69802" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/370523a8-b751-4b81-9e27-d5267d6d0af7"/>
 <p align="center">
   <img alt="License" src="https://img.shields.io/github/license/peppidesu/elementipelago?style=for-the-badge"></img>
   <img alt="GitHub Release" src="https://img.shields.io/github/v/release/peppidesu/elementipelago?style=for-the-badge&color=blue">
