@@ -49,7 +49,9 @@ run_with_palette() {
 
 find "$TMP" -type f -name '*.png' | while read -r file; do
   rel="${file#"$TMP"/}"
-  dest_base="$DEST/${rel%.png}"
+  out_rel="${rel//\/substitute\//\/}"
+  dest_base="$DEST/${out_rel%.png}"
+
   mkdir -p "$(dirname "$dest_base")"
 
   if [[ "$rel" == *"/substitute/"* ]]; then
