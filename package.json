@@ -13,7 +13,7 @@
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "gh-pages": "^6.3.0",
-        "svelte": "^5.48.0",
+        "svelte": "^5.48.2",
         "vite": "npm:rolldown-vite@7.3.1"
     },
     "overrides": {
