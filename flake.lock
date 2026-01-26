@@ -132,11 +132,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1769453345,
-        "narHash": "sha256-oH56wiIcY9P1PNp43JIiaF7fR+Q6GsOKvHi3Ktr5Msc=",
-        "rev": "9e5ab413b7bce3d57521edf099441247320a7ee8",
+        "lastModified": 1769455840,
+        "narHash": "sha256-bHjpX8A7YP9cWyoYuYTb/j52kEtYp6OY/tJEWSJ8Q3I=",
+        "rev": "f9fea83ed4d9f4ab6fd2b16018d95dd77e0e3062",
         "type": "tarball",
-        "url": "https://git.geenit.nl/api/v1/repos/noa/png-subs/archive/9e5ab413b7bce3d57521edf099441247320a7ee8.tar.gz"
+        "url": "https://git.geenit.nl/api/v1/repos/noa/png-subs/archive/f9fea83ed4d9f4ab6fd2b16018d95dd77e0e3062.tar.gz"
       },
       "original": {
         "type": "tarball",
