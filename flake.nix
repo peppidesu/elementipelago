@@ -4,12 +4,15 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+
+    png-subs.url = "https://git.geenit.nl/noa/png-subs/archive/main.tar.gz";
   };
 
   outputs =
     {
       nixpkgs,
       flake-utils,
+      png-subs,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -19,6 +22,7 @@
           inherit system;
           config.allowUnfree = true;
         };
+        png-sub = png-subs.packages.${system}.default;
       in
       {
         devShells.default = pkgs.mkShell {
@@ -27,6 +31,7 @@
             http-server
             bun
             aseprite
+            png-sub
             (pkgs.writeShellApplication {
               name = "aseprite-export";
 
