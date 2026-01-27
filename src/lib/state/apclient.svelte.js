@@ -1,7 +1,7 @@
 import { Client } from "archipelago.js";
 import { createSubscriber } from "svelte/reactivity";
 import { elementIdToName, elementNameToId } from "../utils";
-import { iconForItem } from "../icons";
+import { iconForIntermediate, iconForItem, iconForLocation } from "../icons";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../consts";
 import { get_name, init_naming } from "../names.js";
 import { createGraph, ElementKind } from "../graph.js";
@@ -344,12 +344,18 @@ class APStore {
 
         const elem_id = elementNameToId(name);
 
-        const loc =
-            elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
-                ? get_name()
-                : displayName;
+        let loc, icon_name;
+        if (elem_id.kind === ElementKind.INTERMEDIATE) {
+            loc = get_name();
+            icon_name = iconForIntermediate(loc);
+        } else {
+            loc =
+                elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
+                    ? get_name()
+                    : displayName;
 
-        const icon_name = iconForItem(item.game, loc);
+            icon_name = isLocation ? iconForLocation(item.game, loc) : iconForItem(item.game, loc);
+        }
 
         this.#elementData[name] = {
             elem_id,
