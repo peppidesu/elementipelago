@@ -231,7 +231,7 @@ export async function initElementStores() {
             let loc, icon_name;
             if (elem_id.kind === ElementKind.INTERMEDIATE) {
                 loc = get_name();
-                icon_name = iconForIntermediate(loc)
+                icon_name = iconForIntermediate(loc);
             } else {
                 loc = item.name;
                 icon_name = iconForLocation(item.game, loc);
@@ -333,7 +333,7 @@ function extendReceivedElements(items) {
         let loc, icon_name;
         if (elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago") {
             loc = get_name();
-            icon_name = iconForIntermediate(loc)
+            icon_name = iconForIntermediate(loc);
         } else {
             loc = item.locationName;
             icon_name = iconForLocation(item.game, loc);

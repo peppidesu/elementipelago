@@ -45,7 +45,7 @@ const colors = [
     "purple",
     "indigo",
     "blue",
-    "white"
+    "white",
 ];
 
 const substituteIcons = [
@@ -59,7 +59,7 @@ const substituteIcons = [
     "car",
     "element",
     "emerald",
-    "leaf"
+    "leaf",
 ];
 
 const icons = [
@@ -103,10 +103,13 @@ const icons = [
     "upgrade",
     "void",
     "wand",
-    "water"
+    "water",
 ];
 
-const combinedIcons = [...icons, ...substituteIcons.flatMap((value) => colors.map((color) => `${value}-${color}`))]
+const combinedIcons = [
+    ...icons,
+    ...substituteIcons.flatMap((value) => colors.map((color) => `${value}-${color}`)),
+];
 
 /**
  * @param {String} text

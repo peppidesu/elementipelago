@@ -46,7 +46,7 @@ export function sendReceivedToasts(items) {
 */
 function elementsReceivedMessage(elements) {
     if (elements.length == 0) return;
-    const first_item_data = getElementData().get(elements[0].name)
+    const first_item_data = getElementData().get(elements[0].name);
     let image = first_item_data.icon;
     let first_item = first_item_data.location;
     let others_suffix = elements.length > 1 ? ` + ${elements.length - 1} more` : "";
