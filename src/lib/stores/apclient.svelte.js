@@ -2,7 +2,7 @@ import { derived, get, readable, writable } from "svelte/store";
 import { Client } from "archipelago.js";
 import { createSubscriber, SvelteMap, SvelteSet } from "svelte/reactivity";
 import { element_to_name, parse_element } from "../../utils";
-import { iconForItem, iconForLocation } from "../machine-learning/iconml";
+import { iconForIntermediate, iconForItem, iconForLocation } from "../machine-learning/iconml";
 import { draw } from "svelte/transition";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../../consts";
 import { get_name, init_naming } from "./names.js";
@@ -228,8 +228,14 @@ export async function initElementStores() {
     for (const item of await scoutedLocations) {
         if (!elementData.has(item.locationName)) {
             const elem_id = parse_element(item.locationName);
-            const loc = elem_id.kind === ElementKind.INTERMEDIATE ? get_name() : item.name;
-            const icon_name = iconForLocation(item.game, loc);
+            let loc, icon_name;
+            if (elem_id.kind === ElementKind.INTERMEDIATE) {
+                loc = get_name();
+                icon_name = iconForIntermediate(loc)
+            } else {
+                loc = item.name;
+                icon_name = iconForLocation(item.game, loc);
+            }
             elementData.set(item.locationName, {
                 elem_id,
                 name: item.locationName,
@@ -324,10 +330,14 @@ function extendReceivedElements(items) {
         }
 
         let elem_id = parse_element(item.name);
-        const loc = elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago"
-            ? get_name()
-            : item.locationName;
-        let icon_name = iconForItem(item.game, loc);
+        let loc, icon_name;
+        if (elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago") {
+            loc = get_name();
+            icon_name = iconForIntermediate(loc)
+        } else {
+            loc = item.locationName;
+            icon_name = iconForLocation(item.game, loc);
+        }
         receivedElements.add(item.name);
         if (elementData.has(item.name)) {
             continue;

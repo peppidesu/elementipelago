@@ -7,19 +7,29 @@ import { getElementData } from "../stores/apclient.svelte.js";
 /**
  * @param {string} game
  * @param {string} name
+ * @returns {string}
  */
 export function iconForLocation(game, name) {
     const kind = "item";
-    return iconForText(`[game=${game}] ${name}`);
+    return iconForText(`[game=${game}][kind=${kind}] ${name}`);
 }
 
 /**
  * @param {string} game
  * @param {string} name
+ * @returns {string}
  */
 export function iconForItem(game, name) {
     const kind = "location";
-    return iconForText(`[game=${game}] ${name}`);
+    return iconForText(`[game=${game}][kind=${kind}] ${name}`);
+}
+
+/**
+ * @param {string} name
+ * @returns {string}
+ */
+export function iconForIntermediate(name) {
+    return iconForText(name);
 }
 
 const colors = [

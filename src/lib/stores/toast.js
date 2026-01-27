@@ -1,6 +1,5 @@
-import { get, writable } from "svelte/store";
-import { apclient, getElementData } from "./apclient.svelte";
-import { iconForItem, iconForLocation } from "../machine-learning/iconml";
+import { writable } from "svelte/store";
+import { getElementData } from "./apclient.svelte";
 import { NON_ELEMENT_ITEMS } from "../../consts";
 
 /**
@@ -13,8 +12,6 @@ import { NON_ELEMENT_ITEMS } from "../../consts";
 */
 
 export const toast_queue = writable([]);
-
-const initialized = writable(false);
 
 /**
  * @param {Item[]} items
@@ -67,7 +64,7 @@ function elementsReceivedMessage(elements) {
     @returns {{title: string, description: string, image: string}}
 */
 function upgradeReceivedMessage(upgrade) {
-    let image = iconForItem(upgrade.game, upgrade.name);
+    let image = "upgrade";
 
     return {
         title: "Upgrade received!",
