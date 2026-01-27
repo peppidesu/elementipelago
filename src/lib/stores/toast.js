@@ -29,10 +29,12 @@ export function sendReceivedToasts(items) {
         return item.id < NON_ELEMENT_ITEMS;
     });
 
-    toast_queue.update((queue) => {
-        queue.push(elementsReceivedMessage(elements));
-        return queue;
-    });
+    if (elements.length > 0) {
+        toast_queue.update((queue) => {
+            queue.push(elementsReceivedMessage(elements));
+            return queue;
+        });
+    }
 
     toast_queue.update((queue) => {
         for (const upgrade of upgrades) {
@@ -48,8 +50,7 @@ export function sendReceivedToasts(items) {
     @returns {{title: string, description: string, image: string}}
 */
 function elementsReceivedMessage(elements) {
-    if (elements.length == 0) return;
-    const first_item_data = getElementData().get(elements[0].name)
+    const first_item_data = getElementData().get(elements[0].name);
     let image = first_item_data.icon;
     let first_item = first_item_data.location;
     let others_suffix = elements.length > 1 ? ` + ${elements.length - 1} more` : "";
