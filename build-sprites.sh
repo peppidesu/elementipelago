@@ -5,6 +5,8 @@ SRC="$ROOT/sprites"
 TMP="$(mktemp -d)/sprites"
 DEST="$ROOT/public/sprites"
 
+rm -rf "$DEST"
+
 sub_inputs=(220022 440044 aa00aa ff00ff)
 
 declare -A palettes=(
