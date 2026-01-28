@@ -28,3 +28,4 @@ dist-ssr
 
 .env
 public/discord-users.json
+/public/sprites
