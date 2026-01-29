@@ -60,7 +60,7 @@
             </div>
             <div style="border-bottom: 3px solid #c0c0c0; padding-block: 10px"></div>
             <h2>Credits</h2>
-            <p>Elementipelago</p>
+            <h1 style="justify-self: center; font-size: 3em">elementipelago</h1>
             <p>a game made for Archipelago</p>
             {#each credits as section}
                 <h3>{section.label}</h3>
