@@ -14,6 +14,13 @@
             users: ["382561799742160896", "235482863250702336"],
         },
         {
+            label: "Audio samples from freesound.org",
+            lines: [
+                "'Doorbell Pull with pull Store Bell 05.wav' by maisonsonique (CC BY 4.0)",
+                "'Door, Front, Opening, A.wav' by InspectorJ (CC BY 4.0)",
+            ],
+        },
+        {
             label: "Playtesting",
             users: ["1429874676590575907", "317342307705683968"],
         },
@@ -76,6 +83,10 @@
                         >
                             {users[id].display ?? users[id].username} (@{users[id].username})
                         </li>
+                    {:else}
+                        {#each section.lines as line}
+                            <li>{line}</li>
+                        {/each}
                     {/each}
                 </ul>
             {/each}
@@ -96,10 +107,6 @@
                 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">
                     https://creativecommons.org/licenses/by-nc/4.0/
                 </a>.
-            </p>
-            <p>
-                SFX include samples sourced from freesound.com, some of which are licensed under CC
-                BY 4.0. Attribution for these authors can be found in the README.md of this project.
             </p>
             <h2>Links</h2>
             <p style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px">

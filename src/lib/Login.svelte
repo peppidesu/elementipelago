@@ -60,9 +60,9 @@
     <div class="error">{error}</div>
 </div>
 <div class="download">
-    Download AP world here <a href="https://github.com/peppidesu/elementipelago/releases"
+    <a href="https://github.com/peppidesu/elementipelago/releases"
         ><img src="/sprites/ui/download.png" /></a
-    >
+    >Download AP world here
 </div>
 
 <style>
@@ -77,7 +77,7 @@
     .download {
         position: absolute;
         top: 0;
-        right: 0;
+        left: 0;
         margin: 10px;
         z-index: 10000;
         display: flex;
@@ -87,6 +87,7 @@
         gap: 5px;
         > a {
             padding: 0.25em;
+
             > img {
                 display: block;
                 width: 32px;
@@ -96,14 +97,14 @@
             margin-inline: auto;
             border-radius: 10px;
             border: 3px solid black;
-            padding: 0.4em 0.4em;
+
             font-size: 1em;
             font-weight: 500;
             font-family: inherit;
             background-color: white;
             cursor: pointer;
             transition: border-color 0.25s;
-            margin-left: 0.5em;
+            margin-right: 0.5em;
 
             &:hover {
                 border-color: #646cff;

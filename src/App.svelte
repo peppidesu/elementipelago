@@ -176,16 +176,17 @@
         <Drawer mount_func={mountElem} mounted_elements={mounted} />
         <Playfield bind:handle_dropped={on_dropped} />
     </div>
-    <Tray
-        handler={(btn) => {
-            openWindow = btn;
-        }}
-    />
     <Toast />
     <Chat show={openWindow == "chat"} onClose={() => (openWindow = "")} />
-    <Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
     <Hints show={openWindow == "hints"} onClose={() => (openWindow = "")} />
 {/if}
+<Tray
+    handler={(btn) => {
+        openWindow = btn;
+    }}
+    {connected}
+/>
+<Settings show={openWindow == "settings"} onClose={() => (openWindow = "")} />
 
 <style>
     .game {

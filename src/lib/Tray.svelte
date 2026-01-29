@@ -1,5 +1,5 @@
 <script>
-    let { handler } = $props();
+    let { handler, connected } = $props();
 
     const buttons = [
         { id: "settings", icon: "settings" },
@@ -8,8 +8,8 @@
     ];
 </script>
 
-<div>
-    {#each buttons as btn}
+<div id="tray">
+    {#each connected ? buttons : [buttons[0]] as btn}
         <button onclick={() => handler(btn.id)}><img src="/sprites/ui/{btn.icon}.png" /></button>
     {/each}
 </div>
