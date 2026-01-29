@@ -2,13 +2,36 @@
     import { apclient } from "./stores/apclient.svelte";
     import { get } from "svelte/store";
     import Window from "./Window.svelte";
+    import { toast_queue } from "./stores/toast";
 
     let { show, onClose } = $props();
 
     let msgs = $state([]);
     let sendContent = $state("");
 
-    get(apclient).messages.on("message", (msg, _) => {
+    get(apclient).messages.on("connected", (msg, player) => {
+        toast_queue.update((queue) => {
+            queue.push({
+                title: `${player.alias} joined.`,
+                description: `Team #${player.team + 1} - ${player.game}`,
+                image: "/sprites/elements/void.png",
+            });
+            return queue;
+        });
+    });
+
+    get(apclient).messages.on("disconnected", (msg, player) => {
+        toast_queue.update((queue) => {
+            queue.push({
+                title: `${player.alias} left.`,
+                description: `Team #${player.team + 1} - ${player.game}`,
+                image: "/sprites/elements/void.png",
+            });
+            return queue;
+        });
+    });
+
+    get(apclient).messages.on("message", (msg, nodes) => {
         msgs.push(msg);
     });
 
