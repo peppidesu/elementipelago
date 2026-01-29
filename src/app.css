@@ -20,10 +20,6 @@ a {
     text-decoration: inherit;
 }
 
-a:hover {
-    color: #535bf2;
-}
-
 body {
     scrollbar-color: #000 rgba(0, 0, 0, 0);
     display: grid;
@@ -32,7 +28,7 @@ body {
     margin: 0;
     overflow: hidden;
 
-    >* {
+    > * {
         grid-area: 1 / 1 / 1 / 1;
     }
 }
@@ -42,7 +38,9 @@ body {
 }
 
 input,
-button {
+button,
+.button {
+    color: black;
     border-radius: 10px;
     border: 3px solid black;
     padding: 0.6em 0.8em;
