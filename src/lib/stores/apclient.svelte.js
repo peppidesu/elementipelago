@@ -23,9 +23,21 @@ import { sendElementToasts, sendUpgradeToasts } from "./toast";
     player: string,
     game: string,
   }} ElementData
+
+  * @typedef {{
+       element_amount: number,
+       intermediate_amount: number,
+       filler_amount: number,
+       compound_amount: number,
+       compounds_are_ingredients: number,
+       graph_seed: number,
+       version: string,
+  * }} SlotData
 */
 
 export const apclient = writable(new Client());
+
+/** @type {Writable<SlotData>} */
 export const slotdata = writable(null);
 /**
  * @type {Writable<Graph>}
