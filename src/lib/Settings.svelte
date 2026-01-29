@@ -19,7 +19,12 @@
         },
         {
             label: "Feedback & support",
-            users: ["329656222213079053", "110878826136907776", "1296648831370268756"],
+            users: [
+                "329656222213079053",
+                "110878826136907776",
+                "1296648831370268756",
+                "86612976529838080",
+            ],
             columns: 2,
         },
     ];
@@ -63,7 +68,11 @@
                         1}, 1fr); justify-self: stretch; align-items: center;"
                 >
                     {#each section.users as id, i}
-                        <li style={i === section.users.length - 1 ? "grid-column: 1 / -1" : ""}>
+                        <li
+                            style={section.users.length % 2 === 1 && i === section.users.length - 1
+                                ? "grid-column: 1 / -1"
+                                : ""}
+                        >
                             {users[id].display ?? users[id].username} (@{users[id].username})
                         </li>
                     {/each}

@@ -20,6 +20,7 @@ const userIds = [
     "329656222213079053", // eeveon
     "1296648831370268756", // gleamingk111
     "317342307705683968", // elki
+    "86612976529838080", // jar of galaxies
 ];
 
 Promise.all(
