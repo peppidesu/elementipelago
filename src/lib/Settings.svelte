@@ -15,7 +15,7 @@
         },
         {
             label: "Playtesting",
-            users: ["1429874676590575907"],
+            users: ["1429874676590575907", "317342307705683968"],
         },
         {
             label: "Feedback & support",
