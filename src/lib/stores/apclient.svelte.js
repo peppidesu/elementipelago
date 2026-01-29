@@ -7,7 +7,7 @@ import { draw } from "svelte/transition";
 import { INTERMEDIATE_AMOUNT, LOCATION_AMOUNT, NON_ELEMENT_ITEMS } from "../../consts";
 import { get_name, init_naming } from "./names.js";
 import { ElementKind } from "../graph.js";
-import { sendReceivedToasts } from "./toast";
+import { sendElementToasts, sendUpgradeToasts } from "./toast";
 
 /**
  * @import { Graph, ElementID } from "../graph.js"
@@ -312,24 +312,42 @@ function extendReceivedHints(hint) {
  * @param {Item[]} items
  */
 function extendReceivedElements(items) {
+    const game_id = get(apclient).room.seedName + "_" + get(apclient).name;
+
+    const slotDataMap = JSON.parse(localStorage.getItem("ap.slotData")) ?? {};
+    if (!slotDataMap.hasOwnProperty(game_id)) {
+        slotDataMap[game_id] = { receivedItems: [], upgrades, date: new Date() };
+
+        let entries = Object.entries(slotDataMap);
+        if (entries.length > 100) {
+            let [oldest, _] = entries
+                .map(([k, v]) => [k, v.date])
+                .reduce(([ka, da], [kc, dc]) => (da > dc ? [kc, dc] : [ka, da]));
+
+            delete slotDataMap[oldest];
+        }
+    }
+    /** @type string[] */
+    const localReceived = slotDataMap[game_id].receivedItems;
+
+    const newLocalReceived = [...localReceived];
     for (const item of items) {
         // it isn't an element, but an upgrade or todo instead
         if (item.id < NON_ELEMENT_ITEMS) {
-            if (item.name == "TODO") {
-                // do nothing
-                continue;
-            }
             if (item.name == "Progressive Filter") {
                 upgrades.progressive_filter += 1;
             }
             if (item.name == "Progressive Item Limit") {
                 upgrades.field_size += 1;
             }
-
             continue;
+        }
+        if (!newLocalReceived.includes(item.name)) {
+            newLocalReceived.push(item.name);
         }
 
         let elem_id = parse_element(item.name);
+
         let loc, icon_name;
         if (elem_id.kind === ElementKind.INTERMEDIATE || item.locationGame === "Archipelago") {
             loc = get_name();
@@ -338,7 +356,9 @@ function extendReceivedElements(items) {
             loc = item.locationName;
             icon_name = iconForLocation(item.game, loc);
         }
+
         receivedElements.add(item.name);
+
         if (elementData.has(item.name)) {
             continue;
         }
@@ -353,7 +373,16 @@ function extendReceivedElements(items) {
             game: item.sender.game,
         });
     }
-    sendReceivedToasts(items);
+    const oldUpgrades = slotDataMap[game_id].upgrades;
+    slotDataMap[game_id].upgrades = upgrades;
+    slotDataMap[game_id].receivedItems = newLocalReceived;
+    localStorage.setItem("ap.slotData", JSON.stringify(slotDataMap));
+
+    const newItems = items.filter(
+        (item) => item.id >= NON_ELEMENT_ITEMS && !localReceived.includes(item.name),
+    );
+    sendElementToasts(newItems);
+    sendUpgradeToasts(oldUpgrades, upgrades);
 }
 
 /**

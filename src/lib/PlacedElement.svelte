@@ -7,7 +7,7 @@
     import { getElementData } from "./stores/apclient.svelte";
     import { element_to_name } from "../utils";
 
-    let { x, y, elem_id, offsetx: ox, offsety: oy, attach, index } = $props();
+    let { x, y, elem_id, offsetx: ox, offsety: oy, attach, index, mount_func } = $props();
 
     export function get_elem_id() {
         return elem_data.elem_id;
@@ -50,25 +50,40 @@
         being_dragged = el != null && el.index === index;
     });
 
+    let numClicks = 0;
+    let dblClickTimer;
+
     /**
      * @param {{ layerX: any; layerY: any; x: any; y: any}} e
      */
     function onpointerdown(e) {
         sfx.drag_start();
 
-        lox = 0;
-        z = 10000;
-        ox = e.layerX;
-        oy = e.layerY;
-        x = e.x;
-        y = e.y;
-        dragging_elem.set({
-            index: index,
-            mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
-                x = lx;
-                y = ly;
-            },
-        });
+        numClicks++;
+
+        if (numClicks == 1) {
+            lox = 0;
+            z = 10000;
+            ox = e.layerX;
+            oy = e.layerY;
+            x = e.x;
+            y = e.y;
+            dragging_elem.set({
+                index: index,
+                mfunc: (/** @type {number} */ lx, /** @type {number} */ ly) => {
+                    x = lx;
+                    y = ly;
+                },
+            });
+            dblClickTimer = setTimeout(() => {
+                numClicks = 0;
+                clearTimeout(dblClickTimer);
+            }, 300);
+        } else if (numClicks == 2) {
+            mount_func(x, y, elem_data.elem_id, 50, 50, false);
+            numClicks = 0;
+            clearTimeout(dblClickTimer);
+        }
     }
 
     const elem_data_map = getElementData();

@@ -16,26 +16,26 @@ export const toast_queue = writable([]);
 /**
  * @param {Item[]} items
  */
-export function sendReceivedToasts(items) {
-    console.log(items);
-    let elements = items.filter((item) => {
-        return item.id >= NON_ELEMENT_ITEMS;
-    });
+export function sendElementToasts(items) {
+    if (items.length > 0) {
+        toast_queue.update((queue) => {
+            queue.push(elementsReceivedMessage(items));
+            return queue;
+        });
+    }
+}
 
-    let upgrades = items.filter((item) => {
-        return item.id < NON_ELEMENT_ITEMS;
-    });
-
+/**
+ * @param {*} oldUpgrades
+ * @param {*} newUpgrades
+ */
+export function sendUpgradeToasts(oldUpgrades, newUpgrades) {
     toast_queue.update((queue) => {
-        queue.push(elementsReceivedMessage(elements));
-        return queue;
-    });
-
-    toast_queue.update((queue) => {
-        for (const upgrade of upgrades) {
-            queue.push(upgradeReceivedMessage(upgrade));
+        for (const key in oldUpgrades) {
+            let count = newUpgrades[key] - oldUpgrades[key];
+            if (count == 0) continue;
+            queue.push(upgradeReceivedMessage(key, count));
         }
-
         return queue;
     });
 }
@@ -45,7 +45,6 @@ export function sendReceivedToasts(items) {
     @returns {{title: string, description: string, image: string}}
 */
 function elementsReceivedMessage(elements) {
-    if (elements.length == 0) return;
     const first_item_data = getElementData().get(elements[0].name);
     let image = first_item_data.icon;
     let first_item = first_item_data.location;
@@ -59,16 +58,19 @@ function elementsReceivedMessage(elements) {
     };
 }
 
+const upgradeKeyToItem = {
+    field_size: "Progressive Item Limit",
+    progressive_filter: "Progressive Filter",
+};
 /**
-    @param {Item} upgrade
+    @param {string} upgrade
+    @param {number} count
     @returns {{title: string, description: string, image: string}}
 */
-function upgradeReceivedMessage(upgrade) {
-    let image = "upgrade";
-
+function upgradeReceivedMessage(upgrade, count) {
     return {
         title: "Upgrade received!",
-        description: upgrade.name,
-        image: "/sprites/elements/" + image + ".png",
+        description: `${upgradeKeyToItem[upgrade]} (x${count})`,
+        image: "/sprites/elements/upgrade.png",
     };
 }
