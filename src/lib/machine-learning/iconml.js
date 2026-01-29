@@ -7,80 +7,118 @@ import { getElementData } from "../stores/apclient.svelte.js";
 /**
  * @param {string} game
  * @param {string} name
+ * @returns {string}
  */
 export function iconForLocation(game, name) {
     const kind = "item";
-    return iconForText(`[game=${game}] ${name}`);
+    return iconForText(`[game=${game}][kind=${kind}] ${name}`);
 }
 
 /**
  * @param {string} game
  * @param {string} name
+ * @returns {string}
  */
 export function iconForItem(game, name) {
     const kind = "location";
-    return iconForText(`[game=${game}] ${name}`);
+    return iconForText(`[game=${game}][kind=${kind}] ${name}`);
 }
 
+/**
+ * @param {string} name
+ * @returns {string}
+ */
+export function iconForIntermediate(name) {
+    return iconForText(name);
+}
+
+const colors = [
+    "lightblue",
+    "turqoise",
+    "green",
+    "lime",
+    "yellow",
+    "orange",
+    "warmred",
+    "red",
+    "magenta",
+    "purple",
+    "indigo",
+    "blue",
+    "white",
+];
+
+const substituteIcons = [
+    "apple",
+    "armor",
+    "ball",
+    "berry",
+    "boat",
+    "book",
+    "boots",
+    "car",
+    "chest",
+    "element",
+    "emerald",
+    "hat",
+    "heart",
+    "leaf",
+    "magic",
+    "marker",
+    "metal",
+    "music",
+    "potion",
+    "sand",
+    "wand",
+];
+
+const icons = [
+    "bow",
+    "cave",
+    "coin",
+    "desert",
+    "egg",
+    "fire",
+    "gun",
+    "hammer",
+    "hills",
+    "hourglass",
+    "house",
+    "ice",
+    "island",
+    "key",
+    "map",
+    "money",
+    "mountains",
+    "piece",
+    "planet",
+    "quest",
+    "ring",
+    "rock",
+    "shop",
+    "sign",
+    "skull",
+    "spear",
+    "sword",
+    "tree",
+    "upgrade",
+    "void",
+    "water",
+];
+
+const combinedIcons = [
+    ...icons,
+    ...substituteIcons.flatMap((value) => colors.map((color) => `${value}-${color}`)),
+];
+
+/**
+ * @param {String} text
+ * @returns {String}
+ */
 function iconForText(text) {
     //const res = predictIcon(get(model), text, { returnTopK: 1 });
-
-    const icons = [
-        "apple",
-        "armor",
-        "ball",
-        "berry",
-        "boat",
-        "book",
-        "boots",
-        "bow",
-        "car",
-        "cave",
-        "chest",
-        "coin",
-        "desert",
-        "egg",
-        "element",
-        "emerald",
-        "fire",
-        "gun",
-        "hammer",
-        "hat",
-        "heart",
-        "hills",
-        "hourglass",
-        "house",
-        "ice",
-        "island",
-        "key",
-        "leaf",
-        "magic",
-        "map",
-        "marker",
-        "metal",
-        "money",
-        "mountains",
-        "music",
-        "piece",
-        "planet",
-        "potion",
-        "quest",
-        "ring",
-        "rock",
-        "sand",
-        "shop",
-        "sign",
-        "skull",
-        "spear",
-        "sword",
-        "tree",
-        "upgrade",
-        "void",
-        "wand",
-        "water"
-    ];
     const buffer = new Uint32Array(md5.arrayBuffer(text));
-    const res = icons[buffer[buffer.length - 1] % icons.length];
+    const res = combinedIcons[buffer[buffer.length - 1] % combinedIcons.length];
 
     const iconKey = res;
     return iconKey;

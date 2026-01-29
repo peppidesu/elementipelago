@@ -32,7 +32,7 @@ body {
     margin: 0;
     overflow: hidden;
 
-    >* {
+    > * {
         grid-area: 1 / 1 / 1 / 1;
     }
 }

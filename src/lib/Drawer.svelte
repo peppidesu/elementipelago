@@ -36,11 +36,7 @@
                 res = res || isExhausted(a.name) - isExhausted(b.name);
             }
 
-            return (
-                res ||
-                a.elem_id.kind - b.elem_id.kind ||
-                a.elem_id.id - b.elem_id.id
-            );
+            return res || a.elem_id.kind - b.elem_id.kind || a.elem_id.id - b.elem_id.id;
         });
 
         if (search_term === "") return table;

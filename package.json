@@ -5,10 +5,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "./build-sprites.sh && vite build",
         "preview": "vite preview",
         "sprites": "./build-sprites.sh",
-        "deploy": "npm run build && gh-pages -d dist --nojekyll --cname elementipelago.peppidesu.dev"
+        "deploy": "bun run build && gh-pages -d dist --nojekyll --cname elementipelago.peppidesu.dev"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
