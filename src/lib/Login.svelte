@@ -2,7 +2,9 @@
     import { get } from "svelte/store";
     import { apclient, slotdata } from "./stores/apclient.svelte";
     import { LoginError } from "archipelago.js";
+    import { APWORLD_VERSION_REGEX, APWORLD_VERSIONS } from "../consts";
 
+    /** @import { SlotData } from "./stores/apclient.svelte"; */
     export let onSubmit;
 
     let host = localStorage.getItem("ap.host") ?? "archipelago.gg:38281";
@@ -19,12 +21,20 @@
             localStorage.setItem("ap.host", host);
             localStorage.setItem("ap.slot", slot);
             localStorage.setItem("ap.password", password);
+
+            /** @type SlotData */
             const response = await get(apclient).login(
                 host,
                 slot,
                 "Elementipelago",
                 password != "" ? { password: password } : {},
             );
+            if (!APWORLD_VERSION_REGEX.test(response.version)) {
+                throw new Error(
+                    `AP world version '${response.version}' is not supported.\n Supported versions include: ${APWORLD_VERSIONS}`,
+                );
+            }
+
             slotdata.set(response);
             onSubmit();
         } catch (e) {
