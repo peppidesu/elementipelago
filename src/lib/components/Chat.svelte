@@ -1,13 +1,30 @@
 <script>
     import { apstore } from "../state/apclient.svelte";
     import Window from "./Window.svelte";
+    import { toast_queue } from "../state/toast.svelte";
 
     let { show, onClose } = $props();
 
     let msgs = $state([]);
     let sendContent = $state("");
 
-    apstore.client.messages.on("message", (msg, _) => {
+    apstore.client.messages.on("connected", (msg, player) => {
+        toast_queue.push({
+            title: `${player.alias} joined.`,
+            description: `Team #${player.team + 1} - ${player.game}`,
+            image: "/sprites/elements/void.png",
+        });
+    });
+
+    apstore.client.messages.on("disconnected", (msg, player) => {
+        toast_queue.push({
+            title: `${player.alias} left.`,
+            description: `Team #${player.team + 1} - ${player.game}`,
+            image: "/sprites/elements/void.png",
+        });
+    });
+
+    apstore.client.messages.on("message", (msg, nodes) => {
         msgs.push(msg);
     });
 
