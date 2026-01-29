@@ -58,8 +58,10 @@ const substituteIcons = [
     "boots",
     "car",
     "chest",
+    "coin",
     "element",
     "emerald",
+    "fire",
     "hat",
     "heart",
     "leaf",
@@ -67,18 +69,19 @@ const substituteIcons = [
     "marker",
     "metal",
     "music",
+    "planet",
     "potion",
     "sand",
     "wand",
+    "water",
 ];
 
 const icons = [
     "bow",
     "cave",
-    "coin",
     "desert",
+    "earth",
     "egg",
-    "fire",
     "gun",
     "hammer",
     "hills",
@@ -91,7 +94,6 @@ const icons = [
     "money",
     "mountains",
     "piece",
-    "planet",
     "quest",
     "ring",
     "rock",
@@ -103,7 +105,6 @@ const icons = [
     "tree",
     "upgrade",
     "void",
-    "water",
 ];
 
 const combinedIcons = [
