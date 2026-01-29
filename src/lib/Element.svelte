@@ -17,6 +17,7 @@
      * @param {any} event
      */
     function onPointerDown(event) {
+        window.getSelection().removeAllRanges();
         sfx.drag_start();
 
         pointerLoc.set({ x: event.clientX, y: event.clientY });

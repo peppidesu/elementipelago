@@ -54,6 +54,7 @@
      * @param {{ layerX: any; layerY: any; x: any; y: any}} e
      */
     function onpointerdown(e) {
+        window.getSelection().removeAllRanges();
         sfx.drag_start();
 
         lox = 0;
