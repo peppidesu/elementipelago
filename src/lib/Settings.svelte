@@ -58,6 +58,7 @@
                     {onpointerup}
                 />
             </div>
+            <div style="border-bottom: 3px solid #c0c0c0; padding-block: 10px"></div>
             <h2>Credits</h2>
             <p>Elementipelago</p>
             <p>a game made for Archipelago</p>
