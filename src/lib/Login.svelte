@@ -28,7 +28,11 @@
             slotdata.set(response);
             onSubmit();
         } catch (e) {
-            error = e.message;
+            if (e.name === "SecurityError" && !host.startsWith("ws://")) {
+                error = "Failed to connect to Archipelago server.";
+            } else {
+                error = e.message;
+            }
         } finally {
             loading = false;
         }
