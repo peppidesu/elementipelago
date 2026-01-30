@@ -6,6 +6,38 @@
     let music_vol = $state(parseFloat(localStorage.getItem("settings.music_volume") ?? "1.0"));
     let sfx_vol = $state(parseFloat(localStorage.getItem("settings.sfx_volume") ?? "1.0"));
 
+    let users = await (await fetch("/discord-users.json")).json();
+
+    const credits = [
+        {
+            label: "Development & artwork",
+            users: ["382561799742160896", "235482863250702336"],
+        },
+        {
+            label: "Audio samples from freesound.org",
+            lines: [
+                "'Doorbell Pull with pull Store Bell 05.wav' by maisonsonique (CC BY 4.0)",
+                "'Door, Front, Opening, A.wav' by InspectorJ (CC BY 4.0)",
+            ],
+        },
+        {
+            label: "Playtesting",
+            users: ["1429874676590575907", "317342307705683968"],
+        },
+        {
+            label: "Feedback & support",
+            users: [
+                "138378536497971200",
+                "329656222213079053",
+                "110878826136907776",
+                "1296648831370268756",
+                "86612976529838080",
+                "353959847189938196",
+            ],
+            columns: 2,
+        },
+    ];
+
     function onchange() {
         localStorage.setItem("settings.music_volume", music_vol.toString());
     }
@@ -35,14 +67,33 @@
                     {onpointerup}
                 />
             </div>
+            <div style="border-bottom: 3px solid #c0c0c0; padding-block: 10px"></div>
             <h2>Credits</h2>
-            <p>Elementipelago</p>
-            <p>a game by Pepijn & Noa made for Archipelago</p>
-            <!-- <h3>Programming</h3>
-            <h3>Artwork</h3>
-            <h3>Audio</h3>
-            <h3>Support & Playtesting</h3> -->
-            <h3>License</h3>
+            <h1 style="justify-self: center; font-size: 3em">elementipelago</h1>
+            <p>a game made for Archipelago</p>
+            {#each credits as section}
+                <h3>{section.label}</h3>
+                <ul
+                    style="display: grid; grid-template-columns: repeat({section.columns ??
+                        1}, 1fr); justify-self: stretch; align-items: center;"
+                >
+                    {#each section.users as id, i}
+                        <li
+                            style={section.users.length % 2 === 1 && i === section.users.length - 1
+                                ? "grid-column: 1 / -1"
+                                : ""}
+                        >
+                            {users[id].display ?? users[id].username} (@{users[id].username})
+                        </li>
+                    {:else}
+                        {#each section.lines as line}
+                            <li>{line}</li>
+                        {/each}
+                    {/each}
+                </ul>
+            {/each}
+            <div style="border-bottom: 3px solid #c0c0c0; padding-block: 10px"></div>
+            <h2>License</h2>
             <p>
                 Elementipelago is a free and open-source project licensed under the
                 <a
@@ -59,17 +110,23 @@
                     https://creativecommons.org/licenses/by-nc/4.0/
                 </a>.
             </p>
-            <p>
-                SFX include samples sourced from freesound.com, some of which licensed under CC-BY
-                4.0. Authors requiring attribution are listed below, detailed attribution can be
-                found in the README.md of this project:
+            <h2>Links</h2>
+            <p style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px">
+                <a
+                    class="button"
+                    target="_blank"
+                    href="https://github.com/peppidesu/elementipelago"
+                >
+                    Github
+                </a>
+                <a class="button" target="_blank" href="https://archipelago.gg">Archipelago</a>
+                <a
+                    class="button"
+                    target="_blank"
+                    href="https://discord.com/channels/731205301247803413/1397584087493115934"
+                    >Discord channel</a
+                >
             </p>
-            <ul>
-                <li>maisonsonique</li>
-                <li>InspectorJ</li>
-            </ul>
-            <h3>Special thanks</h3>
-            <p>you &lt;3</p>
         </ul>
     </div>
 </Window>
@@ -78,7 +135,7 @@
     div {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         width: 100%;
         gap: 10px;
 
@@ -94,6 +151,10 @@
             overflow-y: scroll;
             flex-grow: 1;
             margin: 0;
+            > * {
+                max-width: 1000px;
+                margin-inline: auto;
+            }
             div {
                 margin: 0 auto;
                 display: flex;
@@ -136,7 +197,7 @@
                 }
             }
             ul {
-                list-style: disc;
+                list-style: none;
                 justify-self: center;
                 overflow: auto;
             }

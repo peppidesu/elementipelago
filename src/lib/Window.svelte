@@ -29,7 +29,7 @@
     div.bg {
         backdrop-filter: blur(5px);
         display: grid;
-        z-index: 10000;
+        z-index: 10001;
         grid-template: 100% / 100%;
         div.window-wrapper {
             margin: 20px;

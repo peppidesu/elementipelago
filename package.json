@@ -5,13 +5,14 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "node fetch-discord-users && vite build",
         "preview": "vite preview",
         "sprites": "./build-sprites.sh",
         "deploy": "npm run build && gh-pages -d dist --nojekyll --cname elementipelago.peppidesu.dev"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "dotenv": "^17.2.3",
         "gh-pages": "^6.3.0",
         "svelte": "^5.48.0",
         "vite": "npm:rolldown-vite@7.3.1"
