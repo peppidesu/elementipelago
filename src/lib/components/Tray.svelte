@@ -10,7 +10,9 @@
 
 <div id="tray">
     {#each connected ? buttons : [buttons[0]] as btn}
-        <button onclick={() => handler(btn.id)}><img src="/sprites/ui/{btn.icon}.png" /></button>
+        <button onclick={() => handler(btn.id)}
+            ><img src="/sprites/ui/{btn.icon}.png" alt={btn.icon} /></button
+        >
     {/each}
 </div>
 

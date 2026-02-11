@@ -1,6 +1,6 @@
-import { get, writable } from "svelte/store";
+// This file needs to stay synchronized with the apworld!
+
 import { DeepMap, DeepSet } from "deep-equality-data-structures";
-import { graph, slotdata } from "./stores/apclient.svelte";
 
 const mask64 = 0xffffffffffffffffn;
 
@@ -16,20 +16,6 @@ export const ElementKind = {
 /**
  * @typedef {{ id: number, kind: ElementKind } } ElementID
  */
-
-export function initGraph() {
-    const sd = get(slotdata);
-    graph.set(
-        create_graph(
-            BigInt(sd.graph_seed),
-            sd.element_amount,
-            sd.compound_amount,
-            sd.intermediate_amount,
-            4,
-            sd.compounds_are_ingredients,
-        ),
-    );
-}
 
 class Rng {
     /**
@@ -77,7 +63,7 @@ function range(start, end) {
  *
  * @returns {Graph}
  */
-function create_graph(
+export function createGraph(
     seed,
     inputs,
     outputs,

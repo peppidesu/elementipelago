@@ -1,46 +1,32 @@
 <script>
-    // @ts-ignore
-    import { get } from "svelte/store";
     import Element from "./Element.svelte";
-    import {
-        getDrawerElements,
-        getElementData,
-        isExhausted,
-        isExplorable,
-        upgrades,
-    } from "./stores/apclient.svelte";
-    import { dragging_elem } from "./stores/dragging";
+    import { apstore } from "../state/apclient.svelte";
+    import { mounted, dragging_elem } from "../state/playfield.svelte";
     import Fuse from "fuse.js";
 
-    let { mount_func, mounted_elements } = $props();
     let search_term = $state("");
 
     let show_discard = $state(false);
 
     let filtered_elements = $derived.by(() => {
-        let el_data = getElementData();
         let table = Array.from(
-            getDrawerElements()
+            apstore.drawerElements
                 .values()
-                .map((e) => el_data.get(e))
+                .map((e) => apstore.elementData[e])
                 .filter((e) => e.elem_id != null),
         ).sort((a, b) => {
             let res = 0;
 
-            if (upgrades.progressive_filter > 1) {
+            if (apstore.upgrades.progressive_filter > 1) {
                 // @ts-ignore
-                res = res || isExplorable(b.name) - isExplorable(a.name);
+                res = res || apstore.isExplorable(b.name) - apstore.isExplorable(a.name);
             }
-            if (upgrades.progressive_filter > 0) {
+            if (apstore.upgrades.progressive_filter > 0) {
                 // @ts-ignore
-                res = res || isExhausted(a.name) - isExhausted(b.name);
+                res = res || apstore.isExhausted(a.name) - apstore.isExhausted(b.name);
             }
 
-            return (
-                res ||
-                a.elem_id.kind - b.elem_id.kind ||
-                a.elem_id.id - b.elem_id.id
-            );
+            return res || a.elem_id.kind - b.elem_id.kind || a.elem_id.id - b.elem_id.id;
         });
 
         if (search_term === "") return table;
@@ -69,13 +55,13 @@
     <input bind:value={search_term} />
     <ul id="drawer">
         {#each filtered_elements as elem_data}
-            <Element {elem_data} {mount_func} />
+            <Element {elem_data} />
         {/each}
     </ul>
     <span
         class={show_discard
             ? "show-discard"
-            : mounted_elements.size >= upgrades.field_size
+            : mounted.size >= apstore.upgrades.field_size
               ? "show-blocking"
               : ""}
     >

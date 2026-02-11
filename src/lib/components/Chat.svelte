@@ -1,6 +1,5 @@
 <script>
-    import { apclient } from "./stores/apclient.svelte";
-    import { get } from "svelte/store";
+    import { apstore } from "../state/apclient.svelte";
     import Window from "./Window.svelte";
 
     let { show, onClose } = $props();
@@ -8,7 +7,7 @@
     let msgs = $state([]);
     let sendContent = $state("");
 
-    get(apclient).messages.on("message", (msg, _) => {
+    apstore.client.messages.on("message", (msg, _) => {
         msgs.push(msg);
     });
 
@@ -36,7 +35,7 @@
                 if (event.key === "Enter") {
                     event.preventDefault();
 
-                    get(apclient).messages.say(sendContent);
+                    apstore.client.messages.say(sendContent);
                     sendContent = "";
                 }
             }}

@@ -1,7 +1,5 @@
-import { get, writable } from "svelte/store";
-import { apclient, getElementData } from "./apclient.svelte";
-import { iconForItem, iconForLocation } from "../machine-learning/iconml";
-import { NON_ELEMENT_ITEMS } from "../../consts";
+import { get } from "svelte/store";
+import { apstore } from "./apclient.svelte";
 
 /**
     @typedef {{
@@ -12,43 +10,36 @@ import { NON_ELEMENT_ITEMS } from "../../consts";
     @import { Item } from 'archipelago.js'
 */
 
-export const toast_queue = writable([]);
-
-const initialized = writable(false);
+export const toast_queue = $state([]);
 
 /**
  * @param {Item[]} items
  */
-export function sendElementToasts(items) {
-    if (items.length > 0) {
-        toast_queue.update((queue) => {
-            queue.push(elementsReceivedMessage(items));
-            return queue;
-        });
+apstore.on("elementsReceived", (elements) => {
+    if (elements.length > 0) {
+        toast_queue.push(elementsReceivedMessage(elements));
     }
-}
+});
 
 /**
  * @param {*} oldUpgrades
  * @param {*} newUpgrades
  */
-export function sendUpgradeToasts(oldUpgrades, newUpgrades) {
-    toast_queue.update((queue) => {
-        for (const key in oldUpgrades) {
-            let count = newUpgrades[key] - oldUpgrades[key];
-            if (count == 0) continue;
-            queue.push(upgradeReceivedMessage(key, count));
-        }
-        return queue;
-    });
-}
+apstore.on("upgradesReceived", (oldUpgrades, newUpgrades) => {
+    for (const key in oldUpgrades) {
+        let count = newUpgrades[key] - oldUpgrades[key];
+        console.log(key, count);
+        if (count === 0) continue;
+        toast_queue.push(upgradeReceivedMessage(key, count));
+    }
+});
 
 /**
     @param {Item[]} elements
     @returns {{title: string, description: string, image: string}}
 */
 function elementsReceivedMessage(elements) {
-    const first_item_data = getElementData().get(elements[0].name);
+    const first_item_data = apstore.elementData[elements[0].name];
     let image = first_item_data.icon;
     let first_item = first_item_data.location;
     let others_suffix = elements.length > 1 ? ` + ${elements.length - 1} more` : "";

@@ -1,12 +1,16 @@
 import { LOCATION_AMOUNT } from "./consts";
-import { ElementKind } from "./lib/graph";
+import { ElementKind } from "./graph";
+
+/**
+ * @import { ElementID } from "./graph";
+ */
 
 /**
  * @param {string} name
  *
- * @returns {import("./lib/stores/graph").ElementID}
+ * @returns {ElementID}
  */
-export function parse_element(name) {
+export function elementNameToId(name) {
     const m = name.match(/^(Element|Intermediate|Compound)\s+(\d+)$/);
 
     if (m == null) {
@@ -26,9 +30,9 @@ export function parse_element(name) {
 }
 
 /**
- * @param {import("./lib/stores/graph").ElementID} elem
+ * @param {ElementID} elem
  */
-export function element_to_name(elem) {
+export function elementIdToName(elem) {
     switch (elem.kind) {
         case ElementKind.INPUT:
             return "Element " + elem.id;
@@ -40,9 +44,9 @@ export function element_to_name(elem) {
 }
 
 /**
- * @param {import("./lib/stores/graph").ElementID} elem
+ * @param {ElementID} elem
  */
-export function element_to_location_id(elem) {
+export function elementIdToLocation(elem) {
     switch (elem.kind) {
         case ElementKind.INPUT:
             throw "Not a valid location";

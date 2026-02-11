@@ -1,11 +1,6 @@
 <script>
-    import { derived, get } from "svelte/store";
-    import Element from "./Element.svelte";
-    import { apclient, getElementData, hintedElements, hints } from "./stores/apclient.svelte";
-    import { parse_element } from "../utils";
-    import { ElementKind } from "./graph";
+    import { apstore, defaultElementData } from "../state/apclient.svelte";
     import Window from "./Window.svelte";
-    import { onMount } from "svelte";
 
     const { show, onClose } = $props();
 </script>
@@ -14,36 +9,44 @@
     <div class="holder">
         <h1>Hinted Items</h1>
         <div class="hint-list">
-            {#each hints as [_a, hint_data]}
-                {@const i1_data = hint_data.ingredient_1}
-                {@const i2_data = hint_data.ingredient_2}
-                {@const prod_data = hint_data.product}
-                <div class={hint_data.found ? "disabled" : ""}>
-                    <img src={i1_data.icon} alt={i1_data.alt} draggable="false" />
-                    <span class="info">
-                        <h1>{i1_data.location}</h1>
-                        <p>from {i1_data.player}</p>
-                        <p>{i1_data.name}</p>
-                    </span>
-                </div>
-                <span>+</span>
-                <div class={hint_data.found ? "disabled" : ""}>
-                    <img src={i2_data.icon} alt={i2_data.alt} draggable="false" />
-                    <span class="info">
-                        <h1>{i2_data.location}</h1>
-                        <p>from {i2_data.player}</p>
-                        <p>{i2_data.name}</p>
-                    </span>
-                </div>
-                <span>=</span>
-                <div class={hint_data.found ? "disabled" : ""}>
-                    <img src={prod_data.icon} alt={prod_data.alt} draggable="false" />
-                    <span class="info">
-                        <h1>{prod_data.location}</h1>
-                        <p>from {prod_data.player}</p>
-                        <p>{prod_data.name}</p>
-                    </span>
-                </div>
+            {#each apstore.hintedElements as [_a, recipes]}
+                {#each recipes as recipe}
+                    {@const i1_data =
+                        apstore.elementData[recipe.ingredient_1] ??
+                        defaultElementData(recipe.ingredient_1)}
+                    {@const i2_data =
+                        apstore.elementData[recipe.ingredient_2] ??
+                        defaultElementData(recipe.ingredient_2)}
+                    {@const prod_data =
+                        apstore.elementData[recipe.result] ?? defaultElementData(recipe.result)}
+
+                    <div class={recipe.found ? "disabled" : ""}>
+                        <img src={i1_data.icon} alt={i1_data.alt} draggable="false" />
+                        <span class="info">
+                            <h1>{i1_data.location}</h1>
+                            <p>from {i1_data.player}</p>
+                            <p>{i1_data.name}</p>
+                        </span>
+                    </div>
+                    <span>+</span>
+                    <div class={recipe.found ? "disabled" : ""}>
+                        <img src={i2_data.icon} alt={i2_data.alt} draggable="false" />
+                        <span class="info">
+                            <h1>{i2_data.location}</h1>
+                            <p>from {i2_data.player}</p>
+                            <p>{i2_data.name}</p>
+                        </span>
+                    </div>
+                    <span>=</span>
+                    <div class={recipe.found ? "disabled" : ""}>
+                        <img src={prod_data.icon} alt={prod_data.alt} draggable="false" />
+                        <span class="info">
+                            <h1>{prod_data.location}</h1>
+                            <p>to {prod_data.player}</p>
+                            <p>{prod_data.name}</p>
+                        </span>
+                    </div>
+                {/each}
             {/each}
         </div>
     </div>

@@ -1,7 +1,5 @@
 <script>
     import { fly } from "svelte/transition";
-    import { apclient } from "./stores/apclient.svelte";
-    import { get } from "svelte/store";
     import { linear } from "svelte/easing";
 
     let { show, onClose, children } = $props();
