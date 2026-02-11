@@ -61,3 +61,6 @@ SFX include samples sourced from freesound.com. Required attributions are listed
 
 - Doorbell Pull with pull Store Bell 05.wav by maisonsonique -- https://freesound.org/s/196372/ -- License: Attribution 4.0
 - Door, Front, Opening, A.wav by InspectorJ -- https://freesound.org/s/431117/ -- License: Attribution 4.0
+
+## DeepWiki
+I might not have the time to keep maintaining this in the future, so there is a deepwiki to make contributions easier: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/peppidesu/elementipelago)
