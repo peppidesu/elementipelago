@@ -1,10 +1,8 @@
 <script>
-    import { get } from "svelte/store";
-    import { apclient, slotdata } from "./stores/apclient.svelte";
-    import { LoginError } from "archipelago.js";
+    import { apstore } from "../state/apclient.svelte";
     import { APWORLD_VERSION_REGEX, APWORLD_VERSIONS } from "../consts";
 
-    /** @import { SlotData } from "./stores/apclient.svelte"; */
+    /** @import { SlotData } from "../state/apclient.svelte"; */
     export let onSubmit;
 
     let host = localStorage.getItem("ap.host") ?? "archipelago.gg:38281";
@@ -23,7 +21,7 @@
             localStorage.setItem("ap.password", password);
 
             /** @type SlotData */
-            const response = await get(apclient).login(
+            const response = await apstore.client.login(
                 host,
                 slot,
                 "Elementipelago",
@@ -35,7 +33,7 @@
                 );
             }
 
-            slotdata.set(response);
+            await apstore.init(response);
             onSubmit();
         } catch (e) {
             if (e.name === "SecurityError" && !host.startsWith("ws://")) {
@@ -75,7 +73,7 @@
 </div>
 <div class="download">
     <a href="https://github.com/peppidesu/elementipelago/releases"
-        ><img src="/sprites/ui/download.png" /></a
+        ><img src="/sprites/ui/download.png" alt="download" /></a
     >Download AP world here
 </div>
 

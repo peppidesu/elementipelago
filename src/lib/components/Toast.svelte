@@ -1,6 +1,6 @@
 <script>
     import { get } from "svelte/store";
-    import { toast_queue } from "./stores/toast";
+    import { toast_queue } from "../state/toast.svelte";
     import { fly, scale } from "svelte/transition";
     import { sfx } from "../audio";
 
@@ -8,11 +8,12 @@
 
     let current = $state(null);
     let cooldown = $state(false);
-
     let close_timeout = $state(0);
 
-    toast_queue.subscribe(open);
-    $effect(open);
+    $effect(() => {
+        toast_queue;
+        open();
+    });
 
     function onpointerup() {
         clearTimeout(close_timeout);
@@ -20,11 +21,8 @@
     }
 
     function open() {
-        if (!cooldown && get(toast_queue).length > 0 && current == null) {
-            toast_queue.update((q) => {
-                current = q.splice(0, 1)[0];
-                return q;
-            });
+        if (!cooldown && toast_queue.length > 0 && current == null) {
+            current = toast_queue.splice(0, 1)[0];
             cooldown = true;
             sfx.toast();
             close_timeout = setTimeout(close, 5000);
@@ -41,7 +39,7 @@
     <div {onpointerup} transition:fly={{ duration: transition_duration, x: "100%", y: 0 }}>
         <h1>{current.title}</h1>
         <p>{current.description}</p>
-        <img src={current.image} />
+        <img src={current.image} alt={current.image} />
     </div>
 {/if}
 
@@ -64,7 +62,7 @@
         width: 400px;
         row-gap: 0px;
         background-color: white;
-        z-index: 10000;
+        z-index: 10002;
 
         h1 {
             font-size: 1em;

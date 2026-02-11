@@ -1,17 +1,15 @@
 <script lang="js">
-    import { mount } from "svelte";
-    import PlacedElement from "./PlacedElement.svelte";
-    import { pointerLoc } from "./stores/pointer";
-    import { isExhausted, isExplorable, upgrades } from "./stores/apclient.svelte";
+    import { pointerLoc } from "../state/pointer";
+    import { apstore } from "../state/apclient.svelte";
     import { get } from "svelte/store";
-    import { ElementKind } from "./graph.js";
     import { sfx } from "../audio.js";
+    import { mountElem } from "../state/playfield.svelte";
 
     /**
-     * @import { ElementData } from "./stores/apclient.svelte";
-     * @type {{ elem_data: ElementData, mount_func: any}}
+     * @import { ElementData } from "../state/apclient.svelte";
+     * @type {{ elem_data: ElementData }}
      */
-    const { elem_data, mount_func } = $props();
+    const { elem_data } = $props();
     let el;
     /**
      * @param {any} event
@@ -23,11 +21,15 @@
         pointerLoc.set({ x: event.clientX, y: event.clientY });
         let { x, y } = get(pointerLoc);
         const rect = el.getBoundingClientRect();
-        mount_func(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
+        mountElem(x, y, elem_data.elem_id, x - rect.left, y - rect.top, true);
     }
 
-    let is_bk = $derived(!isExplorable(elem_data.name) && upgrades.progressive_filter > 1);
-    let is_exhausted = $derived(isExhausted(elem_data.name) && upgrades.progressive_filter > 0);
+    let is_bk = $derived(
+        !apstore.isExplorable(elem_data.name) && apstore.upgrades.progressive_filter > 1,
+    );
+    let is_exhausted = $derived(
+        apstore.isExhausted(elem_data.name) && apstore.upgrades.progressive_filter > 0,
+    );
 </script>
 
 <li class="element {is_bk || is_exhausted ? 'disabled' : ''}" bind:this={el}>
