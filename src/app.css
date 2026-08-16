@@ -61,6 +61,17 @@ button:focus-visible {
     outline: 4px auto -webkit-focus-ring-color;
 }
 
+input[type="checkbox"] {
+    appearance: none;
+    border-radius: 0;
+    padding: 0;
+    height: 25px;
+    width: 25px;
+    &:checked {
+        background: #646cff;
+    }
+}
+
 @media (prefers-color-scheme: light) {
     :root {
         color: #213547;

@@ -13,7 +13,7 @@ import { apstore } from "./apclient.svelte";
 export const toast_queue = $state([]);
 
 /**
- * @param {Item[]} items
+ * @param {Item[]} elements
  */
 apstore.on("elementsReceived", (elements) => {
     if (elements.length > 0) {
@@ -39,9 +39,11 @@ apstore.on("upgradesReceived", (oldUpgrades, newUpgrades) => {
     @returns {{title: string, description: string, image: string}}
 */
 function elementsReceivedMessage(elements) {
+    const ollamaEnabled = localStorage.getItem("settings.ollama_enabled") === "true";
+
     const first_item_data = apstore.elementData[elements[0].name];
     let image = first_item_data.icon;
-    let first_item = first_item_data.location;
+    let first_item = !ollamaEnabled ? first_item_data.location : first_item_data.name;
     let others_suffix = elements.length > 1 ? ` + ${elements.length - 1} more` : "";
     let description = `${first_item}${others_suffix}`;
 
