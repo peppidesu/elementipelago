@@ -240,7 +240,10 @@ class APStore {
             this.#slotData.compounds_are_ingredients,
         );
         /** @type {SlotData["elements"] | undefined} */
-        const savedElements = await this.#client.storage.fetch("elementipelago_elements", true);
+        const savedElements = await this.#client.storage.fetch(
+            `elementipelago_${this.#client.name}_elements`,
+            true,
+        );
         if (savedElements) {
             this.#slotData.elements = savedElements;
         }
@@ -755,7 +758,7 @@ class APStore {
                 alt: icon_name,
             };
             this.#client.storage
-                .prepare("elementipelago_elements", {})
+                .prepare(`elementipelago_${this.#client.name}_elements`, {})
                 .update({ [name]: this.slotData.elements[name] })
                 .commit();
         }
